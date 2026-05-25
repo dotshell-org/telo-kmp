@@ -24,7 +24,7 @@ import kotlinx.coroutines.withContext
 class TransportRepository(context: Context? = null) {
 
     private val transportApi: TransportApi = TransportServiceProvider.getTransportApi()
-    private val cache = context?.let { com.pelotcl.app.specific.data.cache.TransportCacheImpl(it) }
+    private val cache = context?.let { com.pelotcl.app.generic.data.cache.TransportCacheImpl(it) }
     private val offlineRepo = context?.let { OfflineRepository(it) }
 
     /**

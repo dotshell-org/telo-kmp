@@ -162,14 +162,9 @@ import com.pelotcl.app.generic.utils.map.MapLinesManager.showAllMapLines
 import com.pelotcl.app.generic.utils.map.ItineraryMapManager.zoomToItineraries
 import com.pelotcl.app.generic.utils.map.MapLinesManager.zoomToLine
 import com.pelotcl.app.generic.utils.map.MapStopsManager.zoomToStop
-import com.pelotcl.app.specific.utils.LineColorHelper
-import com.pelotcl.app.specific.utils.LineNamingUtils.areEquivalentLineNames
-import com.pelotcl.app.specific.utils.LineMapManager.filterMapLines
-import com.pelotcl.app.specific.utils.LineClassificationUtils.getVehicleMarkerType
-import com.pelotcl.app.specific.utils.LineClassificationUtils.isLiveTrackableLine
-import com.pelotcl.app.specific.utils.LineClassificationUtils.isMetroTramOrFunicular
-import com.pelotcl.app.specific.utils.LineClassificationUtils.isNavigoneLine
-import com.pelotcl.app.specific.utils.LineClassificationUtils.isTemporaryBus
+import com.pelotcl.app.generic.data.models.ui.VehicleMarkerType
+import com.pelotcl.app.generic.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.map.LineMapManager.filterMapLines
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
@@ -196,6 +191,15 @@ const val SELECTED_STOP_MIN_ZOOM = 9.0f
 const val LIVE_MODE_ZOOM_LEVEL = 12.0f // Zoom level for live tracking mode (below PRIORITY_STOPS_MIN_ZOOM to hide stop icons)
 const val WALKING_MAX_SPEED_MPS = 2.5
 const val LONG_TRANSFER_THRESHOLD_SECONDS = 10 * 60
+
+private val lineRules get() = TransportServiceProvider.getTransportLineRules()
+private fun isMetroTramOrFunicular(lineName: String): Boolean = lineRules.isStrongLine(lineName)
+private fun isStrongLine(lineName: String): Boolean = lineRules.isStrongLine(lineName)
+private fun isNavigoneLine(lineName: String): Boolean = lineRules.isNavigoneLine(lineName)
+private fun isTemporaryBus(lineName: String): Boolean = !lineRules.isStrongLine(lineName)
+private fun isLiveTrackableLine(lineName: String): Boolean = lineRules.isLiveTrackableLine(lineName)
+private fun getVehicleMarkerType(lineName: String): VehicleMarkerType = lineRules.getVehicleMarkerType(lineName)
+private fun areEquivalentLineNames(first: String, second: String): Boolean = lineRules.canonicalRouteName(first) == lineRules.canonicalRouteName(second)
 const val LATE_TRANSFER_RECALC_THRESHOLD_SECONDS = 3 * 60
 const val AUTO_RECALC_MAX_STOP_IDS = 64
 const val NAV_ALERT_APPROACH_DISTANCE_METERS = 140.0

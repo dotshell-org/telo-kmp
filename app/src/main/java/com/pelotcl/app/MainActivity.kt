@@ -67,7 +67,7 @@ import com.pelotcl.app.generic.ui.screens.settings.about.ContactScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.CreditsScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.LegalScreen
 import com.pelotcl.app.generic.ui.screens.plan.PlanScreen
-import com.pelotcl.app.specific.ui.screens.settings.ItinerarySettingsScreen
+import com.pelotcl.app.generic.ui.screens.settings.ItinerarySettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.OfflineSettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.SettingsScreen
 import com.pelotcl.app.generic.ui.theme.PeloTheme
@@ -78,7 +78,7 @@ import com.pelotcl.app.generic.data.repository.offline.SchedulesRepository
 import com.pelotcl.app.generic.ui.screens.Destination
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
-import com.pelotcl.app.specific.data.cache.TransportCacheImpl
+import com.pelotcl.app.generic.data.cache.TransportCacheImpl
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.generic.utils.location.LocationHelper
 import kotlinx.coroutines.CoroutineScope

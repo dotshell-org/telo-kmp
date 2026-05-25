@@ -56,7 +56,7 @@ import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.AlertSeverity as TrafficAlertSeverity
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
-import com.pelotcl.app.specific.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.LineColorHelper
 
 /**
  * Bottom Sheet qui affiche toutes les lignes organisées par catégories

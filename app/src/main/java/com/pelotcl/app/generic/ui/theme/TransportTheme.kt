@@ -2,7 +2,6 @@ package com.pelotcl.app.generic.ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import com.pelotcl.app.specific.ui.theme.TransportThemeImpl
 
 /**
  * Interface for the transport theme

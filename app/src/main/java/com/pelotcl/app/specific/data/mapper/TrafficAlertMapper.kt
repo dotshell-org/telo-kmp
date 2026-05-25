@@ -52,33 +52,4 @@ object TrafficAlertMapper {
         )
     }
 
-    /**
-     * Convert a generic traffic alert to Lyon-specific format (for caching/offline storage)
-     */
-    fun mapToLyon(genericAlert: TrafficAlert): LyonTrafficAlert {
-        return LyonTrafficAlert(
-            cause = genericAlert.cause,
-            startDate = genericAlert.startDate,
-            endDate = genericAlert.endDate,
-            lastUpdate = genericAlert.lastUpdate,
-            lineCode = genericAlert.lineCode,
-            lineName = genericAlert.lineName,
-            objectList = genericAlert.objectList,
-            message = genericAlert.message,
-            mode = genericAlert.mode,
-            alertNumber = genericAlert.alertNumber,
-            severityLevel = genericAlert.severityLevel,
-            title = genericAlert.title,
-            alertType = genericAlert.alertType,
-            objectType = genericAlert.objectType,
-            severityType = genericAlert.severityType
-        )
-    }
-
-    /**
-     * Convert a list of generic traffic alerts to Lyon-specific format
-     */
-    fun mapToLyonList(genericAlerts: List<TrafficAlert>): List<LyonTrafficAlert> {
-        return genericAlerts.map { mapToLyon(it) }
-    }
 }

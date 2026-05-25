@@ -7,9 +7,11 @@ import com.pelotcl.app.generic.data.models.geojson.StopFeature
 import com.pelotcl.app.generic.data.models.stops.StopGeometry
 import com.pelotcl.app.generic.data.models.stops.StopProperties
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper
-import com.pelotcl.app.specific.utils.LineClassificationUtils
+import com.pelotcl.app.generic.service.TransportServiceProvider
 
 object StopsGeoJsonManager {
+
+    private val lineRules get() = TransportServiceProvider.getTransportLineRules()
 
     fun createStopsGeoJsonFromStops(
         stops: List<StopFeature>,
@@ -28,9 +30,9 @@ object StopsGeoJsonManager {
 
             val hasTram = lineNamesAll.any { it.uppercase().startsWith("T") }
 
-            val lignesFortes = lineNamesAll.filter { LineClassificationUtils.isMetroTramOrFunicular(it) }
-            val busLines = lineNamesAll.filter { !LineClassificationUtils.isMetroTramOrFunicular(it) }
-            val uniqueModes = busLines.mapNotNull { LineClassificationUtils.getModeIconForLine(it) }.distinct()
+            val lignesFortes = lineNamesAll.filter { lineRules.isStrongLine(it) }
+            val busLines = lineNamesAll.filter { !lineRules.isStrongLine(it) }
+            val uniqueModes = busLines.mapNotNull { lineRules.getModeIcon(it) }.distinct()
 
             val iconsToDisplay = ArrayList<Pair<String, Int>>(lignesFortes.size + uniqueModes.size)
 
@@ -39,7 +41,7 @@ object StopsGeoJsonManager {
                 val drawableName = BusIconHelper.getDrawableNameForLineName(lineName)
                 if (validIcons.contains(drawableName)) {
                     val priority = when {
-                        LineClassificationUtils.isMetroTramOrFunicular(upperName) &&
+                        lineRules.isStrongLine(upperName) &&
                                 !upperName.startsWith("T") -> 2
                         upperName.startsWith("T") -> 1
                         else -> 0
@@ -119,8 +121,8 @@ object StopsGeoJsonManager {
 
         stops.forEach { stop ->
             val allLines = BusIconHelper.getAllLinesForStop(stop)
-            val strongLines = allLines.filter { LineClassificationUtils.isMetroTramOrFunicular(it) }
-            val weakLines = allLines.filter { !LineClassificationUtils.isMetroTramOrFunicular(it) }
+            val strongLines = allLines.filter { lineRules.isStrongLine(it) }
+            val weakLines = allLines.filter { !lineRules.isStrongLine(it) }
 
             if (strongLines.isNotEmpty()) {
                 val strongDesserte = strongLines.joinToString(", ")

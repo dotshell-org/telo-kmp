@@ -46,7 +46,7 @@ import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
 import com.pelotcl.app.generic.utils.schedule.DepartureManager
-import com.pelotcl.app.specific.utils.LineNamingUtils.sortLines
+import com.pelotcl.app.generic.service.TransportServiceProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,7 +203,7 @@ fun StationBottomSheet(
 
                 // Virtualized list of departures (sorted)
                 val lineOrder = remember(allStopLines) {
-                    sortLines(allStopLines)
+                    TransportServiceProvider.getTransportLineRules().sortLines(allStopLines)
                         .mapIndexed { index, line -> line.uppercase() to index }
                         .toMap()
                 }

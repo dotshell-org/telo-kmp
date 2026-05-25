@@ -5,7 +5,9 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.pelotcl.app.generic.data.repository.offline.SchedulesRepository
 import com.pelotcl.app.generic.widget.model.UpcomingDeparture
-import com.pelotcl.app.specific.utils.HolidayDetector
+import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
+import com.pelotcl.app.generic.utils.date.HolidayDetector
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
@@ -26,13 +28,13 @@ object ScheduleWidgetHelper {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun buildScheduleContext(context: Context): ScheduleContext {
         val repo = SchedulesRepository.getInstance(context)
-        val holidayDetector = HolidayDetector(context)
+        val holidayDetector = HolidayDetector(context, "holidays.json", FrenchPublicHolidayStrategy())
         val today = LocalDate.now()
         return ScheduleContext(
             repo = repo,
             now = LocalTime.now(),
             isSchoolHoliday = holidayDetector.isSchoolHoliday(today),
-            isPublicHoliday = holidayDetector.isFrenchPublicHoliday(today)
+            isPublicHoliday = holidayDetector.isPublicHoliday(today)
         )
     }
 

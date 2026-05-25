@@ -1,34 +1,24 @@
-package com.pelotcl.app.specific.ui.theme
+package com.pelotcl.app.generic.ui.theme
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.ui.graphics.Color
-import com.pelotcl.app.generic.ui.theme.AccentColor
-import com.pelotcl.app.generic.ui.theme.PrimaryColor
-import com.pelotcl.app.generic.ui.theme.SecondaryColor
-import com.pelotcl.app.generic.ui.theme.TransportTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import com.pelotcl.app.generic.data.config.ThemeData
 
-/**
- * Implementation of the transport theme
- * Official colors of the transport network
- */
-@Immutable
-class TransportThemeImpl : TransportTheme {
-    override val metroLineColor: Color = Color(0xFFE60000) // Metro line color
-    override val tramLineColor: Color = Color(0xFF007AC3) // Tramway line color
-    override val busLineColor: Color = Color(0xFF00A651) // Bus line color
+class GenericTransportTheme(private val data: ThemeData? = null) : TransportTheme {
+    override val metroLineColor: Color = Color(android.graphics.Color.parseColor(data?.metroLineColor ?: "#FF0000"))
+    override val tramLineColor: Color = Color(android.graphics.Color.parseColor(data?.tramLineColor ?: "#00FF00"))
+    override val busLineColor: Color = Color(android.graphics.Color.parseColor(data?.busLineColor ?: "#0000FF"))
+    override val errorColor: Color = Color(android.graphics.Color.parseColor(data?.errorColor ?: "#FF0000"))
+    override val successColor: Color = Color(android.graphics.Color.parseColor(data?.successColor ?: "#00FF00"))
+    override val warningColor: Color = Color(android.graphics.Color.parseColor(data?.warningColor ?: "#FFFF00"))
+    override val disruptionColor: Color = Color(android.graphics.Color.parseColor(data?.disruptionColor ?: "#FFA500"))
 
-    // Status colors
-    override val errorColor: Color = Color(0xFFD32F2F) // Error red
-    override val successColor: Color = Color(0xFF388E3C) // Success green
-    override val warningColor: Color = Color(0xFFF57C00) // Warning orange
-    override val disruptionColor: Color = Color(0xFFD32F2F) // Disruption red
-    
     @Composable
     override fun ApplyTheme(content: @Composable () -> Unit) {
-        androidx.compose.material3.MaterialTheme(
+        MaterialTheme(
             colorScheme = lightColorScheme(
                 primary = PrimaryColor,
                 secondary = SecondaryColor,
@@ -62,5 +52,4 @@ class TransportThemeImpl : TransportTheme {
             content = content
         )
     }
-
 }

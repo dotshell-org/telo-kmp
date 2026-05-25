@@ -27,7 +27,8 @@ import com.pelotcl.app.generic.data.repository.itinerary.itinerary.JourneyLeg
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorStopWithCoords
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
-import com.pelotcl.app.specific.utils.HolidayDetector
+import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
+import com.pelotcl.app.generic.utils.date.HolidayDetector
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -64,13 +65,17 @@ class TransportViewModel(private val context: Context) : ViewModel() {
     }
     private val vehiclePositionsRepository = VehiclePositionsRepository(vehiclePositionsService)
     private val schedulesRepository = SchedulesRepository.getInstance(context)
-    private val holidayDetector by lazy { HolidayDetector(context.applicationContext) }
+    private val holidayDetector by lazy {
+        val config = TransportServiceProvider.getTransportConfig()
+        val holidayFileName = (config as? com.pelotcl.app.generic.data.config.AppTransportConfig)?.schoolHolidaysFile ?: "holidays.json"
+        HolidayDetector(context.applicationContext, holidayFileName, FrenchPublicHolidayStrategy())
+    }
     private var vehiclePositionsJob: Job? = null
     private var globalLiveJob: Job? = null
     private val favoritesRepository = FavoritesRepository(context)
     val raptorRepository = RaptorRepository.getInstance(context)
     val offlineDataManager = OfflineDataManager(transportApi, context)
-    private val transportCache by lazy { com.pelotcl.app.specific.data.cache.TransportCacheImpl(context) }
+    private val transportCache by lazy { com.pelotcl.app.generic.data.cache.TransportCacheImpl(context) }
     private val offlineRepository by lazy { com.pelotcl.app.generic.data.offline.OfflineRepository(context) }
     private val _linesState = MutableStateFlow<TransportLinesState>(TransportLinesState.Loading)
 
@@ -390,6 +395,11 @@ class TransportViewModel(private val context: Context) : ViewModel() {
 
                 if (stopsNeedingNameEnrichment.isNotEmpty()) {
                     val raptorStopsWithCoords = raptorRepository.getAllStopsWithCoords()
+                    Log.d("TransportViewModel", "Raptor stops with coords: ${raptorStopsWithCoords.size}")
+                    val sampleRaptorCoords = raptorStopsWithCoords.take(3).map { "(${it.lat}, ${it.lon})" }
+                    Log.d("TransportViewModel", "Sample Raptor coords: $sampleRaptorCoords")
+                    val zeroCoordCount = raptorStopsWithCoords.count { it.lat == 0.0 && it.lon == 0.0 }
+                    Log.d("TransportViewModel", "Raptor stops with 0,0 coords: $zeroCoordCount")
 
                     // Build spatial hash grid for O(1) nearest-neighbor lookup
                     // Key = (latBucket, lonBucket) truncated to ~100m cells
@@ -401,6 +411,9 @@ class TransportViewModel(private val context: Context) : ViewModel() {
                         val key = latBucket * 1_000_000L + lonBucket
                         spatialGrid.getOrPut(key) { mutableListOf() }.add(raptorStop)
                     }
+
+                    val sampleWfsCoords = stopsNeedingNameEnrichment.take(3).map { "${it.properties.nom} -> coords=${it.geometry.coordinates}" }
+                    Log.d("TransportViewModel", "Sample WFS coords: $sampleWfsCoords")
 
                     var enrichedCount = 0
                     val result = enrichedStops.map { stop ->
@@ -560,7 +573,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
 
         val today = LocalDate.now()
         val isSchoolHoliday = holidayDetector.isSchoolHoliday(today)
-        val isPublicHoliday = holidayDetector.isFrenchPublicHoliday(today)
+        val isPublicHoliday = holidayDetector.isPublicHoliday(today)
         val now = java.util.Calendar.getInstance()
         val nowMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
 
@@ -761,7 +774,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
 
             val today = LocalDate.now()
             val isSchoolHoliday = holidayDetector.isSchoolHoliday(today)
-            val isPublicHoliday = holidayDetector.isFrenchPublicHoliday(today)
+            val isPublicHoliday = holidayDetector.isPublicHoliday(today)
             val candidateDirections = _headsigns.value.keys.ifEmpty { setOf(0, 1) }.toList().sorted()
 
             val available = candidateDirections.filter { directionId ->
@@ -788,7 +801,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
 
             val today = LocalDate.now()
             val isSchoolHoliday = holidayDetector.isSchoolHoliday(today)
-            val isPublicHoliday = holidayDetector.isFrenchPublicHoliday(today)
+            val isPublicHoliday = holidayDetector.isPublicHoliday(today)
 
             val allSchedulesForDay = schedulesRepository.getSchedules(
                 lineName = resolveScheduleRouteName(lineName),

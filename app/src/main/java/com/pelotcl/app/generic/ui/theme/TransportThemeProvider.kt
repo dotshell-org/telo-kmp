@@ -1,14 +1,14 @@
 package com.pelotcl.app.generic.ui.theme
 
-import com.pelotcl.app.specific.ui.theme.TransportThemeImpl
-
 /**
  * Theme provider - allows dynamic theme changes
  */
 object TransportThemeProvider {
-    private var currentTheme: TransportTheme = TransportThemeImpl()
+    private var currentTheme: TransportTheme = GenericTransportTheme()
 
     fun setTheme(theme: TransportTheme) {
         currentTheme = theme
     }
+
+    fun getTheme(): TransportTheme = currentTheme
 }

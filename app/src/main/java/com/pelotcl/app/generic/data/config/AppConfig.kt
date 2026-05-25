@@ -1,0 +1,130 @@
+package com.pelotcl.app.generic.data.config
+
+import com.google.gson.annotations.SerializedName
+
+data class AppConfig(
+    @SerializedName("transport") val transport: TransportConfigData,
+    @SerializedName("theme") val theme: ThemeData,
+    @SerializedName("about") val about: AboutData,
+    @SerializedName("rules") val rules: RulesData,
+    @SerializedName("mapStyles") val mapStyles: MapStylesData,
+    @SerializedName("lineColors") val lineColors: LineColorsData,
+    @SerializedName("cache") val cache: CacheConfigData,
+    @SerializedName("itinerarySettings") val itinerarySettings: ItinerarySettingsData
+)
+
+data class TransportConfigData(
+    val baseUrl: String,
+    val networkName: String,
+    val region: String,
+    val organizingAuthority: String,
+    val dataSource: String,
+    val dataSourceUrl: String,
+    val dataLicense: String,
+    val regionBounds: List<Double>,
+    val offlineMapZoomRange: IntRangeData,
+    val schoolHolidaysFile: String,
+    val primaryColor: String,
+    val secondaryColor: String,
+    val trafficAlertsBaseUrl: String,
+    val vehiclePositionsStreamUrl: String
+)
+
+data class IntRangeData(
+    val start: Int,
+    val end: Int
+)
+
+data class ThemeData(
+    val metroLineColor: String,
+    val tramLineColor: String,
+    val busLineColor: String,
+    val errorColor: String,
+    val successColor: String,
+    val warningColor: String,
+    val disruptionColor: String
+)
+
+data class AboutData(
+    val screenTitle: String,
+    val sections: List<AboutSectionData>,
+    val legalSections: List<AboutSectionData>,
+    val contact: ContactData
+)
+
+data class AboutSectionData(
+    val title: String,
+    val content: String,
+    val links: List<AboutLinkData> = emptyList()
+)
+
+data class AboutLinkData(
+    val label: String,
+    val url: String
+)
+
+data class ContactData(
+    val email: String?,
+    val website: String?,
+    val socialMedia: List<SocialMediaData>
+)
+
+data class SocialMediaData(
+    val platform: String,
+    val url: String,
+    val username: String
+)
+
+data class RulesData(
+    val strongLines: List<String>,
+    val strongLineRegexes: List<String> = emptyList(),
+    val lineNameRegexes: List<String>,
+    val transportTypes: List<TransportTypeData> = emptyList()
+)
+
+data class TransportTypeData(
+    val name: String,
+    val regex: String,
+    val icon: String? = null
+)
+
+data class MapStylesData(
+    val defaultKey: String,
+    val standard: List<MapStyleEntryData>,
+    val satellite: MapStyleEntryData
+)
+
+data class MapStyleEntryData(
+    val key: String,
+    val displayName: String,
+    val styleUrl: String
+)
+
+data class LineColorsData(
+    val rules: List<LineColorRuleData>,
+    val fallback: String
+)
+
+data class LineColorRuleData(
+    val match: String,
+    val type: String = "exact",
+    val color: String
+)
+
+data class CacheConfigData(
+    val validityHours: Long = 24,
+    val cacheBusLines: Boolean = false
+)
+
+data class ItinerarySettingsData(
+    val screenTitle: String,
+    val sectionTitle: String,
+    val options: List<ItineraryOptionData>
+)
+
+data class ItineraryOptionData(
+    val key: String,
+    val title: String,
+    val subtitle: String,
+    val defaultEnabled: Boolean = true
+)

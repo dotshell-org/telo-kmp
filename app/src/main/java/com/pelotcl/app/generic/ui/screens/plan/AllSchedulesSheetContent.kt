@@ -48,7 +48,7 @@ import com.pelotcl.app.generic.ui.theme.Gray700
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper
-import com.pelotcl.app.specific.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.LineColorHelper
 import java.util.Calendar
 
 private fun getLineColor(lineName: String): Color {

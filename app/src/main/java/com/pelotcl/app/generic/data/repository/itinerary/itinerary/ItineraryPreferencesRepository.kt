@@ -20,17 +20,14 @@ class ItineraryPreferencesRepository(private val context: Context) {
      * Default: true (enabled)
      */
     fun isJdLinesEnabled(): Boolean {
-        if (!prefs.contains(keyEnableJDLines)) {
-            prefs.edit { putBoolean(keyEnableJDLines, true) }
-        }
-        return prefs.getBoolean(keyEnableJDLines, true)
+        return isOptionEnabled(keyEnableJDLines, true)
     }
 
     /**
      * Enable or disable Junior Direct (JD) lines in routing.
      */
     fun setJdLinesEnabled(enabled: Boolean) {
-        prefs.edit { putBoolean(keyEnableJDLines, enabled) }
+        setOptionEnabled(keyEnableJDLines, enabled)
     }
 
     /**
@@ -38,17 +35,31 @@ class ItineraryPreferencesRepository(private val context: Context) {
      * Default: true (enabled)
      */
     fun isRxLineEnabled(): Boolean {
-        if (!prefs.contains(keyEnableRXLine)) {
-            prefs.edit { putBoolean(keyEnableRXLine, true) }
-        }
-        return prefs.getBoolean(keyEnableRXLine, true)
+        return isOptionEnabled(keyEnableRXLine, true)
     }
 
     /**
      * Enable or disable RhôneExpress (RX) line in routing.
      */
     fun setRxLineEnabled(enabled: Boolean) {
-        prefs.edit { putBoolean(keyEnableRXLine, enabled) }
+        setOptionEnabled(keyEnableRXLine, enabled)
+    }
+
+    /**
+     * Generic getter for itinerary options.
+     */
+    fun isOptionEnabled(key: String, defaultValue: Boolean): Boolean {
+        if (!prefs.contains(key)) {
+            prefs.edit { putBoolean(key, defaultValue) }
+        }
+        return prefs.getBoolean(key, defaultValue)
+    }
+
+    /**
+     * Generic setter for itinerary options.
+     */
+    fun setOptionEnabled(key: String, enabled: Boolean) {
+        prefs.edit { putBoolean(key, enabled) }
     }
 
 }

@@ -29,7 +29,7 @@ import com.pelotcl.app.generic.data.models.search.StationSearchResult
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.theme.Stone900
-import com.pelotcl.app.specific.utils.LineClassificationUtils.isStrongLine
+import com.pelotcl.app.generic.service.TransportServiceProvider
 
 @Composable
 fun StopSearchResultItem(
@@ -55,7 +55,7 @@ fun StopSearchResultItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         result.lines.forEach { lineName ->
-                            if (isStrongLine(lineName)) {
+                            if (TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
                                 SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                             }
                         }
@@ -65,7 +65,7 @@ fun StopSearchResultItem(
                         verticalArrangement = Arrangement.spacedBy((-8).dp)
                     ) {
                         result.lines.forEach { lineName ->
-                            if (!isStrongLine(lineName)) {
+                            if (!TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
                                 SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                             }
                         }

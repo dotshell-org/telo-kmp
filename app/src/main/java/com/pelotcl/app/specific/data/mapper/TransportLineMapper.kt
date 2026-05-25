@@ -84,32 +84,4 @@ object TransportLineMapper {
         )
     }
 
-    /**
-     * Convert generic transport line properties to Lyon-specific properties
-     */
-    fun mapToLyon(properties: TransportLineProperties): LyonTransportLineProperties {
-        return LyonTransportLineProperties(
-            ligne = properties.lineName,
-            codeTrace = properties.traceCode,
-            codeLigne = properties.lineId,
-            typeTrace = properties.traceType.ifEmpty { null },
-            nomTrace = properties.traceName.ifEmpty { null },
-            sens = properties.direction,
-            origine = properties.origin.ifEmpty { null },
-            destination = properties.destination.ifEmpty { null },
-            nomOrigine = properties.originName.ifEmpty { null },
-            nomDestination = properties.destinationName.ifEmpty { null },
-            familleTransport = properties.transportType,
-            dateDebut = properties.startDate.ifEmpty { null },
-            dateFin = properties.endDate,
-            codeTypeLigne = properties.lineTypeCode.ifEmpty { null },
-            nomTypeLigne = properties.lineTypeName.ifEmpty { null },
-            codeTriLigne = properties.sortCode.ifEmpty { null },
-            nomVersion = properties.versionName.ifEmpty { null },
-            lastUpdate = properties.lastUpdate.ifEmpty { null },
-            lastUpdateFme = properties.lastUpdateFme.ifEmpty { null },
-            gid = properties.gid,
-            couleur = properties.color
-        )
-    }
 }

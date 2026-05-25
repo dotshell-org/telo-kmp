@@ -19,11 +19,10 @@ import com.pelotcl.app.generic.ui.screens.plan.SECONDARY_STOPS_MIN_ZOOM
 import com.pelotcl.app.generic.ui.screens.plan.SELECTED_STOP_MIN_ZOOM
 import com.pelotcl.app.generic.ui.screens.plan.TRAM_STOPS_MIN_ZOOM
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.geo.StopsGeoJsonManager
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper
-import com.pelotcl.app.specific.utils.LineColorHelper
-import com.pelotcl.app.specific.utils.LineClassificationUtils
-import com.pelotcl.app.specific.utils.LineNamingUtils
+import com.pelotcl.app.generic.utils.LineColorHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,6 +40,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 
 object MapStopsManager {
 
+    private val lineRules get() = TransportServiceProvider.getTransportLineRules()
     private var currentMapSlots: Set<Int> = emptySet()
 
     suspend fun addStopsToMap(
@@ -74,9 +74,9 @@ object MapStopsManager {
                     if (lineNames.isEmpty()) return@forEach
 
                     val lignesFortes =
-                        lineNames.filter { LineClassificationUtils.isMetroTramOrFunicular(it) }
+                        lineNames.filter { lineRules.isStrongLine(it) }
                     val busLines =
-                        lineNames.filter { !LineClassificationUtils.isMetroTramOrFunicular(it) }
+                        lineNames.filter { !lineRules.isStrongLine(it) }
 
                     lignesFortes.forEach { lineName ->
                         val drawableName = BusIconHelper.getDrawableNameForLineName(lineName)
@@ -86,7 +86,7 @@ object MapStopsManager {
                     }
 
                     val uniqueModes = busLines
-                        .mapNotNull { LineClassificationUtils.getModeIconForLine(it) }
+                        .mapNotNull { lineRules.getModeIcon(it) }
                         .distinct()
                         .filter { checkIconAvailable(it) }
                     val validLignesFortes = lignesFortes.count { lineName ->
@@ -308,7 +308,7 @@ object MapStopsManager {
                                     val lineName =
                                         if (props.has("lineName")) props.get("lineName").asString else ""
                                     if (lineName.isNotEmpty()) {
-                                        onLineClick(LineNamingUtils.normalizeLineNameForUi(lineName))
+                                        onLineClick(lineRules.normalizeLineNameForUi(lineName))
                                         return@OnMapClickListener true
                                     }
                                 } catch (_: Exception) {
@@ -388,7 +388,7 @@ object MapStopsManager {
                                     val lineName =
                                         if (props.has("ligne")) props.get("ligne").asString else ""
                                     if (lineName.isNotEmpty()) {
-                                        onLineClick(LineNamingUtils.normalizeLineNameForUi(lineName))
+                                        onLineClick(lineRules.normalizeLineNameForUi(lineName))
                                         return@OnMapClickListener true
                                     }
                                 } catch (_: Exception) {
@@ -412,7 +412,7 @@ object MapStopsManager {
         val priorityLayerPrefix = "transport-stops-layer-priority"
         val tramLayerPrefix = "transport-stops-layer-tram"
         val secondaryLayerPrefix = "transport-stops-layer-secondary"
-        val linePropertyName = "has_line_${LineNamingUtils.canonicalLineName(selectedLineName)}"
+        val linePropertyName = "has_line_${lineRules.canonicalRouteName(selectedLineName)}"
 
         currentMapSlots.forEach { idx ->
             (style.getLayer("$priorityLayerPrefix-$idx") as? SymbolLayer)?.setFilter(
@@ -471,7 +471,7 @@ object MapStopsManager {
             val priorityLayerPrefix = "transport-stops-layer-priority"
             val tramLayerPrefix = "transport-stops-layer-tram"
             val secondaryLayerPrefix = "transport-stops-layer-secondary"
-            val linePropertyName = "has_line_${LineNamingUtils.canonicalLineName(selectedLineName)}"
+            val linePropertyName = "has_line_${lineRules.canonicalRouteName(selectedLineName)}"
 
             currentMapSlots.forEach { idx ->
                 (style.getLayer("$priorityLayerPrefix-$idx") as? SymbolLayer)?.let { layer ->
@@ -537,7 +537,7 @@ object MapStopsManager {
         val normalizedSelectedStop = normalizeStopName(selectedStopName)
 
         val lineColor = allLines
-            .find { LineNamingUtils.areEquivalentLineNames(it.properties.lineName, selectedLineName) }
+            .find { lineRules.canonicalRouteName(it.properties.lineName) == lineRules.canonicalRouteName(selectedLineName) }
             ?.let { LineColorHelper.getColorForLine(it) }
             ?: "#EF4444"
 
@@ -548,7 +548,7 @@ object MapStopsManager {
             allStops.filter { stop ->
                 val lines = BusIconHelper.getAllLinesForStop(stop)
                 val hasLine = lines.any {
-                    LineNamingUtils.areEquivalentLineNames(it, selectedLineName)
+                    lineRules.canonicalRouteName(it) == lineRules.canonicalRouteName(selectedLineName)
                 }
                 val isNotSelected = normalizeStopName(stop.properties.nom) != normalizedSelectedStop
                 hasLine && isNotSelected

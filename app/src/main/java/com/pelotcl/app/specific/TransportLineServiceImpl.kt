@@ -4,7 +4,7 @@ import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.data.models.geojson.Feature
 import com.pelotcl.app.generic.data.network.transport.TransportLineService
-import com.pelotcl.app.specific.data.network.LyonTransportLineApi
+import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.specific.data.network.LyonTransportLineApiWrapper
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -15,14 +15,18 @@ import retrofit2.converter.gson.GsonConverterFactory
  */
 class TransportLineServiceImpl : TransportLineService {
     
-    private val transportConfig = TransportConfigImpl
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(transportConfig.baseUrl)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private val transportConfig get() = TransportServiceProvider.getTransportConfig()
+    private val retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(transportConfig.baseUrl)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
     
-    private val lyonApi = retrofit.create(LyonTransportLineApi::class.java)
-    private val apiService = LyonTransportLineApiWrapper(lyonApi)
+    private val apiService by lazy {
+        val lyonApi = retrofit.create(com.pelotcl.app.specific.data.network.LyonTransportLineApi::class.java)
+        com.pelotcl.app.specific.data.network.LyonTransportLineApiWrapper(lyonApi)
+    }
     
     override suspend fun getMetroLines(): FeatureCollection {
         return apiService.getMetroLines(

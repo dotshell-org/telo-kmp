@@ -7,7 +7,9 @@ import com.pelotcl.app.generic.data.cache.journey.JourneyCache
 import com.pelotcl.app.generic.data.repository.itinerary.holiday.HolidayPeriod
 import com.pelotcl.app.generic.data.repository.itinerary.holiday.HolidaysData
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
-import com.pelotcl.app.specific.utils.TransportTypeUtils
+import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.generic.utils.date.HolidayDetector
+import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
 import com.pelotcl.app.generic.utils.search.SearchUtils
 import io.raptor.PeriodData
 import io.raptor.RaptorLibrary
@@ -55,8 +57,8 @@ class RaptorRepository private constructor(private val context: Context) {
     private var stopsCache: List<Stop> = emptyList()
     private val mutex = Mutex()
 
-    // School holidays data parsed from assets
-    private var schoolHolidays: List<HolidayPeriod> = emptyList()
+    // Generic holiday detector
+    private var holidayDetector: HolidayDetector? = null
 
     // Multi-level disk cache for journey persistence
     private val journeyDiskCache: JourneyCache by lazy { JourneyCache.getInstance(context) }
@@ -243,55 +245,25 @@ class RaptorRepository private constructor(private val context: Context) {
         }
     }
 
-    /**
-     * Load school holidays data from assets/holidays.json
-     */
     private fun loadSchoolHolidays() {
-        try {
-            val json = context.assets.open("holidays.json").bufferedReader().use { it.readText() }
-            // Configure Json to ignore unknown keys as fallback
-            val jsonConfig = Json { ignoreUnknownKeys = true }
-            val holidaysData = jsonConfig.decodeFromString<HolidaysData>(json)
-            schoolHolidays = holidaysData.holidays.mapNotNull { holiday ->
-                val startDate = try {
-                    LocalDate.parse(holiday.startDateInclusive, DateTimeFormatter.ISO_DATE)
-                } catch (e: Exception) {
-                    null
-                }
-
-                val endDate = try {
-                    holiday.endDateInclusive?.let {
-                        LocalDate.parse(
-                            it,
-                            DateTimeFormatter.ISO_DATE
-                        )
-                    }
-                } catch (e: Exception) {
-                    null
-                }
-
-                if (startDate != null) {
-                    HolidayPeriod(
-                        name = holiday.name,
-                        startDate = startDate,
-                        endDate = endDate ?: startDate.plusMonths(2) // Summer holidays fallback
-                    )
-                } else null
-            }
-            Log.i(TAG, "Loaded ${schoolHolidays.size} school holiday periods")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load school holidays: ${e.message}", e)
-            schoolHolidays = emptyList()
-        }
+        val config = TransportServiceProvider.getTransportConfig()
+        holidayDetector = HolidayDetector(
+            context,
+            config.schoolHolidaysFile,
+            FrenchPublicHolidayStrategy() // Could be made factory-based or config-based later
+        )
+        Log.i(TAG, "Initialized generic HolidayDetector with ${config.schoolHolidaysFile}")
     }
 
     /**
      * Determine if a given date falls within school holidays
      */
     private fun isSchoolHoliday(date: LocalDate): Boolean {
-        return schoolHolidays.any { period ->
-            !date.isBefore(period.startDate) && !date.isAfter(period.endDate)
-        }
+        return holidayDetector?.isSchoolHoliday(date) ?: false
+    }
+
+    private fun isPublicHoliday(date: LocalDate): Boolean {
+        return holidayDetector?.isPublicHoliday(date) ?: false
     }
 
     /**
@@ -299,6 +271,8 @@ class RaptorRepository private constructor(private val context: Context) {
      */
     private fun getPeriodForDate(date: LocalDate): String {
         val dayOfWeek = date.dayOfWeek.value // 1 = Monday, 7 = Sunday
+
+        if (isPublicHoliday(date)) return PERIOD_SUNDAY
 
         return when (dayOfWeek) {
             6 -> PERIOD_SATURDAY
@@ -1000,7 +974,7 @@ class RaptorRepository private constructor(private val context: Context) {
             .distinct()
         if (query.isBlank()) {
             return allNames.sorted().map {
-                LineSearchResult(lineName = it, category = TransportTypeUtils.getTransportType(it))
+                LineSearchResult(lineName = it, category = TransportServiceProvider.getTransportLineRules().getTransportType(it))
             }
         }
         val normalizedQuery = query.trim().uppercase()
@@ -1021,7 +995,7 @@ class RaptorRepository private constructor(private val context: Context) {
             .map { lineName ->
                 LineSearchResult(
                     lineName = lineName,
-                    category = TransportTypeUtils.getTransportType(lineName)
+                    category = TransportServiceProvider.getTransportLineRules().getTransportType(lineName)
                 )
             }
     }

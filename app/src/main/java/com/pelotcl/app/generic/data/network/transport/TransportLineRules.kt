@@ -1,10 +1,11 @@
 package com.pelotcl.app.generic.data.network.transport
 
+import com.pelotcl.app.generic.data.models.ui.VehicleMarkerType
+
 /**
  * Rules for normalizing and matching transport line names.
  *
- * This is intentionally implemented in `specific` because aliasing rules are
- * network/city-specific (e.g. Rhônexpress -> RX, NAVI1 -> NAV1, regex patterns, etc.).
+ * This can be network/city-specific (e.g. Rhônexpress -> RX, NAVI1 -> NAV1, regex patterns, etc.).
  */
 interface TransportLineRules {
     /**
@@ -33,5 +34,45 @@ interface TransportLineRules {
      * Normalizes a line name for comparison (e.g. live vehicle stream filtering).
      */
     fun normalizeForComparison(raw: String): String
+
+    /**
+     * Returns whether the line is considered a "strong" line (metro, tram, funicular, etc.).
+     */
+    fun isStrongLine(lineName: String): Boolean
+
+    /**
+     * Returns the transport type category (e.g., "Métro", "Bus").
+     */
+    fun getTransportType(lineName: String): String
+
+    /**
+     * Returns the mode icon name for the line, or null if it's a strong line.
+     */
+    fun getModeIcon(lineName: String): String?
+
+    /**
+     * Returns whether the line is a navigone (ferry) line.
+     */
+    fun isNavigoneLine(lineName: String): Boolean
+
+    /**
+     * Returns whether live vehicle tracking is available for this line.
+     */
+    fun isLiveTrackableLine(lineName: String): Boolean
+
+    /**
+     * Returns the vehicle marker type for rendering on the map.
+     */
+    fun getVehicleMarkerType(lineName: String): VehicleMarkerType
+
+    /**
+     * Normalizes a line name for UI display (e.g., "NAV1" -> "NAVI1").
+     */
+    fun normalizeLineNameForUi(lineName: String): String
+
+    /**
+     * Sorts a list of line names in a city-specific display order.
+     */
+    fun sortLines(lines: List<String>): List<String>
 }
 

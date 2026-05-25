@@ -9,17 +9,18 @@ import com.pelotcl.app.generic.data.network.RetrofitInstance
 import com.pelotcl.app.generic.data.network.transport.TransportLineService
 import com.pelotcl.app.generic.data.network.TrafficAlertsService
 import com.pelotcl.app.generic.data.network.VehiclePositionsService
-import com.pelotcl.app.specific.data.rules.LyonTransportLineRules
-import com.pelotcl.app.specific.data.network.LyonTransportApi
 import com.pelotcl.app.generic.ui.theme.TransportTheme
 import com.pelotcl.app.generic.ui.screens.about.AboutScreenContract
-import com.pelotcl.app.specific.MapStyleConfigImpl
-import com.pelotcl.app.specific.TransportConfigImpl
+import com.pelotcl.app.generic.data.config.AppConfigLoader
+import com.pelotcl.app.generic.data.config.AppTransportConfig
+import com.pelotcl.app.generic.data.config.AppTransportLineRules
+import com.pelotcl.app.generic.data.config.AppTrafficAlertsService
+import com.pelotcl.app.generic.data.config.AppVehiclePositionsService
+import com.pelotcl.app.generic.ui.screens.about.GenericAboutScreen
+import com.pelotcl.app.generic.ui.theme.GenericTransportTheme
+import com.pelotcl.app.specific.data.network.LyonTransportApi
+import com.pelotcl.app.generic.data.config.AppMapStyleConfig
 import com.pelotcl.app.specific.TransportLineServiceImpl
-import com.pelotcl.app.specific.TrafficAlertsServiceImpl
-import com.pelotcl.app.specific.VehiclePositionsServiceImpl
-import com.pelotcl.app.specific.ui.screens.settings.AboutScreenImpl
-import com.pelotcl.app.specific.ui.theme.TransportThemeImpl
 
 /**
  * Service provider for the application
@@ -42,23 +43,17 @@ object TransportServiceProvider {
      * Initializes the provider with Lyon TCL configuration
      */
     fun initialize(context: Context) {
-        // Lyon TCL configuration
-        transportConfig = TransportConfigImpl
+        // Load configuration from config.yml
+        val appConfig = AppConfigLoader.loadConfig(context)
 
-        // Lyon TCL map style configuration
-        mapStyleConfig = MapStyleConfigImpl()
+        // Transport configuration
+        transportConfig = AppTransportConfig(appConfig.transport)
 
-        // Lyon TCL vehicle positions service
-        vehiclePositionsService = VehiclePositionsServiceImpl()
+        // Map style configuration
+        mapStyleConfig = AppMapStyleConfig(appConfig.mapStyles)
 
-        // Lyon TCL transport line service
+        // Transport line service
         transportLineService = TransportLineServiceImpl()
-
-        // Lyon-specific rules for matching/normalizing line names
-        transportLineRules = LyonTransportLineRules()
-
-        // Lyon TCL traffic alerts service
-        trafficAlertsService = TrafficAlertsServiceImpl()
 
         // Initialize Retrofit with the configuration
         RetrofitInstance.initialize(context, transportConfig)
@@ -66,11 +61,20 @@ object TransportServiceProvider {
         // Create the API - use LyonTransportApi for Lyon-specific field mapping
         transportApi = LyonTransportApi(transportConfig.baseUrl)
 
-        // Lyon TCL theme
-        transportTheme = TransportThemeImpl()
+        // Rules for matching/normalizing line names
+        transportLineRules = AppTransportLineRules(appConfig.rules)
 
-        // Lyon TCL "About" screens
-        aboutScreen = AboutScreenImpl()
+        // Traffic alerts service
+        trafficAlertsService = AppTrafficAlertsService(appConfig.transport, transportApi)
+
+        // Vehicle positions service
+        vehiclePositionsService = AppVehiclePositionsService(appConfig.transport, appConfig.rules)
+
+        // Theme
+        transportTheme = GenericTransportTheme(appConfig.theme)
+
+        // "About" screens
+        aboutScreen = GenericAboutScreen(appConfig.about)
 
         // Apply the default theme
         com.pelotcl.app.generic.ui.theme.TransportThemeProvider.setTheme(transportTheme)

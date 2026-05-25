@@ -80,7 +80,7 @@ import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.viewmodel.TransportLinesUiState
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper
-import com.pelotcl.app.specific.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.LineColorHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

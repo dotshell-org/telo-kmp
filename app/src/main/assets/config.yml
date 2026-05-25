@@ -1,0 +1,244 @@
+transport:
+  baseUrl: "https://data.grandlyon.com/"
+  networkName: "Réseau de transport"
+  region: "Région métropolitaine"
+  organizingAuthority: "Autorité organisatrice"
+  dataSource: "Source de données"
+  dataSourceUrl: "https://data.grandlyon.com"
+  dataLicense: "Licence de données"
+  regionBounds: [45.55, 4.65, 45.95, 5.10]
+  offlineMapZoomRange:
+    start: 8
+    end: 16
+  schoolHolidaysFile: "holidays.json"
+  primaryColor: "#E60000"
+  secondaryColor: "#000000"
+  trafficAlertsBaseUrl: "https://api.dotshell.eu/"
+  vehiclePositionsStreamUrl: "https://api.dotshell.eu/pelo/v1/vehicle-monitoring/positions/stream"
+
+theme:
+  metroLineColor: "#E60000"
+  tramLineColor: "#007AC3"
+  busLineColor: "#00A651"
+  errorColor: "#D32F2F"
+  successColor: "#388E3C"
+  warningColor: "#F57C00"
+  disruptionColor: "#D32F2F"
+
+mapStyles:
+  defaultKey: "positron"
+  standard:
+    - key: "positron"
+      displayName: "Clair"
+      styleUrl: "https://tiles.openfreemap.org/styles/positron"
+    - key: "dark_matter"
+      displayName: "Sombre"
+      styleUrl: "https://tiles.openfreemap.org/styles/dark"
+    - key: "bright"
+      displayName: "OSM"
+      styleUrl: "https://tiles.openfreemap.org/styles/bright"
+    - key: "liberty"
+      displayName: "3D"
+      styleUrl: "https://tiles.openfreemap.org/styles/liberty"
+  satellite:
+    key: "satellite"
+    displayName: "Vue satellite"
+    styleUrl: "asset://satellite.json"
+
+lineColors:
+  fallback: "#EF4444"
+  rules:
+    - match: "RX"
+      type: "exact"
+      color: "#E30613"
+    - match: "TB12"
+      type: "exact"
+      color: "#92400e"
+    - match: "TB"
+      type: "prefix"
+      color: "#eab308"
+    - match: "T"
+      type: "prefix"
+      color: "#A855F7"
+    - match: "A"
+      type: "exact"
+      color: "#EC4899"
+    - match: "B"
+      type: "exact"
+      color: "#3B82F6"
+    - match: "C"
+      type: "exact"
+      color: "#F59E0B"
+    - match: "D"
+      type: "exact"
+      color: "#22C55E"
+    - match: "F"
+      type: "prefix"
+      color: "#84CC16"
+    - match: "NAV1"
+      type: "exact"
+      color: "#14b8a6"
+    - match: "NAVI1"
+      type: "exact"
+      color: "#14b8a6"
+
+cache:
+  validityHours: 24
+  cacheBusLines: false
+
+itinerarySettings:
+  screenTitle: "Itinéraire"
+  sectionTitle: "Lignes à tarification spéciale"
+  options:
+    - key: "enable_jd_lines"
+      title: "Junior Direct (JD)"
+      subtitle: "Lignes scolaires"
+      defaultEnabled: true
+    - key: "enable_rx_line"
+      title: "Rhônexpress (RX)"
+      subtitle: "Navette aéroport"
+      defaultEnabled: true
+
+about:
+  screenTitle: "À propos"
+  sections:
+    - title: "Données de transport"
+      content: |
+        Les données de transport utilisées dans l’application proviennent exclusivement du site data.grandlyon.com et sont soumises à la Licence Mobilités.
+
+        Les tracés géographiques des lignes de bus (incluant Chrono, Pleine Lune, Bus relais, Gare Express, Navette, Soyeuse, Zone Industrielle et Junior Direct), tramway, Rhônexpress, Trambus, métro, funiculaire et Navigone sont téléchargés directement depuis l’API publique délivrée par le SYTRAL sur le site data.grandlyon.com.
+
+        Les positions géographiques ainsi que les noms des arrêts, les contenus des lignes et les horaires proviennent tous du fichier GTFS (General Transit Feed Specification) distribué par le SYTRAL sur le site data.grandlyon.com. Ces données sont manuellement mises à jour par les développeurs et subissent un prétraitement avant d’être utilisées. Aucune donnée n’est modifiée, uniquement leur organisation est transformée afin d’être traitée plus rapidement par l’application.
+
+        Les pictogrammes des lignes proviennent également du site data.grandlyon.com et sont fournies par le SYTRAL au format SVG.
+
+        Les alertes trafic et les positions de véhicules en temps réel sont fournies par le SYTRAL sur le site data.grandlyon.com via une API fermée requérant une authentification. En vertu de la Licence Mobilités, Dotshell met à disposition du public un miroir de ces données à l’adresse api.dotshell.eu/pelo/v1/. Le miroir fait des requêtes périodiquement à l’API du SYTRAL, enregistre en mémoire le résultat et redistribue au client une copie, accompagnée du timestamp de la dernière mise à jour. Les données sont purement copiées et redistribuées à l’exception des alertes trafic pour lesquelles les bus scolaires Junior Direct ont été fusionnés aux lignes classiques et les doublons ont été supprimés.
+      links:
+        - label: "data.grandlyon.com"
+          url: "https://data.grandlyon.com"
+        - label: "api.dotshell.eu/pelo/v1/"
+          url: "https://api.dotshell.eu/pelo/v1/"
+    - title: "Cartographie"
+      content: |
+        Les données de cartographie sont fournies par MapLibre et OpenStreetMaps.
+
+        Les fonds de carte (dénommés Positron, Dark Matter, OSM Bright et Liberty) sont fournis par OpenMapTiles. L’application utilise par défaut le thème Positron (Light) de Map Tiler.
+
+        Les tuiles de la vue satellite proviennent de la ESRI World Imagery.
+      links:
+        - label: "MapLibre"
+          url: "https://maplibre.org"
+        - label: "OpenStreetMap"
+          url: "https://www.openstreetmap.org"
+        - label: "OpenMapTiles"
+          url: "https://openmaptiles.org"
+    - title: "Technologies"
+      content: |
+        Cette application est développée avec les technologies suivantes :
+        • Kotlin et Jetpack Compose pour l'interface utilisateur
+        • Hilt pour l'injection de dépendances
+        • Retrofit pour les appels réseau
+        • MapLibre pour la cartographie
+        • Room pour la base de données locale
+        • Coroutines pour la programmation asynchrone
+      links: []
+    - title: "Licence"
+      content: |
+        Le code source de l’Application est distribué sous licence GPL‑3.0. Pelo n’est pas affilié aux TCL ou au SYTRAL.
+
+        L’application utilise TCL-API-mirror pour le miroir des données en temps réel.
+      links:
+        - label: "Licence GPL-3.0"
+          url: "https://www.gnu.org/licenses/gpl-3.0.html"
+        - label: "TCL-API-mirror"
+          url: "https://github.com/dotshell/tcl-api-mirror"
+  legalSections:
+    - title: "Éditeur"
+      content: |
+        L’Application Pelo est éditée par Dotshell. Dotshell n’est pas affiliée aux TCL ni au SYTRAL. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.
+    - title: "Objet"
+      content: |
+        Les présentes CGU définissent les conditions d’accès et d’utilisation de l’Application Pelo (ci‑après « l’Application »). L’utilisation de l’Application vaut acceptation de ces conditions.
+    - title: "Description de l'application"
+      content: |
+        L’Application aide l’utilisateur à se déplacer dans le réseau TCL (Lyon et agglomération) via des outils de recherche et de planification. Les sources tierces sont listées dans la page « Crédits ».
+    - title: "Permissions"
+      content: |
+        L’Application peut solliciter les permissions suivantes selon les besoins techniques :
+        • Localisation : Pour afficher les arrêts proches (traitée localement).
+        • Réseau/Internet : Pour récupérer les horaires en temps réel.
+    - title: "Traitement des données et confidentialité"
+      content: |
+        Pelo est conçue selon le principe de la protection des données dès la conception.
+
+        5.1. Stockage Local Exclusif
+        L'intégralité de vos données d'usage (historique de recherche, paramètres de l'application, préférences d'affichage) est stockée exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations.
+
+        5.2. Cas particulier des Favoris (Connexion Socket)
+        Pour permettre la mise à jour en temps réel de vos lignes et arrêts favoris, une connexion technique temporaire (socket) est établie à l'ouverture de l'application et rompue dès sa fermeture.
+        • Cet échange est strictement anonyme.
+        • Aucune donnée permettant de vous identifier n'est transmise ou enregistrée sur un serveur externe.
+        • Ce flux sert uniquement à la synchronisation technique des données de transport durant votre session de navigation.
+
+        5.3. Absence de revente
+        Dotshell ne collecte, ne vend, ni ne commercialise aucune donnée personnelle. Les requêtes réseau effectuées servent uniquement à interroger les API de transport nécessaires au service (voir page « Crédits »).
+    - title: "Responsabilité"
+      content: |
+        Les informations (horaires, perturbations) sont fournies à titre indicatif. Dotshell décline toute responsabilité en cas d’inexactitude des données provenant de tiers ou d’indisponibilité du réseau de transport.
+    - title: "Propriété intellectuelle"
+      content: |
+        Le code source de l’Application est distribué sous licence GPL‑3.0. Les marques et logos des réseaux de transport demeurent la propriété de leurs titulaires respectifs.
+    - title: "Mises à jour"
+      content: |
+        Dotshell se réserve le droit de modifier ces CGU. La version applicable est celle disponible dans l'Application au moment de son utilisation.
+  contact:
+    email: "contact@pelo.app"
+    website: "https://pelo.app"
+    socialMedia:
+      - platform: "Twitter"
+        url: "https://twitter.com/pelo_app"
+        username: "pelo_app"
+      - platform: "GitHub"
+        url: "https://github.com/dotshell/pelo"
+        username: "dotshell"
+
+rules:
+  strongLines: ["A", "B", "C", "D", "F1", "F2", "RX"]
+  strongLineRegexes: ["^T\\d{1,2}$", "^NAVI\\d{1,2}$"]
+  lineNameRegexes:
+    - "^TB\\d{1,2}[A-Z]?$"
+    - "^T\\d{1,2}[A-Z]?$"
+    - "^C\\d{1,2}[A-Z]?$"
+    - "^NAVI\\d{1,2}$"
+    - "^JD\\d{1,3}$"
+    - "^GE\\d{1,2}$"
+    - "^PL\\d{1,2}$"
+    - "^ZI\\d{1,2}$"
+    - "^S\\d{1,2}$"
+    - "^N\\d{1,2}$"
+    - "^\\d{1,3}[A-Z]?$"
+  transportTypes:
+    - name: "Métro"
+      regex: "^[A-D]$"
+    - name: "Funiculaire"
+      regex: "^F[1-2]$"
+    - name: "Tramway"
+      regex: "^T\\d{1,2}$"
+      icon: "mode_tram"
+    - name: "Trambus"
+      regex: "^TB\\d{1,2}$"
+      icon: "mode_chrono"
+    - name: "Chrono"
+      regex: "^C\\d{1,2}$"
+      icon: "mode_chrono"
+    - name: "Bus Scolaire"
+      regex: "^JD\\d{1,3}$"
+      icon: "mode_jd"
+    - name: "Navigone"
+      regex: "^NAVI\\d{1,2}$"
+    - name: "Navette"
+      regex: "^N\\d{1,2}$"
+      icon: "mode_bus"
+    - name: "Car"
+      regex: "^\\d{3}$"
+      icon: "mode_bus"

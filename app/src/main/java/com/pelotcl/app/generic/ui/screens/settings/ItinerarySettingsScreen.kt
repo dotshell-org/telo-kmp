@@ -1,4 +1,4 @@
-package com.pelotcl.app.specific.ui.screens.settings
+package com.pelotcl.app.generic.ui.screens.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,17 +31,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
+import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.ItineraryPreferencesRepository
 import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
@@ -55,9 +56,18 @@ fun ItinerarySettingsScreen(
 ) {
     val context = LocalContext.current
     val itineraryPrefsRepo = remember { ItineraryPreferencesRepository(context) }
+    val config = remember { AppConfigLoader.loadConfig(context).itinerarySettings }
 
-    var jdLinesEnabled by remember { mutableStateOf(itineraryPrefsRepo.isJdLinesEnabled()) }
-    var rxLineEnabled by remember { mutableStateOf(itineraryPrefsRepo.isRxLineEnabled()) }
+    val optionStates = remember(config) {
+        mutableStateMapOf<String, Boolean>().apply {
+            config.options.forEach { option ->
+                this[option.key] = itineraryPrefsRepo.isOptionEnabled(
+                    option.key,
+                    option.defaultEnabled
+                )
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -65,7 +75,7 @@ fun ItinerarySettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Itinéraire",
+                        text = config.screenTitle,
                         color = SecondaryColor,
                         fontWeight = FontWeight.Bold
                     )
@@ -94,28 +104,20 @@ fun ItinerarySettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             ItineraryLineCategorySection(
-                lines = listOf(
+                sectionTitle = config.sectionTitle,
+                lines = config.options.map { option ->
+                    val isEnabled = optionStates[option.key] ?: option.defaultEnabled
                     ItineraryLineOption(
-                        title = "Junior Direct (JD)",
-                        subtitle = "Lignes scolaires",
-                        isSelected = jdLinesEnabled,
+                        title = option.title,
+                        subtitle = option.subtitle,
+                        isSelected = isEnabled,
                         onClick = {
-                            val enabled = !jdLinesEnabled
-                            jdLinesEnabled = enabled
-                            itineraryPrefsRepo.setJdLinesEnabled(enabled)
-                        }
-                    ),
-                    ItineraryLineOption(
-                        title = "RhoneExpress (RX)",
-                        subtitle = "Navette aéroport",
-                        isSelected = rxLineEnabled,
-                        onClick = {
-                            val enabled = !rxLineEnabled
-                            rxLineEnabled = enabled
-                            itineraryPrefsRepo.setRxLineEnabled(enabled)
+                            val enabled = !isEnabled
+                            optionStates[option.key] = enabled
+                            itineraryPrefsRepo.setOptionEnabled(option.key, enabled)
                         }
                     )
-                )
+                }
             )
         }
     }
@@ -130,10 +132,10 @@ private data class ItineraryLineOption(
 
 @Composable
 private fun ItineraryLineCategorySection(
+    sectionTitle: String,
     lines: List<ItineraryLineOption>
 ) {
     Column {
-        // Category header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
@@ -146,14 +148,13 @@ private fun ItineraryLineCategorySection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Lignes à tarification spéciale",
+                text = sectionTitle,
                 color = SecondaryColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
         }
 
-        // Line options card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -170,7 +171,6 @@ private fun ItineraryLineCategorySection(
                         onClick = line.onClick
                     )
 
-                    // Add divider between items (but not after the last one)
                     if (index < lines.size - 1) {
                         Box(
                             modifier = Modifier
@@ -200,7 +200,6 @@ private fun ItineraryLineItem(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Selection indicator
         Box(
             modifier = Modifier
                 .size(24.dp)
@@ -228,7 +227,6 @@ private fun ItineraryLineItem(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Style name
         Column {
             Text(
                 text = title,

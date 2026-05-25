@@ -5,7 +5,7 @@ import com.google.gson.JsonObject
 import com.pelotcl.app.generic.data.models.geojson.Feature
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.JourneyResult
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
-import com.pelotcl.app.specific.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.LineColorHelper
 import kotlinx.coroutines.runBlocking
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng

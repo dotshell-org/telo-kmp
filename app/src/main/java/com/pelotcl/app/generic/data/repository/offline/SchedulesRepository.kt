@@ -7,6 +7,8 @@ import android.util.LruCache
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorRepository
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
+import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
 
 class SchedulesRepository private constructor(context: Context) {
 

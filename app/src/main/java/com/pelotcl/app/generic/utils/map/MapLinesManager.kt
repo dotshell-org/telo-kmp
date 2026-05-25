@@ -1,10 +1,9 @@
 package com.pelotcl.app.generic.utils.map
 
 import com.pelotcl.app.generic.data.models.geojson.Feature
+import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.geo.StopsGeoJsonManager
-import com.pelotcl.app.specific.utils.LineColorHelper
-import com.pelotcl.app.specific.utils.LineClassificationUtils
-import com.pelotcl.app.specific.utils.LineNamingUtils
+import com.pelotcl.app.generic.utils.LineColorHelper
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
@@ -15,6 +14,9 @@ import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.sources.GeoJsonSource
 
 object MapLinesManager {
+
+    private val lineRules get() = TransportServiceProvider.getTransportLineRules()
+
     fun addLineToMap(
     map: MapLibreMap,
     feature: Feature
@@ -39,7 +41,7 @@ object MapLinesManager {
         val upperLineName = ligne.uppercase()
         val familleTransport = feature.properties.transportType
         val lineWidth = when {
-            familleTransport == "BAT" || LineClassificationUtils.isNavigoneLine(upperLineName) -> 2f
+            familleTransport == "BAT" || lineRules.isNavigoneLine(upperLineName) -> 2f
             familleTransport == "TRA" || familleTransport == "TRAM" || upperLineName.startsWith("TB") -> 2f
             else -> 4f
         }
@@ -121,7 +123,7 @@ object MapLinesManager {
         selectedLineName: String
     ) {
         val lineFeatures = allLines.filter {
-            LineNamingUtils.areEquivalentLineNames(it.properties.lineName, selectedLineName)
+            lineRules.canonicalRouteName(it.properties.lineName) == lineRules.canonicalRouteName(selectedLineName)
         }
 
         if (lineFeatures.isEmpty()) return

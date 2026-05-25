@@ -33,8 +33,7 @@ import com.pelotcl.app.generic.ui.components.search.bar.stops.SearchConnectionBa
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.theme.Stone900
-import com.pelotcl.app.specific.utils.TransportTypeUtils
-import com.pelotcl.app.specific.utils.LineClassificationUtils.isStrongLine
+import com.pelotcl.app.generic.service.TransportServiceProvider
 
 @Composable
 fun HistoryListItem(
@@ -62,7 +61,7 @@ fun HistoryListItem(
                     verticalArrangement = Arrangement.spacedBy((-6).dp)
                 ) {
                     val displayText = if (historyItem.type == SearchType.LINE) {
-                        "${TransportTypeUtils.getTransportType(historyItem.query)} ${historyItem.query}"
+                        "${TransportServiceProvider.getTransportLineRules().getTransportType(historyItem.query)} ${historyItem.query}"
                     } else {
                         historyItem.query
                     }
@@ -81,7 +80,7 @@ fun HistoryListItem(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             historyItem.lines.forEach { lineName ->
-                                if (isStrongLine(lineName)) {
+                                if (TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
                                     SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                                 }
                             }
@@ -91,7 +90,7 @@ fun HistoryListItem(
                             verticalArrangement = Arrangement.spacedBy((-8).dp)
                         ) {
                             historyItem.lines.forEach { lineName ->
-                                if (!isStrongLine(lineName)) {
+                                if (!TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
                                     SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                                 }
                             }

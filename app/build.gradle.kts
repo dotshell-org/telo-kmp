@@ -81,6 +81,16 @@ android {
     }
 }
 
+val cleanCompressedAssets = tasks.register<Delete>("cleanCompressedAssets") {
+    // Avoid stale or corrupted compressed_assets outputs between builds.
+    delete(layout.buildDirectory.dir("intermediates/compressed_assets"))
+}
+
+tasks.matching { it.name.startsWith("compress") && it.name.endsWith("Assets") }
+    .configureEach {
+        dependsOn(cleanCompressedAssets)
+    }
+
 dependencies {
     implementation(libs.material)
     implementation(libs.androidx.compose.foundation.layout)
@@ -127,6 +137,9 @@ dependencies {
 
     // Kotlinx Serialization for fast JSON caching
     implementation(libs.kotlinx.serialization.json)
+
+    // YAML parsing for config.yml
+    implementation(libs.snakeyaml)
 
     // WorkManager for background tasks
     implementation(libs.androidx.work.runtime.ktx)

@@ -1,6 +1,7 @@
-package com.pelotcl.app.specific.utils
+package com.pelotcl.app.generic.utils.map
 
 import com.pelotcl.app.generic.data.models.geojson.Feature
+import com.pelotcl.app.generic.service.TransportServiceProvider
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.LineLayer
@@ -8,12 +9,14 @@ import org.maplibre.android.style.layers.PropertyFactory
 
 object LineMapManager {
 
+    private val lineRules get() = TransportServiceProvider.getTransportLineRules()
+
     fun filterMapLines(
         map: MapLibreMap,
         allLines: List<Feature>,
         selectedLineName: String
     ): Int {
-        val selectedAliases = when (LineNamingUtils.canonicalLineName(selectedLineName)) {
+        val selectedAliases = when (lineRules.canonicalRouteName(selectedLineName)) {
             "NAV1" -> listOf("NAV1", "NAVI1")
             else -> listOf(selectedLineName.trim().uppercase())
         }
@@ -41,7 +44,7 @@ object LineMapManager {
 
                 style.getLayer(individualLayerId)?.let { layer ->
                     val shouldBeVisible =
-                        LineNamingUtils.areEquivalentLineNames(ligne, selectedLineName)
+                        lineRules.canonicalRouteName(ligne) == lineRules.canonicalRouteName(selectedLineName)
                     layer.setProperties(
                         PropertyFactory.visibility(if (shouldBeVisible) "visible" else "none")
                     )
@@ -50,7 +53,7 @@ object LineMapManager {
         }
 
         return allLines.count {
-            LineNamingUtils.areEquivalentLineNames(it.properties.lineName, selectedLineName)
+            lineRules.canonicalRouteName(it.properties.lineName) == lineRules.canonicalRouteName(selectedLineName)
         }
     }
 }
