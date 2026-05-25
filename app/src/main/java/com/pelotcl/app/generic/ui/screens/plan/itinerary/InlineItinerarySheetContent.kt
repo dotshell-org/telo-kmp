@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +58,8 @@ import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.generic.utils.search.SearchUtils
 import com.pelotcl.app.generic.utils.LineColorHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.util.Calendar
@@ -120,6 +123,9 @@ fun InlineItinerarySheetContent(
     var isLoading by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
     var previousStopPairKey by remember { mutableStateOf<String?>(null) }
+    var recalcVersion by remember { mutableStateOf(0) }
+    var avoidAlertsJob by remember { mutableStateOf<Job?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     // Reset date/time overrides when the itinerary stop pair changes so default search
     // uses the current time for each new itinerary request.
@@ -254,6 +260,9 @@ fun InlineItinerarySheetContent(
             errorText = null
             return
         }
+        avoidAlertsJob?.cancel()
+        recalcVersion += 1
+        val currentVersion = recalcVersion
         isLoading = true
         errorText = null
         journeysAvoidingAlerts = emptyList()
@@ -323,66 +332,75 @@ fun InlineItinerarySheetContent(
 
             if (journeys.isEmpty()) {
                 errorText = "Aucun itineraire trouve"
-            } else {
-                try {
-                    val stopNames = journeys.flatMap { extractStopNames(it) }.distinct()
-                    if (stopNames.isNotEmpty()) {
-                        Log.d(
-                            "InlineItinerary",
-                            "Alert-avoidance input stops (${stopNames.size}): ${stopNames.joinToString()}"
-                        )
-
-                        val problematicDetails = withContext(Dispatchers.IO) {
-                            viewModel.userStopAlertsRepository.getProblematicAlertDetails(stopNames)
-                        }
-                        val problematicStops = problematicDetails.keys
-                        Log.d(
-                            "InlineItinerary",
-                            "Problematic stops after threshold filter (${problematicStops.size}): ${problematicStops.joinToString()}"
-                        )
-
-                        val routeNamesToAvoid = extractRouteNamesAtProblematicStops(
-                            allJourneys = journeys,
-                            problematicStops = problematicStops
-                        )
-                        Log.d(
-                            "InlineItinerary",
-                            "Route names to avoid (${routeNamesToAvoid.size}): ${routeNamesToAvoid.joinToString()}"
-                        )
-
-                        if (routeNamesToAvoid.isNotEmpty()) {
-                            val blockedForAvoided = blockedRouteNames + routeNamesToAvoid
-                            val avoidedJourneys = calculateJourneys(
-                                originIds = departureStopIds,
-                                destinationIds = arrivalStopIds,
-                                date = selectedDate ?: today,
-                                blockedNames = blockedForAvoided
-                            )
-                            val seenAvoidedSignatures = mutableSetOf<String>()
-                            val label = buildAvoidedLabel(problematicDetails)
-                            journeysAvoidingAlerts = avoidedJourneys
-                                .filter { !journeyTouchesProblematicStop(it, problematicStops) }
-                                .filter {
-                                    val sig = journeySignature(it)
-                                    seenAvoidedSignatures.add(sig)
-                                }
-                                .map { AvoidedJourneyUi(journey = it, label = label) }
-                            Log.d(
-                                "InlineItinerary",
-                                "Avoided journeys kept: ${journeysAvoidingAlerts.size} / recalculated=${avoidedJourneys.size}"
-                            )
-                        } else {
-                            Log.d("InlineItinerary", "No route blocked: no avoided journeys recalculation")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("InlineItinerary", "Error fetching user stop alerts", e)
-                }
             }
         } catch (_: Exception) {
             errorText = "Erreur lors du calcul d'itineraire"
         } finally {
             isLoading = false
+        }
+
+        if (journeys.isEmpty()) return
+
+        val journeysSnapshot = journeys
+        val dateSnapshot = selectedDate ?: LocalDate.now()
+        val blockedSnapshot = blockedRouteNames
+        avoidAlertsJob = coroutineScope.launch {
+            try {
+                val stopNames = journeysSnapshot.flatMap { extractStopNames(it) }.distinct()
+                if (stopNames.isEmpty()) return@launch
+
+                Log.d(
+                    "InlineItinerary",
+                    "Alert-avoidance input stops (${stopNames.size}): ${stopNames.joinToString()}"
+                )
+
+                val problematicDetails = withContext(Dispatchers.IO) {
+                    viewModel.userStopAlertsRepository.getProblematicAlertDetails(stopNames)
+                }
+                val problematicStops = problematicDetails.keys
+                Log.d(
+                    "InlineItinerary",
+                    "Problematic stops after threshold filter (${problematicStops.size}): ${problematicStops.joinToString()}"
+                )
+
+                val routeNamesToAvoid = extractRouteNamesAtProblematicStops(
+                    allJourneys = journeysSnapshot,
+                    problematicStops = problematicStops
+                )
+                Log.d(
+                    "InlineItinerary",
+                    "Route names to avoid (${routeNamesToAvoid.size}): ${routeNamesToAvoid.joinToString()}"
+                )
+
+                if (routeNamesToAvoid.isEmpty()) return@launch
+
+                val blockedForAvoided = blockedSnapshot + routeNamesToAvoid
+                val avoidedJourneys = calculateJourneys(
+                    originIds = departureStopIds,
+                    destinationIds = arrivalStopIds,
+                    date = dateSnapshot,
+                    blockedNames = blockedForAvoided
+                )
+
+                val seenAvoidedSignatures = mutableSetOf<String>()
+                val label = buildAvoidedLabel(problematicDetails)
+                val nextAvoided = avoidedJourneys
+                    .filter { !journeyTouchesProblematicStop(it, problematicStops) }
+                    .filter {
+                        val sig = journeySignature(it)
+                        seenAvoidedSignatures.add(sig)
+                    }
+                    .map { AvoidedJourneyUi(journey = it, label = label) }
+
+                if (currentVersion != recalcVersion) return@launch
+                journeysAvoidingAlerts = nextAvoided
+                Log.d(
+                    "InlineItinerary",
+                    "Avoided journeys kept: ${journeysAvoidingAlerts.size} / recalculated=${avoidedJourneys.size}"
+                )
+            } catch (e: Exception) {
+                Log.e("InlineItinerary", "Error fetching user stop alerts", e)
+            }
         }
     }
 
