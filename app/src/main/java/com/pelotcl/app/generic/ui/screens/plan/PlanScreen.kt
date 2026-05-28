@@ -118,6 +118,7 @@ import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.ui.components.MapLibreView
 import com.pelotcl.app.generic.ui.components.favorites.AddFavoriteDialog
 import com.pelotcl.app.generic.ui.components.search.TransportSearchBar
+import com.pelotcl.app.generic.ui.screens.onboarding.LocalNotificationPermissionRequested
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.ItinerarySearchBarField
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
@@ -580,6 +581,8 @@ fun PlanScreen(
         }
     }
 
+    val notificationPermissionRequested = LocalNotificationPermissionRequested.current
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -595,7 +598,11 @@ fun PlanScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(notificationPermissionRequested.value) {
+        if (!notificationPermissionRequested.value) {
+            return@LaunchedEffect
+        }
+        
         val hasPermission = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
