@@ -11,7 +11,8 @@ data class AppConfig(
     @SerializedName("lineColors") val lineColors: LineColorsData,
     @SerializedName("cache") val cache: CacheConfigData,
     @SerializedName("itinerarySettings") val itinerarySettings: ItinerarySettingsData,
-    @SerializedName("telemetry") val telemetry: TelemetryConfigData? = null
+    @SerializedName("telemetry") val telemetry: TelemetryConfigData? = null,
+    @SerializedName("consent") val consent: ConsentConfigData
 )
 
 data class TransportConfigData(
@@ -185,4 +186,22 @@ data class TelemetryDisclosureData(
 data class TelemetryFaqEntryData(
     val question: String,
     val answer: String
+)
+
+data class ConsentConfigData(
+    val version: Int,
+    val title: String,
+    val intro: String,
+    val summary: List<String> = emptyList(),
+    val acceptLabel: String = "J'accepte",
+    val declineLabel: String = "Je refuse",
+    val declineNote: String = "",
+    val acknowledgementLabel: String = "J'ai lu et approuvé les conditions d'utilisation",
+    val acknowledgementLinkText: String = "conditions d'utilisation",
+    val privacyAcknowledgementLabel: String = "J'ai lu et approuvé la politique de confidentialite",
+    val privacyAcknowledgementLinkText: String = "politique de confidentialite",
+    val privacyDetailsTitle: String = "Politique de confidentialité",
+    val privacySectionTitle: String = "Traitement des données et confidentialité",
+    val detailsTitle: String = "Conditions d'utilisation",
+    val detailsButtonLabel: String = "Lire les conditions compl\u00e8tes"
 )

@@ -23,12 +23,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,10 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.work.WorkManager
 import com.pelotcl.app.generic.data.local_history.LocalHistoryStorage
-import com.pelotcl.app.generic.data.telemetry.TelemetryEmitter
-import com.pelotcl.app.generic.data.telemetry.TelemetryUploadWorker
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +41,6 @@ import kotlinx.coroutines.launch
 
 /**
  * Settings entry-point for telemetry. Lets the user:
- *  - flip the opt-in toggle (effective immediately for future events),
  *  - inspect the raw payload of the day (transparency, "see exactly what we collect"),
  *  - wipe the local history (favorites audit + trip history).
  *
@@ -65,7 +57,6 @@ fun TelemetrySettingsScreen(
     onFaqClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val optInManager = TelemetryEmitter.optInManager()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -90,34 +81,6 @@ fun TelemetrySettingsScreen(
                 fontSize = 26.sp,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
-
-            if (optInManager != null) {
-                val state by optInManager.state.collectAsState()
-                TelemetryToggleRow(
-                    enabled = state.optedIn,
-                    onToggle = { newValue ->
-                        if (newValue) {
-                            val schemaVersion = TelemetryEmitter.config()?.schemaVersion ?: 1
-                            optInManager.acceptCurrentSchema(schemaVersion)
-                        } else {
-                            optInManager.decline()
-                            // Hardening: when the user opts out we want the pipeline to fall
-                            // silent *immediately*. Three steps:
-                            //  1. Cancel any debounced upload work that was scheduled by the
-                            //     last session close — if we don't, the worker still fires and
-                            //     would try to send whatever was in the pending delta.
-                            //  2. Wipe the on-disk DailyReportState + PendingDelta so the next
-                            //     opt-in starts on a clean slate (no accidental leakage of
-                            //     previously-opted-in events).
-                            //  3. Clear the daily id so a future opt-in doesn't reuse it.
-                            WorkManager.getInstance(context)
-                                .cancelUniqueWork(TelemetryUploadWorker.UNIQUE_WORK_NAME)
-                            TelemetryEmitter.wipePendingAndState()
-                        }
-                    }
-                )
-                HorizontalDivider(color = Color(0xFF3A3A3C))
-            }
 
             TelemetryMenuRow(
                 title = "Voir les données collectées aujourd'hui",
@@ -163,52 +126,6 @@ fun TelemetrySettingsScreen(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Retour",
                 tint = SecondaryColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun TelemetryToggleRow(
-    enabled: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = PrimaryColor),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Partage de données anonymes",
-                    color = SecondaryColor,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = if (enabled) "Activé — merci pour votre soutien" else "Désactivé",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            Switch(
-                checked = enabled,
-                onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = SecondaryColor,
-                    checkedTrackColor = Color(0xFF34C759),
-                    uncheckedThumbColor = SecondaryColor,
-                    uncheckedTrackColor = Color(0xFF3A3A3C)
-                )
             )
         }
     }

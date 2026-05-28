@@ -63,6 +63,7 @@ import com.pelotcl.app.generic.data.repository.offline.search.SearchHistoryItem
 import com.pelotcl.app.generic.data.repository.offline.search.SearchType
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
 import com.pelotcl.app.generic.ui.screens.onboarding.TelemetryOptInGate
+import com.pelotcl.app.generic.ui.screens.onboarding.TermsConsentGate
 import com.pelotcl.app.generic.ui.screens.settings.about.AboutScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.ContactScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.CreditsScreen
@@ -144,25 +145,27 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PeloTheme {
-                TelemetryOptInGate {
-                NavBar(
-                    modifier = Modifier.fillMaxSize(),
-                    onNavigationModeChangedExternal = { active ->
-                        if (!hasAppliedFirstNavigationCallback) {
-                            hasAppliedFirstNavigationCallback = true
-                            // Ignore initial Compose state restoration mismatch when service is still active.
-                            if (isNavigationModeEnabled && !active) return@NavBar
-                        }
-                        if (active == isNavigationModeEnabled) return@NavBar
-                        isNavigationModeEnabled = active
-                        if (active) {
-                            startNavigationForegroundService()
-                        } else {
-                            stopNavigationForegroundService()
-                        }
-                        setNavigationLockScreenBehavior(active)
+                TermsConsentGate {
+                    TelemetryOptInGate {
+                        NavBar(
+                            modifier = Modifier.fillMaxSize(),
+                            onNavigationModeChangedExternal = { active ->
+                                if (!hasAppliedFirstNavigationCallback) {
+                                    hasAppliedFirstNavigationCallback = true
+                                    // Ignore initial Compose state restoration mismatch when service is still active.
+                                    if (isNavigationModeEnabled && !active) return@NavBar
+                                }
+                                if (active == isNavigationModeEnabled) return@NavBar
+                                isNavigationModeEnabled = active
+                                if (active) {
+                                    startNavigationForegroundService()
+                                } else {
+                                    stopNavigationForegroundService()
+                                }
+                                setNavigationLockScreenBehavior(active)
+                            }
+                        )
                     }
-                )
                 }
             }
         }

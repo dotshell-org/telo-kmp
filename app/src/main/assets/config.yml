@@ -180,8 +180,8 @@ about:
         • Aucune donnée permettant de vous identifier n'est transmise ou enregistrée sur un serveur externe.
         • Ce flux sert uniquement à la synchronisation technique des données de transport durant votre session de navigation.
 
-        5.3. Partage de données pour améliorer le réseau (optionnel, opt-in)
-        Si vous l'acceptez explicitement au premier démarrage ou depuis l'écran « Confidentialité », l'Application peut transmettre à Dotshell, à chaque fermeture, un message anonyme rattaché à un identifiant qui change toutes les 24 heures. Ce message contient :
+        5.3. Partage de données pour améliorer le réseau
+        L'Application transmet à Dotshell, à chaque fermeture, un message anonyme rattaché à un identifiant qui change toutes les 24 heures. Ce message contient :
         • Vos heures d'ouverture et de fermeture de l'app
         • Vos recherches d'arrêts et de lignes
         • Les itinéraires que vous calculez et choisissez
@@ -191,7 +191,7 @@ about:
         • Les alertes de trafic que vous avez signalées
         • Un profil d'usage anonyme calculé localement (occasionnel / régulier / intensif + jusqu'à 5 lignes habituelles)
 
-        L'identifiant journalier est généré aléatoirement, ne contient aucun lien avec votre téléphone et est régénéré chaque jour : il est impossible de vous suivre dans la durée. Le partage peut être désactivé à tout moment depuis l'écran « Confidentialité » ; les données déjà transmises ne pourront pas être retrouvées et seront automatiquement purgées après 90 jours.
+        L'identifiant journalier est généré aléatoirement, ne contient aucun lien avec votre téléphone et est régénéré chaque jour : il est impossible de vous suivre dans la durée. Les données transmises ne peuvent pas être retrouvées individuellement et sont automatiquement purgées après 90 jours.
 
         Vos arrêts favoris, l'historique détaillé de vos trajets, et le contenu textuel de vos saisies libres (adresses) ne sont **jamais** transmis. Les adresses utilisées dans un calcul d'itinéraire sont transformées localement en un identifiant de zone géographique d'environ 460 m avant tout envoi.
 
@@ -216,6 +216,29 @@ about:
       - platform: "GitHub"
         url: "https://github.com/dotshell/pelo"
         username: "dotshell"
+
+consent:
+  version: 1
+  title: "Conditions d'utilisation"
+  intro: |
+    Pour acceder a Pelo, vous devez accepter les conditions d'utilisation et la politique de confidentialite.
+    Vous pouvez consulter les details complets a tout moment.
+  summary:
+    - "Vous acceptez les conditions d'utilisation et la politique de confidentialite."
+    - "Vos donnees personnelles restent sur votre appareil, sauf pour le partage prevu par la politique de confidentialite."
+    - "Sans acceptation, l'application ne peut pas etre utilisee."
+  acceptLabel: "J'accepte"
+  declineLabel: "Je refuse"
+  declineNote: |
+    Sans acceptation des conditions, l'application ne peut pas etre utilisee.
+  acknowledgementLabel: "J'ai lu et approuve les conditions d'utilisation"
+  acknowledgementLinkText: "conditions d'utilisation"
+  privacyAcknowledgementLabel: "J'ai lu et approuve la politique de confidentialite"
+  privacyAcknowledgementLinkText: "politique de confidentialite"
+  privacyDetailsTitle: "Politique de confidentialite"
+  privacySectionTitle: "Traitement des données et confidentialité"
+  detailsTitle: "Conditions d'utilisation"
+  detailsButtonLabel: "Lire les conditions completes"
 
 rules:
   strongLines: ["A", "B", "C", "D", "F1", "F2", "RX"]
