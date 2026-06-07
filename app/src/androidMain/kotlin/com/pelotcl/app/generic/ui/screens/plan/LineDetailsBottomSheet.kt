@@ -1,8 +1,6 @@
 package com.pelotcl.app.generic.ui.screens.plan
 
-import android.os.Build
-import android.util.Log
-import androidx.annotation.RequiresApi
+import com.pelotcl.app.platform.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -85,10 +83,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Immutable
 data class LineInfo(
@@ -101,10 +101,9 @@ private fun getLineColor(lineName: String): Color {
     return Color(LineColorHelper.getColorForLineString(lineName))
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 private fun getScheduleColorBasedOnTime(scheduleTime: String): Color {
     try {
-        val now = LocalTime.now()
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
 
         val cleanTime = if (scheduleTime.count { it == ':' } == 2) {
             scheduleTime.substringBeforeLast(":")
@@ -117,9 +116,9 @@ private fun getScheduleColorBasedOnTime(scheduleTime: String): Color {
 
         val hour = parts[0].toInt()
         val minute = parts[1].toInt()
-        val schedule = LocalTime.of(hour, minute)
+        val schedule = LocalTime(hour, minute)
 
-        val diffMinutes = ChronoUnit.MINUTES.between(now, schedule)
+        val diffMinutes = (schedule.toSecondOfDay() - now.toSecondOfDay()) / 60
 
         if (diffMinutes < 0) {
             return Green500
@@ -135,10 +134,9 @@ private fun getScheduleColorBasedOnTime(scheduleTime: String): Color {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 private fun getMinutesUntil(scheduleTime: String): Long? {
     try {
-        val now = LocalTime.now()
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
         val cleanTime = if (scheduleTime.count { it == ':' } == 2) {
             scheduleTime.substringBeforeLast(":")
         } else {
@@ -148,9 +146,9 @@ private fun getMinutesUntil(scheduleTime: String): Long? {
         if (parts.size < 2) return null
         val hour = parts[0].toInt()
         val minute = parts[1].toInt()
-        val schedule = LocalTime.of(hour, minute)
-        val diff = ChronoUnit.MINUTES.between(now, schedule)
-        return if (diff < 0) null else diff
+        val schedule = LocalTime(hour, minute)
+        val diff = (schedule.toSecondOfDay() - now.toSecondOfDay()) / 60
+        return if (diff < 0) null else diff.toLong()
     } catch (_: Exception) {
         return null
     }
@@ -165,7 +163,6 @@ private fun formatTimeUntilDeparture(minutes: Long): String {
     return "dans ${hours}h${remainingMinutes.toString().padStart(2, '0')}min"
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LineDetailsBottomSheet(
@@ -221,7 +218,7 @@ fun LineDetailsBottomSheet(
             com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
                 com.pelotcl.app.generic.data.telemetry.TelemetryEvent.LineClicked(
                     eventId = java.util.UUID.randomUUID().toString(),
-                    at = java.time.Instant.now().toString(),
+                    at = Clock.System.now().toString(),
                     lineId = lineInfo.lineName,
                     context = "bottom_sheet"
                 )
@@ -546,9 +543,9 @@ private fun TrafficAlertsSection(
                             com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
                                 com.pelotcl.app.generic.data.telemetry.TelemetryEvent.AlertRead(
                                     eventId = java.util.UUID.randomUUID().toString(),
-                                    at = java.time.Instant.now().toString(),
+                                    at = Clock.System.now().toString(),
                                     alertId = alertKey,
-                                    readAt = java.time.Instant.now().toString()
+                                    readAt = Clock.System.now().toString()
                                 )
                             )
                         }
@@ -596,10 +593,10 @@ private fun TrafficAlertsSection(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     fun formatDate(input: String): String {
-                        val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        val outputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-                        val date = LocalDateTime.parse(input, inputFormatter)
-                        return date.format(outputFormatter)
+                        val iso = input.replace(" ", "T")
+                        val date = try { iso.toLocalDateTime() } catch (e: Exception) { null }
+                        if (date == null) return input
+                        return "${date.dayOfMonth.toString().padStart(2, '0')}/${date.monthNumber.toString().padStart(2, '0')}/${date.year} ${date.hour.toString().padStart(2, '0')}:${date.minute.toString().padStart(2, '0')}"
                     }
                     Text(
                         text = "Du ${formatDate(alert.startDate)} au ${formatDate(alert.endDate)}",
@@ -630,12 +627,11 @@ private fun filterValidAlerts(
         return emptyList()
     }
 
-    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    val now = LocalDateTime.now()
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     return alerts.filter { alert ->
         try {
-            val endDate = LocalDateTime.parse(alert.endDate, dateFormatter)
-            endDate.isAfter(now)
+            val endDate = alert.endDate.replace(" ", "T").toLocalDateTime()
+            endDate > now
         } catch (e: Exception) {
             true // Garder l'alerte si on ne peut pas parser la date
         }
@@ -694,7 +690,6 @@ private fun AlertBadge(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun NextSchedulesSection(
     viewModel: TransportViewModel,

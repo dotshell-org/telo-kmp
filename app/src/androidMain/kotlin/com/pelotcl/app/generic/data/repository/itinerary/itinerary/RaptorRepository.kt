@@ -1,8 +1,8 @@
 package com.pelotcl.app.generic.data.repository.itinerary.itinerary
 
 import android.content.Context
-import android.util.Log
 import android.util.LruCache
+import com.pelotcl.app.platform.Log
 import com.pelotcl.app.generic.data.cache.journey.JourneyCache
 import com.pelotcl.app.generic.data.repository.itinerary.holiday.HolidayPeriod
 import com.pelotcl.app.generic.data.repository.itinerary.holiday.HolidaysData
@@ -22,10 +22,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.BufferedInputStream
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Calendar
-import java.util.Locale
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -209,7 +209,7 @@ class RaptorRepository private constructor(private val context: Context) {
                 // routesByPeriod and stopsByPeriod are now lazy-loaded per period on first access
 
                 // Set initial period based on current day
-                updatePeriodForDate(LocalDate.now())
+                updatePeriodForDate(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
 
                 // Cache all stops for lookup (from current period)
                 stopsCache = raptorLibrary?.searchStopsByName("") ?: emptyList()
@@ -270,7 +270,7 @@ class RaptorRepository private constructor(private val context: Context) {
      * Get the appropriate period ID for a given date
      */
     private fun getPeriodForDate(date: LocalDate): String {
-        val dayOfWeek = date.dayOfWeek.value // 1 = Monday, 7 = Sunday
+        val dayOfWeek = date.dayOfWeek.value
 
         if (isPublicHoliday(date)) return PERIOD_SUNDAY
 
@@ -311,16 +311,16 @@ class RaptorRepository private constructor(private val context: Context) {
      * Called before each route calculation.
      * @param date The date to use for period selection (default: today)
      */
-    private fun ensureCorrectPeriod(date: LocalDate = LocalDate.now()) {
+    private fun ensureCorrectPeriod(date: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) {
         updatePeriodForDate(date)
     }
 
     private fun periodForFlags(isSchoolHoliday: Boolean, isPublicHoliday: Boolean): String {
-        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        val dayOfWeek = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.value
         if (isPublicHoliday) return PERIOD_SUNDAY
         return when (dayOfWeek) {
-            Calendar.SATURDAY -> PERIOD_SATURDAY
-            Calendar.SUNDAY -> PERIOD_SUNDAY
+            6 -> PERIOD_SATURDAY
+            7 -> PERIOD_SUNDAY
             else -> if (isSchoolHoliday) PERIOD_SCHOOL_OFF_WEEKDAYS else PERIOD_SCHOOL_ON_WEEKDAYS
         }
     }
@@ -599,7 +599,7 @@ class RaptorRepository private constructor(private val context: Context) {
         originStopIds: List<Int>,
         destinationStopIds: List<Int>,
         departureTimeSeconds: Int? = null,
-        date: LocalDate = LocalDate.now(),
+        date: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
         blockedRouteNames: Set<String> = emptySet()
     ): List<JourneyResult> = withContext(Dispatchers.Default) {
         ensureInitialized()
@@ -778,11 +778,10 @@ class RaptorRepository private constructor(private val context: Context) {
         destinationStopIds: List<Int>,
         arrivalTimeSeconds: Int,
         searchWindowMinutes: Int = 120,
-        date: LocalDate = LocalDate.now(),
+        date: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
         blockedRouteNames: Set<String> = emptySet()
     ): List<JourneyResult> = withContext(Dispatchers.Default) {
         ensureInitialized()
-        ensureCorrectPeriod(date)
         try {
             if (originStopIds.isEmpty()) {
                 Log.w(TAG, "getOptimizedPathsArriveBy: originStopIds is empty!")
@@ -959,11 +958,8 @@ class RaptorRepository private constructor(private val context: Context) {
     }
 
     private fun getCurrentTimeInSeconds(): Int {
-        val calendar = Calendar.getInstance()
-        val hours = calendar.get(Calendar.HOUR_OF_DAY)
-        val minutes = calendar.get(Calendar.MINUTE)
-        val seconds = calendar.get(Calendar.SECOND)
-        return hours * 3600 + minutes * 60 + seconds
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        return now.hour * 3600 + now.minute * 60 + now.second
     }
 
     fun searchLinesByName(query: String): List<LineSearchResult> {
@@ -1034,7 +1030,7 @@ class RaptorRepository private constructor(private val context: Context) {
             val seconds = route.flatStopTimes[(trip * route.stopCountInRoute) + stopIdx]
             val hour = seconds / 3600
             val minute = (seconds % 3600) / 60
-            times.add(String.format(Locale.ROOT, "%02d:%02d", hour, minute))
+            times.add("${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}")
         }
         return times.distinct().sorted()
     }

@@ -14,7 +14,9 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.URLEncoder
-import java.util.Calendar
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
@@ -192,8 +194,8 @@ class JourneyCache private constructor(context: Context) {
     }
 
     private fun getCurrentDayOfYear(): Int {
-        val calendar = Calendar.getInstance()
-        return calendar.get(Calendar.DAY_OF_YEAR) + calendar.get(Calendar.YEAR) * 1000
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return today.dayOfYear + today.year * 1000
     }
 
     private fun getCacheFile(cacheKey: String): File {

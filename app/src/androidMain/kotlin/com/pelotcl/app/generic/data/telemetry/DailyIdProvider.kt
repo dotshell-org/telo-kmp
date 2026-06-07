@@ -5,9 +5,10 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
 
 /**
@@ -35,8 +36,8 @@ class DailyIdProvider(private val context: Context) {
      * Returns the current daily id, rotating if the local day has changed since the last call.
      * Returns a [Rotation.Result] indicating whether the caller should treat this as a new day.
      */
-    fun currentOrRotate(now: LocalDate = LocalDate.now(ZoneId.systemDefault())): Rotation {
-        val today = now.format(DAY_FORMATTER)
+    fun currentOrRotate(now: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date): Rotation {
+        val today = now.toString()
         val storedDay = prefs.getString(KEY_DAY, null)
         val storedId = prefs.getString(KEY_ID, null)
 
@@ -112,6 +113,6 @@ class DailyIdProvider(private val context: Context) {
         private const val KEY_DAY = "day"
         private const val KEY_GENERATED_AT = "generated_at"
 
-        private val DAY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
     }
 }

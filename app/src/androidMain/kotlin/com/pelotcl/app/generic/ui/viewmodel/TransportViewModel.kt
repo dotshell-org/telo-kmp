@@ -1,8 +1,8 @@
 package com.pelotcl.app.generic.ui.viewmodel
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.pelotcl.app.platform.Log
 import androidx.lifecycle.viewModelScope
 import com.pelotcl.app.generic.data.models.stops.Favorite
 import com.pelotcl.app.generic.data.models.realtime.vehiclepositions.SimpleVehiclePosition
@@ -29,7 +29,10 @@ import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
 import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
 import com.pelotcl.app.generic.utils.date.HolidayDetector
-import java.time.LocalDate
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -571,11 +574,11 @@ class TransportViewModel(private val context: Context) : ViewModel() {
             return@withContext emptyList()
         }
 
-        val today = LocalDate.now()
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val isSchoolHoliday = holidayDetector.isSchoolHoliday(today)
         val isPublicHoliday = holidayDetector.isPublicHoliday(today)
-        val now = java.util.Calendar.getInstance()
-        val nowMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val nowMinutes = now.hour * 60 + now.minute
 
         lines.asSequence()
             .map { it.trim() }
@@ -772,7 +775,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
                 return@launch
             }
 
-            val today = LocalDate.now()
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             val isSchoolHoliday = holidayDetector.isSchoolHoliday(today)
             val isPublicHoliday = holidayDetector.isPublicHoliday(today)
             val candidateDirections = _headsigns.value.keys.ifEmpty { setOf(0, 1) }.toList().sorted()
@@ -799,7 +802,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
 
             if (lineName.isBlank() || stopName.isBlank()) return@launch
 
-            val today = LocalDate.now()
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             val isSchoolHoliday = holidayDetector.isSchoolHoliday(today)
             val isPublicHoliday = holidayDetector.isPublicHoliday(today)
 
@@ -813,8 +816,8 @@ class TransportViewModel(private val context: Context) : ViewModel() {
             _allSchedules.value = allSchedulesForDay
             if (allSchedulesForDay.isEmpty()) return@launch
 
-            val now = java.util.Calendar.getInstance()
-            val nowMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val nowMinutes = now.hour * 60 + now.minute
             val ordered = allSchedulesForDay.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
             val nextThree = (

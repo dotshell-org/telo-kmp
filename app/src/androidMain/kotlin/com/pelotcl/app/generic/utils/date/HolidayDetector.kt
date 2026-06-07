@@ -2,10 +2,10 @@ package com.pelotcl.app.generic.utils.date
 
 import android.content.Context
 import com.pelotcl.app.generic.data.repository.itinerary.holiday.HolidaysData
-import kotlinx.datetime.LocalDate as KxLocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlinx.serialization.json.Json
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 /**
  * Generic school holiday detector.
@@ -29,13 +29,13 @@ class HolidayDetector(
             val holidaysData = jsonConfig.decodeFromString<HolidaysData>(json)
             holidaysData.holidays.mapNotNull { holiday ->
                 val startDate = try {
-                    LocalDate.parse(holiday.startDateInclusive, DateTimeFormatter.ISO_DATE)
+                    LocalDate.parse(holiday.startDateInclusive)
                 } catch (e: Exception) {
                     null
                 }
                 val endDate = try {
                     holiday.endDateInclusive?.let {
-                        LocalDate.parse(it, DateTimeFormatter.ISO_DATE)
+                        LocalDate.parse(it)
                     }
                 } catch (e: Exception) {
                     null
@@ -45,7 +45,7 @@ class HolidayDetector(
                     HolidayPeriod(
                         name = holiday.name,
                         startDate = startDate,
-                        endDate = endDate ?: startDate.plusMonths(2)
+                        endDate = endDate ?: startDate.plus(2, DateTimeUnit.MONTH)
                     )
                 } else null
             }
@@ -59,7 +59,7 @@ class HolidayDetector(
      */
     fun isSchoolHoliday(date: LocalDate): Boolean {
         return schoolHolidays.any { period ->
-            !date.isBefore(period.startDate) && !date.isAfter(period.endDate)
+            date >= period.startDate && date <= period.endDate
         }
     }
 
@@ -68,8 +68,7 @@ class HolidayDetector(
      */
     fun isPublicHoliday(date: LocalDate): Boolean {
         if (publicHolidayStrategy == null) return false
-        val kxDate = KxLocalDate(date.year, date.monthValue, date.dayOfMonth)
-        return publicHolidayStrategy.isPublicHoliday(kxDate)
+        return publicHolidayStrategy.isPublicHoliday(date)
     }
 
     data class HolidayPeriod(

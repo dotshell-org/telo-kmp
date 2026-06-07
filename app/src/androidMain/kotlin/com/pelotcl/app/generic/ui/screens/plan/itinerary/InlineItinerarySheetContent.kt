@@ -154,7 +154,6 @@ fun InlineItinerarySheetContent(
             date: LocalDate,
             blockedNames: Set<String>
         ): List<JourneyResult> {
-            val jvmDate = java.time.LocalDate.of(date.year, date.monthNumber, date.dayOfMonth)
             return withContext(Dispatchers.IO) {
                 if (timeMode == TimeMode.ARRIVAL) {
                     raptorRepository.getOptimizedPathsArriveBy(
@@ -162,7 +161,7 @@ fun InlineItinerarySheetContent(
                         destinationStopIds = destinationIds,
                         arrivalTimeSeconds = selectedTimeSeconds ?: defaultArrivalSeconds(),
                         searchWindowMinutes = 120,
-                        date = jvmDate,
+                        date = date,
                         blockedRouteNames = blockedNames
                     )
                 } else {
@@ -170,7 +169,7 @@ fun InlineItinerarySheetContent(
                         originStopIds = originIds,
                         destinationStopIds = destinationIds,
                         departureTimeSeconds = selectedTimeSeconds,
-                        date = jvmDate,
+                        date = date,
                         blockedRouteNames = blockedNames
                     )
                 }
@@ -342,7 +341,7 @@ fun InlineItinerarySheetContent(
                         originStopIds = departureStopIds,
                         destinationStopIds = arrivalStopIds,
                         departureTimeSeconds = 0,
-                        date = java.time.LocalDate.of(today.year, today.monthNumber, today.dayOfMonth),
+                        date = today,
                         blockedRouteNames = blockedRouteNames
                     ).isNotEmpty()
                 }
