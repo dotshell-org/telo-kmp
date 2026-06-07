@@ -4,13 +4,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import com.pelotcl.app.generic.data.models.stops.StationInfo
 import com.pelotcl.app.generic.ui.components.StationBottomSheet
-import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.ui.viewmodel.TransportViewModelInterface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StationSheetContent(
     stationInfo: StationInfo,
-    viewModel: TransportViewModel,
+    viewModel: TransportViewModelInterface,
     onDismiss: () -> Unit,
     onDepartureClick: (lineName: String, directionId: Int, departureTime: String) -> Unit,
     isFavoriteStop: Boolean = false,

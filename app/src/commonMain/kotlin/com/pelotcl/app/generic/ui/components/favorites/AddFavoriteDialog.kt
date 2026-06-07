@@ -53,7 +53,7 @@ import com.pelotcl.app.generic.data.models.search.TransportSearchContent
 import com.pelotcl.app.generic.ui.theme.Gray700
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
-import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.ui.viewmodel.TransportViewModelInterface
 
 /**
  * Dialog for creating a new favorite from predefined presets.
@@ -65,7 +65,7 @@ import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
 fun AddFavoriteDialog(
     onDismiss: () -> Unit,
     onFavoriteCreated: (String, String, String) -> Unit,
-    viewModel: TransportViewModel,
+    viewModel: TransportViewModelInterface,
     initialStopName: String? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

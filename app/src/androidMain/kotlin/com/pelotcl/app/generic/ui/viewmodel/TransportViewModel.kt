@@ -17,6 +17,7 @@ import com.pelotcl.app.generic.data.repository.offline.FavoritesRepository
 import com.pelotcl.app.generic.data.repository.offline.SchedulesRepository
 import com.pelotcl.app.generic.data.offline.OfflineDataManager
 import com.pelotcl.app.generic.data.offline.OfflineDataInfo
+import com.pelotcl.app.generic.data.offline.OfflineDownloadState
 import com.pelotcl.app.generic.data.models.gtfs.LineStopInfo
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.TrafficAlert
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.AlertSeverity
@@ -24,6 +25,8 @@ import com.pelotcl.app.generic.data.models.geojson.Feature
 import com.pelotcl.app.generic.data.models.lines.MultiLineStringGeometry
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorRepository
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.JourneyLeg
+import com.pelotcl.app.generic.data.repository.itinerary.itinerary.JourneyResult
+import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorStop
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorStopWithCoords
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
@@ -48,7 +51,7 @@ import java.io.File
  * ViewModel principal pour la gestion des données de transport
  * Utilise TransportServiceProvider pour accéder aux services
  */
-class TransportViewModel(private val context: Context) : ViewModel() {
+class TransportViewModel(private val context: Context) : ViewModel(), TransportViewModelInterface {
 
     companion object {
         private const val TAG = "TransportViewModel"
@@ -84,64 +87,67 @@ class TransportViewModel(private val context: Context) : ViewModel() {
 
     // Compatibilité avec PlanScreen.kt qui utilise TransportLinesUiState
     private val _uiState = MutableStateFlow<TransportLinesUiState>(TransportLinesUiState.Loading)
-    val uiState: StateFlow<TransportLinesUiState> = _uiState.asStateFlow()
+    override val uiState: StateFlow<TransportLinesUiState> = _uiState.asStateFlow()
     
     // État pour les alertes trafic
     private val _alertsState = MutableStateFlow<TrafficAlertsState>(TrafficAlertsState.Loading)
 
     // État pour les arrêts de transport
     private val _stopsUiState = MutableStateFlow<TransportStopsUiState>(TransportStopsUiState.Loading)
-    val stopsUiState: StateFlow<TransportStopsUiState> = _stopsUiState.asStateFlow()
+    override val stopsUiState: StateFlow<TransportStopsUiState> = _stopsUiState.asStateFlow()
 
     // Alertes trafic (Flow pour LinesBottomSheet)
     private val _trafficAlerts = MutableStateFlow<List<TrafficAlert>>(emptyList())
-    val trafficAlerts: StateFlow<List<TrafficAlert>> = _trafficAlerts.asStateFlow()
+    override val trafficAlerts: StateFlow<List<TrafficAlert>> = _trafficAlerts.asStateFlow()
 
     private val _alertsTimestampMillis = MutableStateFlow<Long?>(null)
-    val alertsTimestampMillis: StateFlow<Long?> = _alertsTimestampMillis.asStateFlow()
+    override val alertsTimestampMillis: StateFlow<Long?> = _alertsTimestampMillis.asStateFlow()
 
     // Positions des véhicules (PlanScreen)
     private val _vehiclePositions = MutableStateFlow<List<SimpleVehiclePosition>>(emptyList())
-    val vehiclePositions: StateFlow<List<SimpleVehiclePosition>> = _vehiclePositions.asStateFlow()
+    override val vehiclePositions: StateFlow<List<SimpleVehiclePosition>> = _vehiclePositions.asStateFlow()
 
     private val _globalVehiclePositions = MutableStateFlow<List<SimpleVehiclePosition>>(emptyList())
-    val globalVehiclePositions: StateFlow<List<SimpleVehiclePosition>> = _globalVehiclePositions.asStateFlow()
+    override val globalVehiclePositions: StateFlow<List<SimpleVehiclePosition>> = _globalVehiclePositions.asStateFlow()
 
     private val _isLiveTrackingEnabled = MutableStateFlow(false)
-    val isLiveTrackingEnabled: StateFlow<Boolean> = _isLiveTrackingEnabled.asStateFlow()
+    override val isLiveTrackingEnabled: StateFlow<Boolean> = _isLiveTrackingEnabled.asStateFlow()
 
     private val _isGlobalLiveEnabled = MutableStateFlow(false)
-    val isGlobalLiveEnabled: StateFlow<Boolean> = _isGlobalLiveEnabled.asStateFlow()
+    override val isGlobalLiveEnabled: StateFlow<Boolean> = _isGlobalLiveEnabled.asStateFlow()
 
     private val _isOffline = MutableStateFlow(false)
-    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+    override val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
 
     // États pour LineDetailsBottomSheet
     private val _headsigns = MutableStateFlow<Map<Int, String>>(emptyMap())
-    val headsigns: StateFlow<Map<Int, String>> = _headsigns.asStateFlow()
+    override val headsigns: StateFlow<Map<Int, String>> = _headsigns.asStateFlow()
 
     private val _allSchedules = MutableStateFlow<List<String>>(emptyList())
-    val allSchedules: StateFlow<List<String>> = _allSchedules.asStateFlow()
+    override val allSchedules: StateFlow<List<String>> = _allSchedules.asStateFlow()
 
     private val _nextSchedules = MutableStateFlow<List<String>>(emptyList())
-    val nextSchedules: StateFlow<List<String>> = _nextSchedules.asStateFlow()
+    override val nextSchedules: StateFlow<List<String>> = _nextSchedules.asStateFlow()
 
     private val _availableDirections = MutableStateFlow<List<Int>>(emptyList())
-    val availableDirections: StateFlow<List<Int>> = _availableDirections.asStateFlow()
+    override val availableDirections: StateFlow<List<Int>> = _availableDirections.asStateFlow()
 
     // Favoris (anciens)
     private val _favoriteStops = MutableStateFlow<Set<String>>(emptySet())
-    val favoriteStops: StateFlow<Set<String>> = _favoriteStops.asStateFlow()
+    override val favoriteStops: StateFlow<Set<String>> = _favoriteStops.asStateFlow()
 
     // Favoris utilisateur (nouveaux)
     private val _userFavorites = MutableStateFlow<List<Favorite>>(emptyList())
-    val userFavorites: StateFlow<List<Favorite>> = _userFavorites.asStateFlow()
+    override val userFavorites: StateFlow<List<Favorite>> = _userFavorites.asStateFlow()
 
     private val _selectedLineName = MutableStateFlow<String?>(null)
-    val selectedLineName: StateFlow<String?> = _selectedLineName.asStateFlow()
+    override val selectedLineName: StateFlow<String?> = _selectedLineName.asStateFlow()
 
     private val _offlineDataInfo = MutableStateFlow(OfflineDataInfo())
-    val offlineDataInfo: StateFlow<OfflineDataInfo> = _offlineDataInfo.asStateFlow()
+    override val offlineDataInfo: StateFlow<OfflineDataInfo> = _offlineDataInfo.asStateFlow()
+
+    override val offlineDownloadState: StateFlow<OfflineDownloadState>
+        get() = offlineDataManager.downloadState
 
     // Cache for expensive line aggregation used by LinesBottomSheet.
     private var cachedAvailableLines: List<String> = emptyList()
@@ -500,12 +506,12 @@ class TransportViewModel(private val context: Context) : ViewModel() {
     /**
      * Charge les favoris
      */
-    fun loadFavorites() {
+    override fun loadFavorites() {
         _favoriteStops.value = favoritesRepository.getFavoriteStops()
         _userFavorites.value = favoritesRepository.getUserFavorites()
     }
 
-    fun addUserFavorite(name: String, iconName: String, stopName: String) {
+    override fun addUserFavorite(name: String, iconName: String, stopName: String) {
         val newFavorite = Favorite(
             id = favoritesRepository.generateFavoriteId(),
             name = name,
@@ -517,18 +523,18 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun removeUserFavorite(favoriteId: String) {
+    override fun removeUserFavorite(favoriteId: String) {
         if (favoritesRepository.removeFavorite(favoriteId)) {
             loadFavorites()
         }
     }
 
-    fun toggleFavoriteStop(stopName: String) {
+    override fun toggleFavoriteStop(stopName: String) {
         favoritesRepository.toggleFavoriteStop(stopName)
         loadFavorites()
     }
 
-    fun getConnectionsForStop(stopName: String, lineName: String): Flow<List<LineSearchResult>> {
+    override fun getConnectionsForStop(stopName: String, lineName: String): Flow<List<LineSearchResult>> {
         return flow {
             val rawDesserte = schedulesRepository.getDesserteForStop(stopName)
             if (DEBUG_LOGGING) Log.i(TAG, "getConnectionsForStop($stopName): raw desserte = '$rawDesserte'")
@@ -564,7 +570,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    suspend fun getNextDeparturesForStop(
+    override suspend fun getNextDeparturesForStop(
         stopName: String,
         lines: List<String>
     ): List<StopDeparturePreview> = withContext(Dispatchers.Default) {
@@ -621,14 +627,14 @@ class TransportViewModel(private val context: Context) : ViewModel() {
             }
     }
 
-    suspend fun searchStops(query: String): List<StationSearchResult> =
+    override suspend fun searchStops(query: String): List<StationSearchResult> =
         schedulesRepository.searchStopsByName(query)
 
-    fun searchLines(query: String): List<LineSearchResult> {
+    override fun searchLines(query: String): List<LineSearchResult> {
         return schedulesRepository.searchLinesByName(query)
     }
 
-    fun getAlertsForLine(lineName: String): List<TrafficAlert> {
+    override fun getAlertsForLine(lineName: String): List<TrafficAlert> {
         val alerts = trafficAlerts.value
         if (alerts !== cachedAlertsByLineSource) {
             // Rebuild index: group distinct alerts by each line token they affect
@@ -647,7 +653,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         return cachedAlertsByLine[target] ?: emptyList()
     }
 
-    fun getAllAvailableLines(): List<String> {
+    override fun getAllAvailableLines(): List<String> {
         val currentUiState = uiState.value
         val currentStopsState = stopsUiState.value
 
@@ -685,7 +691,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         return aggregated
     }
 
-    fun getStopsForLine(lineName: String, currentStopName: String? = null, directionId: Int? = null): List<LineStopInfo> {
+    override fun getStopsForLine(lineName: String, currentStopName: String?, directionId: Int?): List<LineStopInfo> {
         val state = stopsUiState.value
         if (state !is TransportStopsUiState.Success) return emptyList()
 
@@ -762,13 +768,13 @@ class TransportViewModel(private val context: Context) : ViewModel() {
             .toList()
     }
 
-    fun loadHeadsign(lineName: String) {
+    override fun loadHeadsign(lineName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _headsigns.value = schedulesRepository.getHeadsigns(resolveScheduleRouteName(lineName))
         }
     }
 
-    fun computeAvailableDirections(lineName: String, stopName: String) {
+    override fun computeAvailableDirections(lineName: String, stopName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             if (lineName.isBlank() || stopName.isBlank()) {
                 _availableDirections.value = emptyList()
@@ -795,7 +801,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun loadSchedulesForDirection(lineName: String, stopName: String, directionId: Int) {
+    override fun loadSchedulesForDirection(lineName: String, stopName: String, directionId: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             _allSchedules.value = emptyList()
             _nextSchedules.value = emptyList()
@@ -831,7 +837,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun getAlertSeverityMapForLines(lineNames: List<String>): Map<String, AlertSeverity> {
+    override fun getAlertSeverityMapForLines(lineNames: List<String>): Map<String, AlertSeverity> {
         if (lineNames.isEmpty()) return emptyMap()
         val severityByLine = getOrBuildAlertSeverityIndex()
         if (severityByLine.isEmpty()) return emptyMap()
@@ -890,15 +896,15 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun selectLine(lineName: String) {
+    override fun selectLine(lineName: String) {
         _selectedLineName.value = lineName
     }
 
-    fun clearSelectedLine() {
+    override fun clearSelectedLine() {
         _selectedLineName.value = null
     }
 
-    fun addLineToLoaded(lineName: String) {
+    override fun addLineToLoaded(lineName: String) {
         val requestedLine = lineName.trim()
         if (requestedLine.isEmpty()) return
 
@@ -936,7 +942,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun removeLineFromLoaded(lineName: String) {
+    override fun removeLineFromLoaded(lineName: String) {
         val requestedLine = lineName.trim()
         if (requestedLine.isEmpty()) return
 
@@ -956,19 +962,19 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun loadAllLines() {
+    override fun loadAllLines() {
         loadTransportLines()
     }
 
-    fun preloadStops() {
+    override fun preloadStops() {
         loadStops()
     }
 
-    fun reloadStrongLines() {
+    override fun reloadStrongLines() {
         loadTransportLines()
     }
 
-    fun startLiveTracking(lineName: String) {
+    override fun startLiveTracking(lineName: String) {
         if (_isGlobalLiveEnabled.value) {
             stopGlobalLive()
         }
@@ -992,21 +998,21 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun stopLiveTracking() {
+    override fun stopLiveTracking() {
         vehiclePositionsJob?.cancel()
         vehiclePositionsJob = null
         _isLiveTrackingEnabled.value = false
         _vehiclePositions.value = emptyList()
     }
 
-    fun stopGlobalLive() {
+    override fun stopGlobalLive() {
         globalLiveJob?.cancel()
         globalLiveJob = null
         _isGlobalLiveEnabled.value = false
         _globalVehiclePositions.value = emptyList()
     }
 
-    fun toggleGlobalLive() {
+    override fun toggleGlobalLive() {
         if (_isGlobalLiveEnabled.value) {
             stopGlobalLive()
             return
@@ -1041,12 +1047,12 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         // Implementation here
     }
 
-    fun clearScheduleState() {
+    override fun clearScheduleState() {
         _allSchedules.value = emptyList()
         _nextSchedules.value = emptyList()
     }
 
-    fun getStopsFeaturesForLine(lineName: String): List<StopFeature> {
+    override fun getStopsFeaturesForLine(lineName: String): List<StopFeature> {
         val state = stopsUiState.value
         if (state is TransportStopsUiState.Success) {
             return state.stops.filter { stop ->
@@ -1057,25 +1063,25 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         return emptyList()
     }
 
-    fun isStopsByLineIndexReady(): Boolean {
+    override fun isStopsByLineIndexReady(): Boolean {
         return stopsUiState.value is TransportStopsUiState.Success
     }
 
-    fun startOfflineDownload() {
+    override fun startOfflineDownload() {
         viewModelScope.launch {
             offlineDataManager.downloadAllOfflineData()
         }
     }
 
-    fun cancelOfflineDownload() {
+    override fun cancelOfflineDownload() {
         offlineDataManager.cancelDownload()
     }
 
-    fun reloadStopsCache() {
+    override fun reloadStopsCache() {
         loadStops()
     }
 
-    fun resetLineDetailState() {
+    override fun resetLineDetailState() {
         _headsigns.value = emptyMap()
         _allSchedules.value = emptyList()
         _nextSchedules.value = emptyList()
@@ -1189,7 +1195,7 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         return com.pelotcl.app.generic.ui.viewmodel.pickNextDeparture(schedules, currentMinutes)
     }
 
-    fun parseLineCodesFromDesserte(desserte: String): List<String> {
+    override fun parseLineCodesFromDesserte(desserte: String): List<String> {
         return com.pelotcl.app.generic.ui.viewmodel.parseLineCodesFromDesserte(desserte)
     }
 
@@ -1366,4 +1372,21 @@ class TransportViewModel(private val context: Context) : ViewModel() {
         return sectionedLines
     }
 
+    override suspend fun resolveStopIdsByName(stopName: String, maxIds: Int): List<Int> =
+        raptorRepository.resolveStopIdsByName(stopName, maxIds)
+
+    override suspend fun findNearestStops(latitude: Double, longitude: Double, limit: Int): List<RaptorStop> =
+        raptorRepository.findNearestStops(latitude, longitude, limit)
+
+    override suspend fun getOptimizedPaths(
+        originStopIds: List<Int>,
+        destinationStopIds: List<Int>,
+        departureTimeSeconds: Int
+    ): List<JourneyResult> = raptorRepository.getOptimizedPaths(originStopIds, destinationStopIds, departureTimeSeconds)
+
+    override suspend fun getOptimizedPathsArriveBy(
+        originStopIds: List<Int>,
+        destinationStopIds: List<Int>,
+        arrivalTimeSeconds: Int
+    ): List<JourneyResult> = raptorRepository.getOptimizedPathsArriveBy(originStopIds, destinationStopIds, arrivalTimeSeconds)
 }
