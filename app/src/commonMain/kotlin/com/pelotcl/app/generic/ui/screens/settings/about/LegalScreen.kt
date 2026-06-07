@@ -21,17 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pelotcl.app.generic.data.config.AppConfigLoader
+import com.pelotcl.app.generic.data.config.AboutSectionData
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegalScreen(
+    legalSections: List<AboutSectionData>,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sections = AppConfigLoader.getConfig().about.legalSections
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -67,7 +67,7 @@ fun LegalScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            sections.forEach { section ->
+            legalSections.forEach { section ->
                 Text(
                     text = section.title,
                     color = SecondaryColor,

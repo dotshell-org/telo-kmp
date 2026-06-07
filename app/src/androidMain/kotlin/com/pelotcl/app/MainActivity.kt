@@ -769,7 +769,11 @@ private fun AppNavHost(
             )
         }
         composable(Destination.LEGAL) {
+            val sections = remember {
+                com.pelotcl.app.generic.data.config.AppConfigLoader.getConfig().about.legalSections
+            }
             LegalScreen(
+                legalSections = sections,
                 onBackClick = {
                     navController.popBackStack()
                 }
