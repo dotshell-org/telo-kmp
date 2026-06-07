@@ -1,25 +1,34 @@
 package com.pelotcl.app.generic.data.repository.offline
 
-import android.content.Context
-import androidx.core.content.edit
-import com.google.gson.reflect.TypeToken
-import com.pelotcl.app.generic.data.GsonProvider
 import com.pelotcl.app.generic.data.local_history.FavoriteAuditEntry
 import com.pelotcl.app.generic.data.models.stops.Favorite
 import com.pelotcl.app.generic.data.repository.api.FavoritesRepository as ApiFavoritesRepository
 import com.pelotcl.app.generic.data.telemetry.TelemetryEmitter
+import com.pelotcl.app.platform.PlatformContext
+import com.pelotcl.app.platform.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
- * Repository for managing favorites - both the new user-created favorites
- * and the legacy favorite stops system (kept for migration)
+ * Repository for managing favorites — both the new user-created favorites
+ * and the legacy favorite stops system (kept for migration).
+ *
+ * Multiplatform: uses [Settings] abstraction + kotlinx.serialization instead of
+ * SharedPreferences + Gson.
  */
-class FavoritesRepository(private val context: Context) : ApiFavoritesRepository {
-    private val prefs by lazy { context.getSharedPreferences("pelo_prefs", Context.MODE_PRIVATE) }
-    private val gson = GsonProvider.instance
+class FavoritesRepository(context: PlatformContext) : ApiFavoritesRepository {
+
+    private val settings = Settings(context, "pelo_prefs")
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
 
     private val keyFavoriteStops = "favorites_stops"
     private val keyStopDessertePrefix = "stop_desserte_"
@@ -27,17 +36,15 @@ class FavoritesRepository(private val context: Context) : ApiFavoritesRepository
     // New keys for the updated favorites system
     private val keyUserFavorites = "user_favorites_v2"
 
-    // Background scope used to write to the LOCAL-ONLY audit log without blocking the caller.
-    // Audit entries are not sent to the backend by design — they only feed the user-facing
-    // "Mes favoris" history view and reflect a user preference, not a telemetry signal.
-    private val auditScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Background scope for async audit log writes (fire-and-forget)
+    private val auditScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private fun appendFavoriteAudit(action: String, type: String, refId: String?) {
         val storage = TelemetryEmitter.localHistory() ?: return
         auditScope.launch {
             storage.appendFavoriteAudit(
                 FavoriteAuditEntry(
-                    atEpochMs = System.currentTimeMillis(),
+                    atEpochMs = Clock.System.now().toEpochMilliseconds(),
                     action = action,
                     favoriteType = type,
                     refId = refId
@@ -47,11 +54,11 @@ class FavoritesRepository(private val context: Context) : ApiFavoritesRepository
     }
 
     override fun getFavoriteStops(): Set<String> {
-        return prefs.getStringSet(keyFavoriteStops, emptySet()) ?: emptySet()
+        return settings.getStringSet(keyFavoriteStops, emptySet())
     }
 
     fun saveFavoriteStops(favorites: Set<String>) {
-        prefs.edit { putStringSet(keyFavoriteStops, favorites) }
+        settings.putStringSet(keyFavoriteStops, favorites)
     }
 
     override fun toggleFavoriteStop(stopName: String, desserte: String?): Boolean {
@@ -60,14 +67,11 @@ class FavoritesRepository(private val context: Context) : ApiFavoritesRepository
 
         if (isAdding) favorites.add(stopName) else favorites.remove(stopName)
 
-        // Single batch edit for all SharedPreferences changes
-        prefs.edit {
-            putStringSet(keyFavoriteStops, favorites)
-            if (isAdding && !desserte.isNullOrEmpty()) {
-                putString(keyStopDessertePrefix + stopName, desserte)
-            } else if (!isAdding) {
-                remove(keyStopDessertePrefix + stopName)
-            }
+        settings.putStringSet(keyFavoriteStops, favorites)
+        if (isAdding && !desserte.isNullOrEmpty()) {
+            settings.putString(keyStopDessertePrefix + stopName, desserte)
+        } else if (!isAdding) {
+            settings.remove(keyStopDessertePrefix + stopName)
         }
 
         appendFavoriteAudit(
@@ -79,46 +83,41 @@ class FavoritesRepository(private val context: Context) : ApiFavoritesRepository
     }
 
     fun getDesserteForStop(stopName: String): String? {
-        return prefs.getString(keyStopDessertePrefix + stopName, null)
+        val value = settings.getString(keyStopDessertePrefix + stopName, "")
+        return value.takeIf { it.isNotBlank() }
     }
 
     // === New favorites system ===
 
     /**
-     * Get all user-created favorites
+     * Get all user-created favorites.
      */
     override fun getUserFavorites(): List<Favorite> {
-        val json = prefs.getString(keyUserFavorites, null)
-        return if (json != null) {
-            try {
-                val type = object : TypeToken<List<Favorite>>() {}.type
-                gson.fromJson(json, type) ?: emptyList()
-            } catch (e: Exception) {
-                emptyList()
-            }
-        } else {
+        val raw = settings.getString(keyUserFavorites, "").takeIf { it.isNotBlank() }
+            ?: return emptyList()
+        return try {
+            json.decodeFromString<List<Favorite>>(raw)
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     /**
-     * Save the list of user-created favorites
+     * Save the list of user-created favorites.
      */
     fun saveUserFavorites(favorites: List<Favorite>) {
-        val json = gson.toJson(favorites)
-        prefs.edit { putString(keyUserFavorites, json) }
+        settings.putString(keyUserFavorites, json.encodeToString(favorites))
     }
 
     /**
-     * Add a new favorite
+     * Add a new favorite.
      */
     override fun addFavorite(favorite: Favorite): Boolean {
         val favorites = getUserFavorites().toMutableList()
         // Check if a favorite with the same name already exists
         if (favorites.any { it.name.equals(favorite.name, ignoreCase = true) }) {
-            return false // Favorite with this name already exists
+            return false
         }
-
         favorites.add(favorite)
         saveUserFavorites(favorites)
         appendFavoriteAudit(action = "added", type = "user", refId = favorite.id)
@@ -126,7 +125,7 @@ class FavoritesRepository(private val context: Context) : ApiFavoritesRepository
     }
 
     /**
-     * Remove a favorite by ID
+     * Remove a favorite by ID.
      */
     override fun removeFavorite(favoriteId: String): Boolean {
         val favorites = getUserFavorites().toMutableList()
@@ -141,9 +140,9 @@ class FavoritesRepository(private val context: Context) : ApiFavoritesRepository
     }
 
     /**
-     * Generate a unique ID for a new favorite
+     * Generate a unique ID for a new favorite.
      */
     override fun generateFavoriteId(): String {
-        return "fav_" + System.currentTimeMillis().toString()
+        return "fav_${Clock.System.now().toEpochMilliseconds()}"
     }
 }

@@ -1,6 +1,8 @@
 package com.pelotcl.app.generic.ui.screens.plan
 
 import com.pelotcl.app.platform.Log
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,8 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.sp
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.AlertSeverity
 import com.pelotcl.app.generic.data.models.gtfs.LineStopInfo
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.TrafficAlert
+import com.pelotcl.app.generic.data.telemetry.TelemetryEvent
+import com.pelotcl.app.generic.data.telemetry.emitTelemetryEvent
 import com.pelotcl.app.generic.ui.theme.Gray700
 import com.pelotcl.app.generic.ui.theme.Green500
 import com.pelotcl.app.generic.ui.theme.Orange500
@@ -77,8 +79,9 @@ import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.viewmodel.TransportLinesUiState
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModelInterface
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.generic.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
+import com.pelotcl.app.platform.randomId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -176,7 +179,7 @@ fun LineDetailsBottomSheet(
     onToggleFavoriteStop: (String) -> Unit = {},
     onHeaderLineCountChanged: (Int) -> Unit = {}
 ) {
-    val context = LocalContext.current
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
 
     // Key states on lineInfo to reset when switching lines - prevents stale data accumulation
     val lineKey = lineInfo?.lineName to lineInfo?.currentStationName
@@ -209,9 +212,9 @@ fun LineDetailsBottomSheet(
                     e
                 )
             }
-            com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
-                com.pelotcl.app.generic.data.telemetry.TelemetryEvent.LineClicked(
-                    eventId = java.util.UUID.randomUUID().toString(),
+            emitTelemetryEvent(
+                TelemetryEvent.LineClicked(
+                    eventId = randomId(),
                     at = Clock.System.now().toString(),
                     lineId = lineInfo.lineName,
                     context = "bottom_sheet"
@@ -330,15 +333,19 @@ fun LineDetailsBottomSheet(
                             .padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val resourceId =
-                            BusIconHelper.getResourceIdForLine(context, lineInfo.lineName)
+                        val drawableName = remember(lineInfo.lineName) {
+                            LineIconResolver.getDrawableNameForLineName(lineInfo.lineName)
+                        }
+                        val hasLineIcon = remember(drawableName, drawableProvider) {
+                            drawableProvider.hasDrawable(drawableName)
+                        }
                         Box(
                             modifier = Modifier.size(50.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (resourceId != 0) {
+                            if (hasLineIcon) {
                                 Image(
-                                    painter = painterResource(id = resourceId),
+                                    painter = drawableProvider.getPainter(drawableName),
                                     contentDescription = "Line ${lineInfo.lineName}",
                                     modifier = Modifier.fillMaxSize()
                                 )

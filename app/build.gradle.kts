@@ -60,13 +60,9 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
 
-            // Ktor engine for Android
+            // Ktor engine for Android (uses OkHttp under the hood)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.retrofit)
-            implementation(libs.retrofit.converter.gson)
-            implementation(libs.gson)
             implementation(libs.okhttp)
-            implementation(libs.okhttp.sse)
 
             // Android-specific
             implementation(libs.material)

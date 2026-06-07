@@ -8,7 +8,6 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.pelotcl.app.generic.data.cache.journey.JourneyCache
 import com.pelotcl.app.generic.data.config.AppConfigLoader
-import com.pelotcl.app.generic.data.network.RetrofitInstance
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorRepository
 import com.pelotcl.app.generic.data.repository.offline.SchedulesRepository
 import com.pelotcl.app.generic.data.telemetry.TelemetryService
@@ -39,7 +38,6 @@ class PeloApplication : Application(), Configuration.Provider {
         verifyRaptorAssets()
         
         TransportServiceProvider.initialize(this)
-        RetrofitInstance.initialize(this, TransportServiceProvider.getTransportConfig())
         scheduleTrafficAlertsWork()
         initializeTelemetry()
     }

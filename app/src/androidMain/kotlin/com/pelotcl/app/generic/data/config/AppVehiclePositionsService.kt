@@ -1,7 +1,5 @@
 package com.pelotcl.app.generic.data.config
 
-import com.google.gson.JsonObject
-import com.pelotcl.app.generic.data.GsonProvider
 import com.pelotcl.app.generic.data.models.realtime.vehiclepositions.SiriData
 import com.pelotcl.app.generic.data.models.realtime.vehiclepositions.SimpleVehiclePosition
 import com.pelotcl.app.generic.data.models.realtime.vehiclepositions.VehicleActivity
@@ -14,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -29,7 +30,12 @@ class AppVehiclePositionsService(
 
     override fun getVehiclePositionsStreamUrl(): String = config.vehiclePositionsStreamUrl
 
-    private val gson = GsonProvider.instance
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
+
     private val lineRefPattern: Regex? = runCatching {
         Regex(config.vehiclePositionsLineRefPattern)
     }.getOrNull()
@@ -44,11 +50,11 @@ class AppVehiclePositionsService(
                 .build()
         }
     }
-    
+
     override fun streamAllVehiclePositions(): Flow<Result<List<SimpleVehiclePosition>>> {
         return createVehiclePositionsFlow()
     }
-    
+
     override fun streamVehiclePositionsByLine(lineName: String): Flow<Result<List<SimpleVehiclePosition>>> {
         return streamAllVehiclePositions().map { result ->
             result.map { positions ->
@@ -58,10 +64,10 @@ class AppVehiclePositionsService(
             }
         }
     }
-    
+
     override fun streamStrongLinesVehiclePositions(): Flow<Result<List<SimpleVehiclePosition>>> {
         val strongLines = rules.strongLines.toSet()
-        
+
         return streamAllVehiclePositions().map { result ->
             result.map { positions ->
                 positions.filter { position ->
@@ -70,7 +76,7 @@ class AppVehiclePositionsService(
             }
         }
     }
-    
+
     private fun createVehiclePositionsFlow(): Flow<Result<List<SimpleVehiclePosition>>> {
         return callbackFlow {
             val request = Request.Builder()
@@ -112,13 +118,14 @@ class AppVehiclePositionsService(
             true
         }
     }
-    
-    private fun parsePositionsEventData(data: String): List<SimpleVehiclePosition> {
-        val eventJson = gson.fromJson(data, JsonObject::class.java)
-        val payloadElement = eventJson.get("payload") ?: eventJson
 
+    private fun parsePositionsEventData(data: String): List<SimpleVehiclePosition> {
+        val eventJson = json.parseToJsonElement(data).jsonObject
+        val payloadElement = eventJson["payload"] ?: eventJson
+
+        // Try VehiclePositionsResponse wrapper first
         runCatching {
-            gson.fromJson(payloadElement, VehiclePositionsResponse::class.java)
+            json.decodeFromJsonElement(VehiclePositionsResponse.serializer(), payloadElement)
         }.getOrNull()?.let { parsed ->
             if (parsed.success) {
                 val fromResponse = extractPositionsFromSiriData(parsed.data)
@@ -126,8 +133,9 @@ class AppVehiclePositionsService(
             }
         }
 
+        // Try SiriData directly
         runCatching {
-            gson.fromJson(payloadElement, SiriData::class.java)
+            json.decodeFromJsonElement(SiriData.serializer(), payloadElement)
         }.getOrNull()?.let { siriData ->
             val fromSiri = extractPositionsFromSiriData(siriData)
             if (fromSiri.isNotEmpty()) return fromSiri
@@ -135,7 +143,7 @@ class AppVehiclePositionsService(
 
         return emptyList()
     }
-    
+
     private fun extractPositionsFromSiriData(data: SiriData?): List<SimpleVehiclePosition> {
         val activities = data?.siri?.serviceDelivery?.vehicleMonitoringDelivery
             ?.flatMap { it.vehicleActivity ?: emptyList() }
@@ -162,7 +170,7 @@ class AppVehiclePositionsService(
             )
         }
     }
-    
+
     private fun extractLineNameFromRef(lineRef: String): String {
         lineRefPattern?.find(lineRef)?.value?.let { return it }
         val parts = lineRef.split("::")

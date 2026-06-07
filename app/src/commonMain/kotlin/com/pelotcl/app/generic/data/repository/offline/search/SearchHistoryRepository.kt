@@ -1,21 +1,27 @@
 package com.pelotcl.app.generic.data.repository.offline.search
 
-import android.content.Context
-import com.google.gson.reflect.TypeToken
-import com.pelotcl.app.generic.data.GsonProvider
-import androidx.core.content.edit
 import com.pelotcl.app.generic.data.telemetry.TelemetryEmitter
 import com.pelotcl.app.generic.data.telemetry.TelemetryEvent
+import com.pelotcl.app.platform.PlatformContext
+import com.pelotcl.app.platform.Settings
+import com.pelotcl.app.platform.randomId
 import kotlinx.datetime.Clock
-import java.util.UUID
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
- * Repository for managing search history using SharedPreferences.
+ * Repository for managing search history.
  * Stores recent searches for quick access.
+ * Multiplatform: uses [Settings] abstraction + kotlinx.serialization instead of
+ * SharedPreferences + Gson.
  */
-class SearchHistoryRepository(context: Context) {
-    private val prefs = context.getSharedPreferences("pelo_search_history", Context.MODE_PRIVATE)
-    private val gson = GsonProvider.instance
+class SearchHistoryRepository(context: PlatformContext) {
+    private val settings = Settings(context, "pelo_search_history")
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
 
     companion object {
         private const val KEY_SEARCH_HISTORY = "search_history"
@@ -23,13 +29,13 @@ class SearchHistoryRepository(context: Context) {
     }
 
     /**
-     * Get the search history ordered by most recent first
+     * Get the search history ordered by most recent first.
      */
     fun getSearchHistory(): List<SearchHistoryItem> {
-        val json = prefs.getString(KEY_SEARCH_HISTORY, null) ?: return emptyList()
+        val raw = settings.getString(KEY_SEARCH_HISTORY, "") .takeIf { it.isNotBlank() }
+            ?: return emptyList()
         return try {
-            val type = object : TypeToken<List<SearchHistoryItem>>() {}.type
-            gson.fromJson<List<SearchHistoryItem>>(json, type)
+            json.decodeFromString<List<SearchHistoryItem>>(raw)
                 .sortedByDescending { it.timestamp }
         } catch (_: Exception) {
             emptyList()
@@ -38,7 +44,7 @@ class SearchHistoryRepository(context: Context) {
 
     /**
      * Add a search item to history. If the item already exists, it updates its timestamp.
-     * Keeps only the most recent MAX_HISTORY_SIZE items.
+     * Keeps only the most recent [MAX_HISTORY_SIZE] items.
      */
     fun addToHistory(item: SearchHistoryItem) {
         val history = getSearchHistory().toMutableList()
@@ -48,48 +54,45 @@ class SearchHistoryRepository(context: Context) {
             it.query.equals(item.query, ignoreCase = true) && it.type == item.type
         }
 
-        // Add new item at the beginning
-        history.add(0, item.copy(timestamp = System.currentTimeMillis()))
+        // Add new item at the beginning with current timestamp
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        history.add(0, item.copy(timestamp = nowMs))
 
         // Keep only MAX_HISTORY_SIZE items
         val trimmedHistory = history.take(MAX_HISTORY_SIZE)
 
-        // Save to preferences
-        val json = gson.toJson(trimmedHistory)
-        prefs.edit { putString(KEY_SEARCH_HISTORY, json) }
+        settings.putString(KEY_SEARCH_HISTORY, json.encodeToString(trimmedHistory))
 
         emitTelemetry(item)
     }
 
-    private fun emitTelemetry(item: SearchHistoryItem) {
-        // The query is the canonical stop name or line id selected by the user from a result.
-        // It is *not* free text — it always matches a known GTFS resource, so we can ship it.
-        val now = Clock.System.now().toString()
-        val event = when (item.type) {
-            SearchType.STOP -> TelemetryEvent.SearchStop(
-                eventId = UUID.randomUUID().toString(),
-                at = now,
-                stopId = item.query
-            )
-            SearchType.LINE -> TelemetryEvent.SearchLine(
-                eventId = UUID.randomUUID().toString(),
-                at = now,
-                lineId = item.query
-            )
-        }
-        TelemetryEmitter.emit(event)
-    }
-
     /**
-     * Remove a specific item from history
+     * Remove a specific item from history.
      */
     fun removeFromHistory(query: String, type: SearchType) {
         val history = getSearchHistory().toMutableList()
         history.removeAll {
             it.query.equals(query, ignoreCase = true) && it.type == type
         }
-        val json = gson.toJson(history)
-        prefs.edit { putString(KEY_SEARCH_HISTORY, json) }
+        settings.putString(KEY_SEARCH_HISTORY, json.encodeToString(history))
     }
 
+    private fun emitTelemetry(item: SearchHistoryItem) {
+        // The query is the canonical stop name or line id selected by the user from a result.
+        // It is *not* free text — it always matches a known GTFS resource.
+        val now = Clock.System.now().toString()
+        val event = when (item.type) {
+            SearchType.STOP -> TelemetryEvent.SearchStop(
+                eventId = randomId(),
+                at = now,
+                stopId = item.query
+            )
+            SearchType.LINE -> TelemetryEvent.SearchLine(
+                eventId = randomId(),
+                at = now,
+                lineId = item.query
+            )
+        }
+        TelemetryEmitter.emit(event)
+    }
 }

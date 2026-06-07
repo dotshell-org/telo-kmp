@@ -62,11 +62,11 @@ class TransportViewModel(private val context: Context) : ViewModel(), TransportV
     private val transportApi: TransportApi = TransportServiceProvider.getTransportApi()
     private val vehiclePositionsService = TransportServiceProvider.getVehiclePositionsService()
     private val lineRules = TransportServiceProvider.getTransportLineRules()
-    internal val transportRepository: TransportRepository = TransportRepository(context)
-    private val trafficAlertsRepository = TrafficAlertsRepository(transportApi, context)
+    internal val transportRepository: TransportRepository = TransportRepository(transportApi)
+    private val trafficAlertsRepository = TrafficAlertsRepository(transportApi, com.pelotcl.app.platform.Settings(context, "traffic_alerts_cache"))
     val userStopAlertsRepository by lazy {
         UserStopAlertsRepository(
-            transportApi as com.pelotcl.app.specific.data.network.LyonTransportApi
+            transportApi as com.pelotcl.app.specific.data.network.LyonKtorClient
         )
     }
     private val vehiclePositionsRepository = VehiclePositionsRepository(vehiclePositionsService)

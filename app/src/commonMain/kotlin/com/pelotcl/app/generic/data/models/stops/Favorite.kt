@@ -1,8 +1,11 @@
 package com.pelotcl.app.generic.data.models.stops
 
+import kotlinx.serialization.Serializable
+
 /**
  * Represents a user-created favorite with a name, icon, and associated stop
  */
+@Serializable
 data class Favorite(
     val id: String, // Unique identifier
     val name: String, // User-defined name for the favorite

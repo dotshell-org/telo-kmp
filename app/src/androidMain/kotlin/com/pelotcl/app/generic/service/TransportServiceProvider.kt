@@ -5,7 +5,6 @@ import com.pelotcl.app.generic.data.network.mapstyle.MapStyleConfig
 import com.pelotcl.app.generic.data.network.transport.TransportApi
 import com.pelotcl.app.generic.data.network.transport.TransportConfig
 import com.pelotcl.app.generic.data.network.transport.TransportLineRules
-import com.pelotcl.app.generic.data.network.RetrofitInstance
 import com.pelotcl.app.generic.data.network.transport.TransportLineService
 import com.pelotcl.app.generic.data.network.TrafficAlertsService
 import com.pelotcl.app.generic.data.network.VehiclePositionsService
@@ -18,7 +17,7 @@ import com.pelotcl.app.generic.data.config.AppTrafficAlertsService
 import com.pelotcl.app.generic.data.config.AppVehiclePositionsService
 import com.pelotcl.app.generic.ui.screens.about.GenericAboutScreen
 import com.pelotcl.app.generic.ui.theme.GenericTransportTheme
-import com.pelotcl.app.specific.data.network.LyonTransportApi
+import com.pelotcl.app.specific.data.network.LyonKtorClient
 import com.pelotcl.app.generic.data.config.AppMapStyleConfig
 import com.pelotcl.app.specific.TransportLineServiceImpl
 
@@ -55,11 +54,8 @@ object TransportServiceProvider {
         // Transport line service
         transportLineService = TransportLineServiceImpl()
 
-        // Initialize Retrofit with the configuration
-        RetrofitInstance.initialize(context, transportConfig)
-
-        // Create the API - use LyonTransportApi for Lyon-specific field mapping
-        transportApi = LyonTransportApi(transportConfig.baseUrl)
+        // Create the API using the KMP-compatible Ktor client (commonMain)
+        transportApi = LyonKtorClient(transportConfig.baseUrl)
 
         // Rules for matching/normalizing line names
         transportLineRules = AppTransportLineRules(appConfig.rules)

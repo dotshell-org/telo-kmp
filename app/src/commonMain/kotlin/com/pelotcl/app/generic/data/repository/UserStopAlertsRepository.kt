@@ -1,20 +1,22 @@
 package com.pelotcl.app.generic.data.repository
 
-import android.util.Log
 import com.pelotcl.app.generic.data.models.realtime.alerts.community.StopAlertsStatus
 import com.pelotcl.app.generic.data.models.realtime.alerts.community.UserStopAlert
 import com.pelotcl.app.generic.data.models.realtime.alerts.community.UserStopAlertsResponse
-import com.pelotcl.app.specific.data.network.LyonTransportApi
 import com.pelotcl.app.generic.utils.search.SearchUtils
+import com.pelotcl.app.platform.Log
+import com.pelotcl.app.specific.data.network.LyonKtorClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /**
- * Repository for managing user stop alerts (karma-based alerts)
- * Handles fetching and caching of alerts to avoid problematic stops in route planning
+ * Repository for managing user stop alerts (karma-based alerts).
+ * Multiplatform: removed android.util.Log dependency; now uses platform.Log.
+ * Depends on [LyonKtorClient] which is now in commonMain.
  */
 class UserStopAlertsRepository(
-    private val api: LyonTransportApi
+    private val api: LyonKtorClient
 ) {
     companion object {
         private const val TAG = "UserStopAlertsRepository"
@@ -22,20 +24,15 @@ class UserStopAlertsRepository(
     }
 
     private fun hasKarmaAtOrAboveThreshold(status: StopAlertsStatus): Boolean {
-        // Source of truth is backend bucketing.
         return status.karmaAtOrAboveThreshold.isNotEmpty()
     }
 
     /**
-     * Fetch alerts for the given stops
-     * @param stopIds List of stop IDs to check for alerts
-     * @return Map of stopId to StopAlertsStatus
+     * Fetch alerts for the given stops.
      */
     suspend fun getUserStopAlerts(stopIds: List<String>): UserStopAlertsResponse =
         withContext(Dispatchers.IO) {
-            if (stopIds.isEmpty()) {
-                return@withContext emptyMap()
-            }
+            if (stopIds.isEmpty()) return@withContext emptyMap()
 
             val requestedStops = stopIds.distinct()
             Log.i(TAG, "Fetching user stop alerts for ${requestedStops.size} stops")
@@ -47,21 +44,13 @@ class UserStopAlertsRepository(
                     val response = api.getUserStopAlerts(chunk)
                     merged.putAll(response)
                 } catch (chunkError: Exception) {
-                    Log.w(
-                        TAG,
-                        "Chunk request failed for ${chunk.size} stops, retrying one by one: ${chunkError.message}"
-                    )
-
-                    // Isolate bad stop ids so one backend failure does not hide all alerts.
+                    Log.w(TAG, "Chunk request failed, retrying one by one: ${chunkError.message}")
                     chunk.forEach { stopId ->
                         try {
                             val singleResponse = api.getUserStopAlerts(listOf(stopId))
                             merged.putAll(singleResponse)
                         } catch (singleError: Exception) {
-                            Log.w(
-                                TAG,
-                                "Single stop alert request failed for '$stopId': ${singleError.message}"
-                            )
+                            Log.w(TAG, "Single stop alert request failed for '$stopId': ${singleError.message}")
                         }
                     }
                 }
@@ -71,9 +60,7 @@ class UserStopAlertsRepository(
         }
 
     /**
-     * Get all problematic stop IDs (those with karma_at_or_above_threshold alerts)
-     * @param stopIds List of stop IDs to check
-     * @return Set of stop IDs that have problematic alerts
+     * Get all problematic stop IDs (those with karma_at_or_above_threshold alerts).
      */
     suspend fun getProblematicStops(stopIds: List<String>): Set<String> =
         withContext(Dispatchers.Default) {
@@ -81,27 +68,20 @@ class UserStopAlertsRepository(
         }
 
     /**
-     * Return problematic alerts mapped to caller stop names (not raw API keys).
-     * This prevents false positives when names differ by accents/casing/punctuation.
+     * Return problematic alerts mapped to caller stop names.
+     * Prevents false positives when names differ by accents/casing/punctuation.
      */
     suspend fun getProblematicAlertDetails(stopIds: List<String>): Map<String, List<UserStopAlert>> =
         withContext(Dispatchers.Default) {
             val alerts = getUserStopAlerts(stopIds)
             if (alerts.isEmpty()) return@withContext emptyMap()
 
-            val problematicEntries = alerts
-                .filter { (_, status) -> hasKarmaAtOrAboveThreshold(status) }
+            val problematicEntries = alerts.filter { (_, status) -> hasKarmaAtOrAboveThreshold(status) }
 
-            Log.d(
-                TAG,
-                "Problematic API stops: ${problematicEntries.size}/${alerts.size} for ${stopIds.size} requested stops"
-            )
+            Log.d(TAG, "Problematic API stops: ${problematicEntries.size}/${alerts.size}")
 
-            if (problematicEntries.isEmpty()) {
-                return@withContext emptyMap()
-            }
+            if (problematicEntries.isEmpty()) return@withContext emptyMap()
 
-            // Build a normalized index, but keep ambiguity information to avoid false positives.
             val normalizedToApiStops = problematicEntries.keys
                 .groupBy(SearchUtils::normalizeStopKey)
 
@@ -110,14 +90,11 @@ class UserStopAlertsRepository(
 
             val result = linkedMapOf<String, List<UserStopAlert>>()
             stopIds.forEach { callerStopName ->
-                // 1) Prefer exact key matching to avoid accidental normalized collisions.
                 val exact = problematicByExact[callerStopName]
                 if (!exact.isNullOrEmpty()) {
                     result[callerStopName] = exact
                     return@forEach
                 }
-
-                // 2) Fallback to normalized key only when it maps to exactly one API stop.
                 val normalized = SearchUtils.normalizeStopKey(callerStopName)
                 val candidates = normalizedToApiStops[normalized].orEmpty()
                 if (candidates.size == 1) {
@@ -128,11 +105,7 @@ class UserStopAlertsRepository(
                 }
             }
 
-            Log.d(
-                TAG,
-                "Matched problematic caller stops: ${result.keys.joinToString()}"
-            )
-
+            Log.d(TAG, "Matched problematic caller stops: ${result.keys.joinToString()}")
             result
         }
 }
