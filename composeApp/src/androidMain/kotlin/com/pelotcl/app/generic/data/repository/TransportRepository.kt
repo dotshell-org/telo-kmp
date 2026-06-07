@@ -10,6 +10,7 @@ import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.data.models.geojson.Feature
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.lines.MultiLineStringGeometry
+import com.pelotcl.app.generic.data.repository.api.TransportRepository as ApiTransportRepository
 import com.pelotcl.app.generic.data.models.lines.TransportLineProperties
 import com.pelotcl.app.generic.data.network.transport.TransportLinesQuery
 import com.pelotcl.app.generic.data.offline.OfflineRepository
@@ -21,7 +22,7 @@ import kotlinx.coroutines.withContext
  * Repository for managing transport line data
  * Uses TransportServiceProvider for dependency access
  */
-class TransportRepository(context: Context? = null) {
+class TransportRepository(context: Context? = null) : ApiTransportRepository {
 
     private val transportApi: TransportApi = TransportServiceProvider.getTransportApi()
     private val cache = context?.let { com.pelotcl.app.generic.data.cache.TransportCacheImpl(it) }
@@ -30,7 +31,7 @@ class TransportRepository(context: Context? = null) {
     /**
      * Fetches all default (non-bus-by-pagination) strong transport line geometries.
      */
-    suspend fun getAllLines(): Result<FeatureCollection> {
+    override suspend fun getAllLines(): Result<FeatureCollection> {
         return withContext(Dispatchers.IO) {
             runCatching {
                 withRetry(maxRetries = 2, initialDelayMs = 1000) {
@@ -77,7 +78,7 @@ class TransportRepository(context: Context? = null) {
      * Loads a single line geometry by line name, including non-strong lines.
      * This is used to add weak lines on demand without loading the whole bus dataset.
      */
-    suspend fun getLineByName(lineName: String): Result<List<Feature>> {
+    override suspend fun getLineByName(lineName: String): Result<List<Feature>> {
         return withContext(Dispatchers.IO) {
             runCatching {
                 transportApi

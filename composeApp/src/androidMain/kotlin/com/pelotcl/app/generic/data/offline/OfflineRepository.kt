@@ -5,6 +5,7 @@ import android.util.Log
 import com.pelotcl.app.generic.data.models.geojson.Feature
 import com.pelotcl.app.generic.data.models.geojson.StopFeature
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.TrafficAlert
+import com.pelotcl.app.generic.data.repository.api.OfflineRepository as ApiOfflineRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -19,7 +20,7 @@ import androidx.core.content.edit
  * Dedicated persistent storage for offline data.
  * Uses filesDir (not cacheDir) so data is NOT purged by the OS.
  */
-class OfflineRepository(private val context: Context) {
+class OfflineRepository(private val context: Context) : ApiOfflineRepository {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -129,8 +130,14 @@ class OfflineRepository(private val context: Context) {
     suspend fun saveRxLines(lines: List<Feature>) =
         writeCompressed(FILE_RX_LINES, lines.sanitizeForSerialization())
 
-    suspend fun saveStops(stops: List<StopFeature>) =
+    override suspend fun saveStops(stops: List<StopFeature>) =
         writeCompressed(FILE_STOPS, stops.sanitizeStopsForSerialization())
+
+    override suspend fun clearStopsCache() {
+        withContext(Dispatchers.IO) {
+            File(offlineDir, FILE_STOPS).delete()
+        }
+    }
 
     suspend fun saveTrafficAlerts(alerts: List<TrafficAlert>) =
         writeCompressed(FILE_TRAFFIC_ALERTS, alerts)
@@ -162,7 +169,7 @@ class OfflineRepository(private val context: Context) {
     suspend fun loadRxLines(): List<Feature>? =
         readCompressed(FILE_RX_LINES)
 
-    suspend fun loadStops(): List<StopFeature>? =
+    override suspend fun loadStops(): List<StopFeature>? =
         readCompressed(FILE_STOPS)
 
     suspend fun loadTrafficAlerts(): List<TrafficAlert>? =

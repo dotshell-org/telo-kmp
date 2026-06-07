@@ -7,10 +7,11 @@ import android.util.LruCache
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorRepository
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
+import com.pelotcl.app.generic.data.repository.api.SchedulesRepository as ApiSchedulesRepository
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
 
-class SchedulesRepository private constructor(context: Context) {
+class SchedulesRepository private constructor(context: Context) : ApiSchedulesRepository {
 
     private val appContext = context.applicationContext
     private val raptorRepository = RaptorRepository.getInstance(appContext)
@@ -40,7 +41,7 @@ class SchedulesRepository private constructor(context: Context) {
         // Binary-only mode: warm up by initializing raptor assets.
     }
 
-    suspend fun searchStopsByName(query: String): List<StationSearchResult> {
+    override suspend fun searchStopsByName(query: String): List<StationSearchResult> {
         val cacheKey = query.trim().lowercase()
         searchCache.get(cacheKey)?.let { return it }
 
@@ -92,11 +93,11 @@ class SchedulesRepository private constructor(context: Context) {
         return results
     }
 
-    fun searchLinesByName(query: String): List<LineSearchResult> {
+    override fun searchLinesByName(query: String): List<LineSearchResult> {
         return raptorRepository.searchLinesByName(query)
     }
 
-    fun getAllRouteNames(): List<String> {
+    override fun getAllRouteNames(): List<String> {
         return raptorRepository.searchLinesByName("").map { it.lineName }.distinct().sorted()
     }
 
@@ -104,19 +105,19 @@ class SchedulesRepository private constructor(context: Context) {
         return getAllRouteNames()
     }
 
-    fun getHeadsigns(routeName: String): Map<Int, String> {
+    override fun getHeadsigns(routeName: String): Map<Int, String> {
         return raptorRepository.getHeadsigns(routeName)
     }
 
-    fun getDesserteForStop(stopName: String): String? {
+    override fun getDesserteForStop(stopName: String): String? {
         return raptorRepository.getDesserteForStop(stopName)
     }
 
-    fun getStopSequences(routeName: String, directionId: Int): List<Pair<String, Int>> {
+    override fun getStopSequences(routeName: String, directionId: Int): List<Pair<String, Int>> {
         return raptorRepository.getStopSequences(routeName, directionId)
     }
 
-    fun getSchedules(
+    override fun getSchedules(
         lineName: String,
         stopName: String,
         directionId: Int,

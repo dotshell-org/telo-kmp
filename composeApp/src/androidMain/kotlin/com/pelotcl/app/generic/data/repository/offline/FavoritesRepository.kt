@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken
 import com.pelotcl.app.generic.data.GsonProvider
 import com.pelotcl.app.generic.data.local_history.FavoriteAuditEntry
 import com.pelotcl.app.generic.data.models.stops.Favorite
+import com.pelotcl.app.generic.data.repository.api.FavoritesRepository as ApiFavoritesRepository
 import com.pelotcl.app.generic.data.telemetry.TelemetryEmitter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,7 @@ import kotlinx.coroutines.launch
  * Repository for managing favorites - both the new user-created favorites
  * and the legacy favorite stops system (kept for migration)
  */
-class FavoritesRepository(private val context: Context) {
+class FavoritesRepository(private val context: Context) : ApiFavoritesRepository {
     private val prefs by lazy { context.getSharedPreferences("pelo_prefs", Context.MODE_PRIVATE) }
     private val gson = GsonProvider.instance
 
@@ -45,7 +46,7 @@ class FavoritesRepository(private val context: Context) {
         }
     }
 
-    fun getFavoriteStops(): Set<String> {
+    override fun getFavoriteStops(): Set<String> {
         return prefs.getStringSet(keyFavoriteStops, emptySet()) ?: emptySet()
     }
 
@@ -53,7 +54,7 @@ class FavoritesRepository(private val context: Context) {
         prefs.edit { putStringSet(keyFavoriteStops, favorites) }
     }
 
-    fun toggleFavoriteStop(stopName: String, desserte: String? = null): Boolean {
+    override fun toggleFavoriteStop(stopName: String, desserte: String?): Boolean {
         val favorites = getFavoriteStops().toMutableSet()
         val isAdding = !favorites.contains(stopName)
 
@@ -86,7 +87,7 @@ class FavoritesRepository(private val context: Context) {
     /**
      * Get all user-created favorites
      */
-    fun getUserFavorites(): List<Favorite> {
+    override fun getUserFavorites(): List<Favorite> {
         val json = prefs.getString(keyUserFavorites, null)
         return if (json != null) {
             try {
@@ -111,7 +112,7 @@ class FavoritesRepository(private val context: Context) {
     /**
      * Add a new favorite
      */
-    fun addFavorite(favorite: Favorite): Boolean {
+    override fun addFavorite(favorite: Favorite): Boolean {
         val favorites = getUserFavorites().toMutableList()
         // Check if a favorite with the same name already exists
         if (favorites.any { it.name.equals(favorite.name, ignoreCase = true) }) {
@@ -127,7 +128,7 @@ class FavoritesRepository(private val context: Context) {
     /**
      * Remove a favorite by ID
      */
-    fun removeFavorite(favoriteId: String): Boolean {
+    override fun removeFavorite(favoriteId: String): Boolean {
         val favorites = getUserFavorites().toMutableList()
         val initialSize = favorites.size
         favorites.removeAll { it.id == favoriteId }
@@ -142,7 +143,7 @@ class FavoritesRepository(private val context: Context) {
     /**
      * Generate a unique ID for a new favorite
      */
-    fun generateFavoriteId(): String {
+    override fun generateFavoriteId(): String {
         return "fav_" + System.currentTimeMillis().toString()
     }
 }

@@ -9,6 +9,7 @@ import com.pelotcl.app.generic.data.models.geojson.StopFeature
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.TrafficAlertsResponse
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.network.withRetry
+import com.pelotcl.app.generic.data.repository.api.OfflineDataManager as ApiOfflineDataManager
 import com.pelotcl.app.generic.data.repository.offline.SchedulesRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,7 @@ import kotlinx.coroutines.withContext
 class OfflineDataManager(
     private val transportApi: TransportApi,
     context: Context
-) {
+) : ApiOfflineDataManager {
 
     companion object {
         private const val TAG = "OfflineDataManager"
@@ -60,7 +61,7 @@ class OfflineDataManager(
      * Already-saved data is preserved (partial data is still useful offline).
      * The coroutine Job must also be cancelled externally by TransportViewModel.
      */
-    fun cancelDownload() {
+    override fun cancelDownload() {
         offlineMapManager.cancelDownload()
         _downloadState.value = OfflineDownloadState.Idle
         _offlineDataInfo.value = offlineRepository.getOfflineDataInfo()
@@ -70,7 +71,7 @@ class OfflineDataManager(
      * Downloads all offline data sequentially.
      * Each step updates the progress flow.
      */
-    suspend fun downloadAllOfflineData() {
+    override suspend fun downloadAllOfflineData() {
         if (_downloadState.value is OfflineDownloadState.Downloading) return
 
         withContext(Dispatchers.IO) {

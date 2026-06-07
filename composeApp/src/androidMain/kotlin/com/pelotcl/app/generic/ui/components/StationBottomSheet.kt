@@ -30,7 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel.StopDeparturePreview
+import com.pelotcl.app.generic.ui.viewmodel.StopDeparturePreview
 import kotlinx.coroutines.flow.map
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier

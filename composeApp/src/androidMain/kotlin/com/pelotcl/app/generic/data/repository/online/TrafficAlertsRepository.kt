@@ -6,6 +6,7 @@ import com.pelotcl.app.generic.data.network.transport.TransportApi
 import com.pelotcl.app.generic.data.cache.TrafficAlertsCache
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.TrafficAlert
 import com.pelotcl.app.generic.data.offline.OfflineRepository
+import com.pelotcl.app.generic.data.repository.api.TrafficAlertsRepository as ApiTrafficAlertsRepository
 import com.pelotcl.app.generic.utils.network.withRetry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit
 class TrafficAlertsRepository(
     private val transportApi: TransportApi,
     context: Context
-) {
+) : ApiTrafficAlertsRepository {
 
     private val cache = TrafficAlertsCache(context)
     private val offlineRepo = OfflineRepository(context)
@@ -26,7 +27,7 @@ class TrafficAlertsRepository(
     /**
      * Fetches all traffic alerts
      */
-    suspend fun getTrafficAlerts(): Result<List<TrafficAlert>> {
+    override suspend fun getTrafficAlerts(): Result<List<TrafficAlert>> {
         return withContext(Dispatchers.IO) {
             try {
                 // Check cache first
