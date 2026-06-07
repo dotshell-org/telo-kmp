@@ -1,8 +1,5 @@
 package com.pelotcl.app.generic.ui.screens.plan
 
-import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,32 +40,31 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.text.isDigitsOnly
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.AlertSeverity
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.AlertSeverity as TrafficAlertSeverity
-import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.ui.viewmodel.TransportViewModelInterface
 import com.pelotcl.app.generic.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 
 /**
  * Bottom Sheet qui affiche toutes les lignes organisées par catégories
  */
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun LinesBottomSheet(
     allLines: List<String>,
     onLineClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: TransportViewModel? = null
+    viewModel: TransportViewModelInterface? = null
 ) {
-    val context = LocalContext.current
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
     var searchQuery by remember { mutableStateOf("") }
 
     // State pour gérer le scroll
@@ -135,8 +130,11 @@ fun LinesBottomSheet(
     }
 
     // Organize lines by category
-    val categorizedLines = remember(allLines) {
-        categorizeLines(allLines, context).toList()
+    val categorizedLines = remember(allLines, drawableProvider) {
+        val hasLineIcon: (String) -> Boolean = { lineName ->
+            drawableProvider.hasDrawable(LineIconResolver.getDrawableNameForLineName(lineName))
+        }
+        categorizeLines(allLines, hasLineIcon).toList()
     }
 
     // Filtrer les lignes selon la recherche
@@ -234,7 +232,8 @@ fun LinesBottomSheet(
                                     lineName = line,
                                     onClick = { onLineClick(line) },
                                     modifier = Modifier.weight(1f),
-                                    alertSeverity = alertSeverity
+                                    alertSeverity = alertSeverity,
+                                    drawableProvider = drawableProvider
                                 )
                             }
                             // Fill remaining columns for alignment consistency
@@ -270,20 +269,17 @@ fun LinesBottomSheet(
 /**
  * Chip to show a line with the official TCL icon
  */
-@Suppress("DiscouragedApi") // Dynamic resource loading for transport line icons
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun LineChip(
     lineName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    alertSeverity: TrafficAlertSeverity? = null
+    alertSeverity: TrafficAlertSeverity? = null,
+    drawableProvider: DrawableProvider
 ) {
-    val context = LocalContext.current
-
-    // Get icon resource ID (cached via BusIconHelper)
-    val drawableId = remember(lineName) {
-        BusIconHelper.getResourceIdForLine(context, lineName)
+    val drawableName = remember(lineName) { LineIconResolver.getDrawableNameForLineName(lineName) }
+    val hasIcon = remember(drawableName, drawableProvider) {
+        drawableProvider.hasDrawable(drawableName)
     }
 
     Box(
@@ -300,10 +296,10 @@ private fun LineChip(
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            if (drawableId != 0) {
+            if (hasIcon) {
                 // Use official TCL icon
                 Icon(
-                    painter = painterResource(id = drawableId),
+                    painter = drawableProvider.getPainter(drawableName),
                     contentDescription = "Ligne $lineName",
                     modifier = Modifier.size(80.dp),
                     tint = Color.Unspecified
@@ -385,23 +381,16 @@ private fun AlertBadge(
 }
 
 /**
- * Checks if a line has an available SVG icon
- */
-private fun hasLineIcon(lineName: String, context: Context): Boolean {
-    return BusIconHelper.getResourceIdForLine(context, lineName) != 0
-}
-
-/**
  * Organises lines by category and filters those which haven't icon.
  */
 private fun categorizeLines(
     lines: List<String>,
-    context: Context
+    hasLineIcon: (String) -> Boolean
 ): Map<String, List<String>> {
     // Keep lines with icons, and keep NAVI* even without a dedicated icon file.
     val linesWithIcon = lines.filter { line ->
         val upperLine = line.uppercase()
-        hasLineIcon(line, context) || upperLine.startsWith("NAVI")
+        hasLineIcon(line) || upperLine.startsWith("NAVI")
     }
 
     val metros = mutableListOf<String>()
@@ -439,7 +428,7 @@ private fun categorizeLines(
             upperLine.startsWith("S") -> soyeuses.add(line)
             upperLine.startsWith("ZI") -> zi.add(line)
             upperLine.startsWith("N") -> navettes.add(line)
-            upperLine.length >= 3 && upperLine != "128" && upperLine.isDigitsOnly() -> carsDuRhone.add(
+            upperLine.length >= 3 && upperLine != "128" && upperLine.all { it.isDigit() } -> carsDuRhone.add(
                 line
             )
 
