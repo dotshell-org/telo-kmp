@@ -33,7 +33,7 @@ import com.pelotcl.app.generic.ui.components.search.bar.stops.SearchConnectionBa
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.theme.Stone900
-import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.platform.provideTransportLineRules
 
 @Composable
 fun HistoryListItem(
@@ -60,8 +60,9 @@ fun HistoryListItem(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy((-6).dp)
                 ) {
+                    val lineRules = provideTransportLineRules()
                     val displayText = if (historyItem.type == SearchType.LINE) {
-                        "${TransportServiceProvider.getTransportLineRules().getTransportType(historyItem.query)} ${historyItem.query}"
+                        "${lineRules.getTransportType(historyItem.query)} ${historyItem.query}"
                     } else {
                         historyItem.query
                     }
@@ -80,7 +81,7 @@ fun HistoryListItem(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             historyItem.lines.forEach { lineName ->
-                                if (TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
+                                if (lineRules.isStrongLine(lineName)) {
                                     SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                                 }
                             }
@@ -90,7 +91,7 @@ fun HistoryListItem(
                             verticalArrangement = Arrangement.spacedBy((-8).dp)
                         ) {
                             historyItem.lines.forEach { lineName ->
-                                if (!TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
+                                if (!lineRules.isStrongLine(lineName)) {
                                     SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                                 }
                             }

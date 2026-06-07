@@ -1,6 +1,5 @@
 package com.pelotcl.app.generic.ui.screens.settings
 
-import android.content.pm.PackageManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -43,23 +42,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
-import android.os.Build
-import com.pelotcl.app.R
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import kotlinx.coroutines.delay
 
 @Composable
 fun SettingsScreen(
+    versionName: String,
     onBackClick: () -> Unit,
-    onSystemBack: () -> Unit,
     onItineraryClick: () -> Unit,
     onLegalClick: () -> Unit,
     onCreditsClick: () -> Unit,
@@ -73,24 +69,7 @@ fun SettingsScreen(
     var isEasterEggActive by remember { mutableStateOf(false) }
     var isAboutMenu by rememberSaveable { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
-    val context = LocalContext.current
-    val versionName = remember {
-        try {
-            val packageManager = context.packageManager
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.PackageInfoFlags.of(0)
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                packageManager.getPackageInfo(context.packageName, 0)
-            }
-            packageInfo.versionName ?: "0.0.0"
-        } catch (_: Exception) {
-            "0.0.0"
-        }
-    }
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
 
     // Reset click count after 2 seconds
     LaunchedEffect(clickCount) {
@@ -106,14 +85,6 @@ fun SettingsScreen(
             delay(10000)
             isEasterEggActive = false
         }
-    }
-
-    BackHandler(enabled = isAboutMenu) {
-        isAboutMenu = false
-    }
-
-    BackHandler(enabled = !isAboutMenu) {
-        onSystemBack()
     }
 
     Box(
@@ -137,7 +108,7 @@ fun SettingsScreen(
             )
 
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = drawableProvider.getPainter("ic_launcher_foreground"),
                 contentDescription = "Logo Pelo",
                 modifier = Modifier
                     .size(200.dp)

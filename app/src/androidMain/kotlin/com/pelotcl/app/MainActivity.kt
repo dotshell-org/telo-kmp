@@ -562,7 +562,8 @@ fun NavBar(
                     .fillMaxWidth()
             ) {
                 TransportSearchBar(
-                    viewModel = viewModel,
+                    onSearchStops = { query -> viewModel.searchStops(query) },
+                    onSearchLines = { query -> viewModel.searchLines(query) },
                     currentMapStyle = currentMapStyle,
                     content = TransportSearchContent.STOPS_AND_LINES,
                     showHistory = true,
@@ -639,12 +640,28 @@ private fun AppNavHost(
     ) {
         // Settings screens only - PlanScreen is handled outside NavHost
         composable(Destination.SETTINGS.route) {
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            val versionName = remember {
+                try {
+                    val packageManager = ctx.packageManager
+                    val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        packageManager.getPackageInfo(
+                            ctx.packageName,
+                            android.content.pm.PackageManager.PackageInfoFlags.of(0)
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageManager.getPackageInfo(ctx.packageName, 0)
+                    }
+                    packageInfo.versionName ?: "0.0.0"
+                } catch (_: Exception) {
+                    "0.0.0"
+                }
+            }
             SettingsScreen(
+                versionName = versionName,
                 onBackClick = {
                     // Just switch back to Plan tab - no navigation needed since PlanScreen is always mounted
-                    onNavigateToPlan()
-                },
-                onSystemBack = {
                     onNavigateToPlan()
                 },
                 onItineraryClick = {

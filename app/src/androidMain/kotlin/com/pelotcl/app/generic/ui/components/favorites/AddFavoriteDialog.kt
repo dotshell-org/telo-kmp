@@ -286,7 +286,8 @@ fun AddFavoriteDialog(
                     .background(PrimaryColor)
             ) {
                 TransportSearchBar(
-                    viewModel = viewModel,
+                    onSearchStops = { query -> viewModel.searchStops(query) },
+                    onSearchLines = { emptyList() },
                     modifier = Modifier.fillMaxSize(),
                     content = TransportSearchContent.STOPS_ONLY,
                     showHistory = false,

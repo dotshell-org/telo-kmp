@@ -29,7 +29,7 @@ import com.pelotcl.app.generic.data.models.search.StationSearchResult
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.theme.Stone900
-import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.platform.provideTransportLineRules
 
 @Composable
 fun StopSearchResultItem(
@@ -48,6 +48,7 @@ fun StopSearchResultItem(
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Bold
                 )
+                val lineRules = provideTransportLineRules()
                 if (result.lines.isNotEmpty()) {
                     Spacer(modifier = Modifier.size(4.dp))
                     Row(
@@ -55,7 +56,7 @@ fun StopSearchResultItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         result.lines.forEach { lineName ->
-                            if (TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
+                            if (lineRules.isStrongLine(lineName)) {
                                 SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                             }
                         }
@@ -65,7 +66,7 @@ fun StopSearchResultItem(
                         verticalArrangement = Arrangement.spacedBy((-8).dp)
                     ) {
                         result.lines.forEach { lineName ->
-                            if (!TransportServiceProvider.getTransportLineRules().isStrongLine(lineName)) {
+                            if (!lineRules.isStrongLine(lineName)) {
                                 SearchConnectionBadge(lineName = lineName, sizeDp = 24)
                             }
                         }

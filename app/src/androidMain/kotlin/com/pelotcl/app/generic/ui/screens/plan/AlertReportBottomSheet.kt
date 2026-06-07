@@ -339,7 +339,8 @@ fun AlertReportBottomSheet(
                     .background(MaterialTheme.colorScheme.primary)
             ) {
                 TransportSearchBar(
-                    viewModel = viewModel,
+                    onSearchStops = { query -> viewModel.searchStops(query) },
+                    onSearchLines = { query -> viewModel.searchLines(query) },
                     modifier = Modifier.fillMaxSize(),
                     content = TransportSearchContent.STOPS_AND_LINES,
                     showHistory = false,
