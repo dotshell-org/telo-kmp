@@ -1,14 +1,16 @@
 package com.pelotcl.app.generic.worker
 
 import android.content.Context
-import android.util.Log
+import com.pelotcl.app.platform.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.pelotcl.app.generic.data.models.realtime.alerts.official.TrafficAlert
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.data.repository.online.TrafficAlertsRepository
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class TrafficAlertsWorker(
     context: Context,
@@ -17,7 +19,7 @@ class TrafficAlertsWorker(
 
     companion object {
         private const val TAG = "TrafficAlertsWorker"
-        private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
     }
 
     private val trafficAlertsRepository = TrafficAlertsRepository(TransportServiceProvider.getTransportApi(), applicationContext)
@@ -43,12 +45,12 @@ class TrafficAlertsWorker(
     }
 
     private fun filterValidAlerts(alerts: List<TrafficAlert>): List<TrafficAlert> {
-        val now = LocalDateTime.now()
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
         return alerts.filter { alert ->
             try {
-                val endDate = LocalDateTime.parse(alert.endDate, DATE_FORMATTER)
-                endDate.isAfter(now)
+                val endDate = alert.endDate.replace(" ", "T").toLocalDateTime()
+                endDate > now
             } catch (e: Exception) {
                 true // Keep if we can't parse
             }

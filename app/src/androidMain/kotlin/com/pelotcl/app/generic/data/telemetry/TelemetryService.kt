@@ -1,7 +1,7 @@
 package com.pelotcl.app.generic.data.telemetry
 
 import android.content.Context
-import android.util.Log
+import com.pelotcl.app.platform.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner

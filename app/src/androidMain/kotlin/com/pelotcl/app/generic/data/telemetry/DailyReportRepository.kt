@@ -1,6 +1,6 @@
 package com.pelotcl.app.generic.data.telemetry
 
-import android.util.Log
+import com.pelotcl.app.platform.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.Instant
+import kotlinx.datetime.Clock
 import java.util.UUID
 
 /**
@@ -195,7 +195,7 @@ class DailyReportRepository(
         )
     }
 
-    private fun nowIso(): String = Instant.now().toString()
+    private fun nowIso(): String = Clock.System.now().toString()
 
     /**
      * Helper to mint event_ids consistently. Useful for call sites that construct events

@@ -1,6 +1,6 @@
 package com.pelotcl.app.generic.data.telemetry
 
-import android.util.Log
+import com.pelotcl.app.platform.Log
 import com.pelotcl.app.generic.data.local_history.LocalTripRecord
 import com.pelotcl.app.generic.data.models.geojson.StopFeature
 import com.pelotcl.app.generic.utils.geo.GeometryUtils
@@ -12,7 +12,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.Instant
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import java.util.UUID
 
 /**
@@ -186,9 +187,9 @@ class TripDetector(
         TelemetryEmitter.emit(
             TelemetryEvent.TripCompleted(
                 eventId = UUID.randomUUID().toString(),
-                at = Instant.now().toString(),
-                startedAt = Instant.ofEpochMilli(trip.startedAtMs).toString(),
-                endedAt = Instant.ofEpochMilli(trip.endedAtMs).toString(),
+                at = Clock.System.now().toString(),
+                startedAt = Instant.fromEpochMilliseconds(trip.startedAtMs).toString(),
+                endedAt = Instant.fromEpochMilliseconds(trip.endedAtMs).toString(),
                 stopsPassed = trip.stopsPassed
             )
         )

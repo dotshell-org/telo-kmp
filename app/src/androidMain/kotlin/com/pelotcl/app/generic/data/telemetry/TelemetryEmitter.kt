@@ -1,7 +1,7 @@
 package com.pelotcl.app.generic.data.telemetry
 
 import android.content.Context
-import android.util.Log
+import com.pelotcl.app.platform.Log
 import com.pelotcl.app.generic.data.config.TelemetryConfigData
 import com.pelotcl.app.generic.data.local_history.LocalHistoryStorage
 import com.pelotcl.app.generic.data.local_history.SessionAuditEntry
@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.time.Instant
+import kotlinx.datetime.Clock
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 
@@ -119,7 +119,7 @@ object TelemetryEmitter {
         val c = componentsRef.get() ?: return null
         if (!c.optIn.isOptedIn) return null
         val sessionId = UUID.randomUUID().toString()
-        val openedAt = Instant.now().toString()
+        val openedAt = Clock.System.now().toString()
         val openedAtMs = System.currentTimeMillis()
         c.scope.launch {
             ensureDailyIdFresh(c)
@@ -135,7 +135,7 @@ object TelemetryEmitter {
     fun closeSession(sessionId: String) {
         val c = componentsRef.get() ?: return
         if (!c.optIn.isOptedIn) return
-        val closedAt = Instant.now().toString()
+        val closedAt = Clock.System.now().toString()
         c.scope.launch {
             ensureDailyIdFresh(c)
             c.repository.closeSession(sessionId, closedAt)

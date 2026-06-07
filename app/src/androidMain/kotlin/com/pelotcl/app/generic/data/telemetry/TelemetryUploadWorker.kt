@@ -1,7 +1,7 @@
 package com.pelotcl.app.generic.data.telemetry
 
 import android.content.Context
-import android.util.Log
+import com.pelotcl.app.platform.Log
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.NetworkType
@@ -14,7 +14,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
-import java.time.Instant
+import kotlinx.datetime.Clock
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
 
@@ -83,7 +83,7 @@ class TelemetryUploadWorker(
             networkCode = snapshot.networkCode,
             appVersion = snapshot.appVersion,
             schemaVersion = snapshot.schemaVersion,
-            sentAt = Instant.now().toString(),
+            sentAt = Clock.System.now().toString(),
             trigger = TRIGGER_SESSION_CLOSED,
             day = snapshot.day,
             sessions = snapshot.sessions,
