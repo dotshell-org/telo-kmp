@@ -19,10 +19,9 @@ dependencyResolutionManagement {
     repositories {
         mavenLocal()
         google()
-        mavenCentral() // For local raptor-kt development
+        mavenCentral()
     }
 }
 
 rootProject.name = "Pelo"
-include(":app")
- 
+include(":composeApp")
