@@ -13,11 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.pelotcl.app.R
 import com.pelotcl.app.generic.data.network.mapstyle.MapStyleData
-import com.pelotcl.app.generic.utils.graphics.BitmapUtils.rememberPreviewImage
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 
 @Composable
 fun MapStylePreviewTile(
@@ -25,15 +24,16 @@ fun MapStylePreviewTile(
     isEnabled: Boolean,
     onClick: () -> Unit
 ) {
-    val imageRes = when (style.key) {
-        "positron" -> R.drawable.visu_positron
-        "dark_matter" -> R.drawable.visu_dark_matter
-        "bright" -> R.drawable.visu_osm_bright
-        "liberty" -> R.drawable.visu_liberty
-        "satellite" -> R.drawable.visu_satellite
-        else -> R.drawable.visu_positron
+    val drawableName = when (style.key) {
+        "positron" -> "visu_positron"
+        "dark_matter" -> "visu_dark_matter"
+        "bright" -> "visu_osm_bright"
+        "liberty" -> "visu_liberty"
+        "satellite" -> "visu_satellite"
+        else -> "visu_positron"
     }
-    val previewBitmap = rememberPreviewImage(imageRes)
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val previewPainter = drawableProvider.getPainter(drawableName)
     val alpha = if (isEnabled) 1f else 0.4f
     Box(
         modifier = Modifier
@@ -47,20 +47,11 @@ fun MapStylePreviewTile(
             .clickable(enabled = isEnabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (previewBitmap != null) {
-            Image(
-                bitmap = previewBitmap,
-                contentDescription = stringResource(R.string.map_style_preview),
-                modifier = Modifier.fillMaxSize(),
-                alpha = alpha
-            )
-        } else {
-            // Safety fallback: avoid blank tile if bitmap decode ever fails.
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFE5E7EB).copy(alpha = alpha))
-            )
-        }
+        Image(
+            painter = previewPainter,
+            contentDescription = "Aperçu du style de carte",
+            modifier = Modifier.fillMaxSize(),
+            alpha = alpha
+        )
     }
 }
