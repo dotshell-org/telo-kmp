@@ -76,7 +76,7 @@ import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.viewmodel.TransportLinesUiState
-import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.ui.viewmodel.TransportViewModelInterface
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.generic.utils.LineColorHelper
 import kotlinx.coroutines.CancellationException
@@ -160,7 +160,7 @@ private fun formatTimeUntilDeparture(minutes: Long): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LineDetailsBottomSheet(
-    viewModel: TransportViewModel,
+    viewModel: TransportViewModelInterface,
     lineInfo: LineInfo?,
     sheetState: SheetState?,
     selectedDirection: Int,
@@ -686,7 +686,7 @@ private fun AlertBadge(
 
 @Composable
 private fun NextSchedulesSection(
-    viewModel: TransportViewModel,
+    viewModel: TransportViewModelInterface,
     lineInfo: LineInfo,
     selectedDirection: Int,
     onDirectionChange: (Int) -> Unit,

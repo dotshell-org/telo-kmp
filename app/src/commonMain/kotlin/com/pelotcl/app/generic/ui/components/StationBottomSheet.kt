@@ -36,18 +36,21 @@ import kotlinx.datetime.Clock
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pelotcl.app.R
 import com.pelotcl.app.generic.data.models.stops.StationInfo
+import com.pelotcl.app.generic.data.telemetry.TelemetryEvent
 import com.pelotcl.app.generic.ui.theme.Gray200
 import com.pelotcl.app.generic.ui.theme.Gray700
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
-import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.ui.viewmodel.TransportViewModelInterface
 import com.pelotcl.app.generic.utils.schedule.DepartureManager
-import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
+import com.pelotcl.app.generic.data.telemetry.emitTelemetryEvent
+import com.pelotcl.app.platform.provideTransportLineRules
+import com.pelotcl.app.platform.randomId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +58,7 @@ fun StationBottomSheet(
     stationInfo: StationInfo?,
     sheetState: SheetState?,
     onDismiss: () -> Unit,
-    viewModel: TransportViewModel? = null,
+    viewModel: TransportViewModelInterface? = null,
     onLineClick: (String) -> Unit = {},
     onDepartureClick: (lineName: String, directionId: Int, departureTime: String) -> Unit = { lineName, _, _ ->
         onLineClick(lineName)
@@ -70,11 +73,14 @@ fun StationBottomSheet(
     val departuresInset = 20.dp
     val actionsInset = 8.dp
 
-    androidx.compose.runtime.LaunchedEffect(stationInfo?.nom) {
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val stationName = stationInfo?.nom
+
+    androidx.compose.runtime.LaunchedEffect(stationName) {
         val stop = stationInfo ?: return@LaunchedEffect
-        com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
-            com.pelotcl.app.generic.data.telemetry.TelemetryEvent.StopClicked(
-                eventId = java.util.UUID.randomUUID().toString(),
+        emitTelemetryEvent(
+            TelemetryEvent.StopClicked(
+                eventId = randomId(),
                 at = Clock.System.now().toString(),
                 stopId = stop.nom,
                 context = "bottom_sheet"
@@ -179,7 +185,7 @@ fun StationBottomSheet(
                         )
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.add_triangle_24px),
+                            painter = drawableProvider.getPainter("add_triangle_24px"),
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -215,8 +221,9 @@ fun StationBottomSheet(
                 }
 
                 // Virtualized list of departures (sorted)
+                val lineRules = provideTransportLineRules()
                 val lineOrder = remember(allStopLines) {
-                    TransportServiceProvider.getTransportLineRules().sortLines(allStopLines)
+                    lineRules.sortLines(allStopLines)
                         .mapIndexed { index, line -> line.uppercase() to index }
                         .toMap()
                 }
