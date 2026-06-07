@@ -708,9 +708,20 @@ private fun AppNavHost(
             )
         }
         composable(Destination.ITINERARY_SETTINGS) {
+            val config = com.pelotcl.app.generic.data.config.AppConfigLoader.loadConfig(this@MainActivity).itinerarySettings
+            val itineraryPrefsRepo = remember {
+                com.pelotcl.app.generic.data.repository.itinerary.itinerary.ItineraryPreferencesRepository(this@MainActivity)
+            }
             ItinerarySettingsScreen(
-                onBackClick = {
-                    navController.popBackStack()
+                screenTitle = config.screenTitle,
+                sectionTitle = config.sectionTitle,
+                options = config.options,
+                onBackClick = { navController.popBackStack() },
+                onOptionToggle = { key, enabled ->
+                    itineraryPrefsRepo.setOptionEnabled(key, enabled)
+                },
+                getInitialOptionState = { option ->
+                    itineraryPrefsRepo.isOptionEnabled(option.key, option.defaultEnabled)
                 }
             )
         }

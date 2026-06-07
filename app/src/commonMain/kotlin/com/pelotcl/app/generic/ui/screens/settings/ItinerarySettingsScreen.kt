@@ -38,12 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pelotcl.app.generic.data.config.AppConfigLoader
-import com.pelotcl.app.generic.data.repository.itinerary.itinerary.ItineraryPreferencesRepository
+import com.pelotcl.app.generic.data.config.ItineraryOptionData
 import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
@@ -51,20 +49,18 @@ import com.pelotcl.app.generic.ui.theme.SecondaryColor
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItinerarySettingsScreen(
+    screenTitle: String,
+    sectionTitle: String,
+    options: List<ItineraryOptionData>,
     onBackClick: () -> Unit,
+    onOptionToggle: (key: String, enabled: Boolean) -> Unit,
+    getInitialOptionState: (ItineraryOptionData) -> Boolean = { it.defaultEnabled },
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val itineraryPrefsRepo = remember { ItineraryPreferencesRepository(context) }
-    val config = remember { AppConfigLoader.loadConfig(context).itinerarySettings }
-
-    val optionStates = remember(config) {
+    val optionStates = remember(options) {
         mutableStateMapOf<String, Boolean>().apply {
-            config.options.forEach { option ->
-                this[option.key] = itineraryPrefsRepo.isOptionEnabled(
-                    option.key,
-                    option.defaultEnabled
-                )
+            options.forEach { option ->
+                this[option.key] = getInitialOptionState(option)
             }
         }
     }
@@ -75,7 +71,7 @@ fun ItinerarySettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = config.screenTitle,
+                        text = screenTitle,
                         color = SecondaryColor,
                         fontWeight = FontWeight.Bold
                     )
@@ -104,8 +100,8 @@ fun ItinerarySettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             ItineraryLineCategorySection(
-                sectionTitle = config.sectionTitle,
-                lines = config.options.map { option ->
+                sectionTitle = sectionTitle,
+                lines = options.map { option ->
                     val isEnabled = optionStates[option.key] ?: option.defaultEnabled
                     ItineraryLineOption(
                         title = option.title,
@@ -114,7 +110,7 @@ fun ItinerarySettingsScreen(
                         onClick = {
                             val enabled = !isEnabled
                             optionStates[option.key] = enabled
-                            itineraryPrefsRepo.setOptionEnabled(option.key, enabled)
+                            onOptionToggle(option.key, enabled)
                         }
                     )
                 }
