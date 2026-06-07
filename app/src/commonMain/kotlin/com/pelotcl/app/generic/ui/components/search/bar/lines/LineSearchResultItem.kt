@@ -14,26 +14,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pelotcl.app.R
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
+import com.pelotcl.app.platform.StringProvider
 
 @Composable
 fun LineSearchResultItem(
     lineResult: LineSearchResult,
     onClick: () -> Unit
 ) {
-    val context = LocalContext.current
-    val resourceId = BusIconHelper.getResourceIdForLine(context, lineResult.lineName)
-    val modeBusId = BusIconHelper.getResourceIdForDrawableName(context, "mode_bus")
+    val drawableName = LineIconResolver.getDrawableNameForLineName(lineResult.lineName)
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val stringProvider = StringProvider(LocalPlatformContext.current)
+    val hasDrawable = drawableProvider.hasDrawable(drawableName)
+    val hasModeBus = drawableProvider.hasDrawable("mode_bus")
 
     ListItem(
         headlineContent = {
@@ -43,19 +44,16 @@ fun LineSearchResultItem(
                     .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (resourceId != 0) {
+                if (hasDrawable) {
                     Image(
-                        painter = painterResource(id = resourceId),
-                        contentDescription = stringResource(
-                            R.string.line_icon,
-                            lineResult.lineName
-                        ),
+                        painter = drawableProvider.getPainter(drawableName),
+                        contentDescription = stringProvider["line_icon"].replace("%s", lineResult.lineName),
                         modifier = Modifier.size(40.dp)
                     )
-                } else if (modeBusId != 0) {
+                } else if (hasModeBus) {
                     Image(
-                        painter = painterResource(id = modeBusId),
-                        contentDescription = stringResource(R.string.bus_mode_icon),
+                        painter = drawableProvider.getPainter("mode_bus"),
+                        contentDescription = stringProvider["bus_mode_icon"],
                         modifier = Modifier.size(30.dp)
                     )
                 }

@@ -1,20 +1,15 @@
 package com.pelotcl.app.generic.utils
 
-import androidx.core.graphics.toColorInt
-import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.models.geojson.Feature
+import com.pelotcl.app.platform.provideLineColors
 
-/**
- * Helper to determine line colors from declarative config.
- */
 object LineColorHelper {
 
-    // Cache for toColorInt() results — small set of unique colors
     private val colorIntCache = HashMap<String, Int>(20)
 
     private fun resolveColorHex(lineName: String): String {
         val upper = lineName.trim().uppercase()
-        val rules = AppConfigLoader.getConfig().lineColors
+        val rules = provideLineColors()
 
         for (rule in rules.rules) {
             val match = rule.match.trim().uppercase()
@@ -39,8 +34,23 @@ object LineColorHelper {
     fun getColorForLineString(lineName: String): Int {
         val key = lineName.trim().uppercase()
         colorIntCache[key]?.let { return it }
-        val color = resolveColorHex(lineName).toColorInt()
+        val color = hexToArgb(resolveColorHex(lineName))
         colorIntCache[key] = color
         return color
+    }
+
+    private fun hexToArgb(hex: String): Int {
+        val color = hex.removePrefix("#")
+        return when (color.length) {
+            6 -> (0xFF shl 24) or
+                (color.substring(0, 2).toInt(16) shl 16) or
+                (color.substring(2, 4).toInt(16) shl 8) or
+                color.substring(4, 6).toInt(16)
+            8 -> (color.substring(0, 2).toInt(16) shl 24) or
+                (color.substring(2, 4).toInt(16) shl 16) or
+                (color.substring(4, 6).toInt(16) shl 8) or
+                color.substring(6, 8).toInt(16)
+            else -> throw IllegalArgumentException("Invalid hex color: $hex")
+        }
     }
 }

@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -43,11 +42,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pelotcl.app.R
 import com.pelotcl.app.generic.data.config.AboutSectionData
 import com.pelotcl.app.generic.data.config.ConsentConfigData
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 
 @Composable
 fun TermsConsentScreen(
@@ -102,6 +102,8 @@ fun TermsConsentScreen(
         return
     }
 
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+
     Scaffold(containerColor = PrimaryColor) { paddingValues ->
         Column(
             modifier = modifier
@@ -109,7 +111,6 @@ fun TermsConsentScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            // Top section: Title and Paragraph (Scrollable, takes up remaining space)
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -117,12 +118,12 @@ fun TermsConsentScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    painter = drawableProvider.getPainter("ic_launcher_foreground"),
                     contentDescription = "Logo Pelo",
                     modifier = Modifier
                         .size(160.dp)
                         .padding(bottom = 20.dp)
-                        .align(Alignment.CenterHorizontally) // Centers the logo horizontally
+                        .align(Alignment.CenterHorizontally)
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -151,7 +152,6 @@ fun TermsConsentScreen(
                 )
             }
 
-            // Bottom section: Checkboxes and Accept Button (Fixed at the bottom)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -1,6 +1,5 @@
 package com.pelotcl.app.generic.ui.components
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,20 +18,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pelotcl.app.generic.ui.theme.Gray700
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
 import com.pelotcl.app.generic.utils.schedule.DepartureManager
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 
-/**
- * List item for a line departure in all-lines station mode.
- */
-@SuppressLint("ComposeBackingChainViolation")
-@Suppress("DiscouragedApi", "ComposeLocalCurrentInLambda")
 @Composable
 fun DepartureListItem(
     lineName: String,
@@ -40,11 +34,11 @@ fun DepartureListItem(
     departureTime: String,
     onClick: () -> Unit
 ) {
-    @Suppress("ComposeLocalContext")
-    val context = LocalContext.current
-    val resourceId = remember(lineName) {
-        BusIconHelper.getResourceIdForLine(context, lineName)
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val drawableName = remember(lineName) {
+        LineIconResolver.getDrawableNameForLineName(lineName)
     }
+    val hasDrawable = remember(drawableName) { drawableProvider.hasDrawable(drawableName) }
 
     Row(
         modifier = Modifier
@@ -58,9 +52,9 @@ fun DepartureListItem(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (resourceId != 0) {
+            if (hasDrawable) {
                 Image(
-                    painter = painterResource(id = resourceId),
+                    painter = drawableProvider.getPainter(drawableName),
                     contentDescription = "Ligne $lineName",
                     modifier = Modifier.size(52.dp)
                 )

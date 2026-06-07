@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
+            CompositionLocalProvider(com.pelotcl.app.platform.LocalPlatformContext provides this@MainActivity) {
             PeloTheme {
                 TermsConsentGate {
                     NotificationPermissionGate {
@@ -171,6 +173,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
 
         // Deferred initialization - run AFTER setContent to not block first frame
         // These are not needed for initial UI display

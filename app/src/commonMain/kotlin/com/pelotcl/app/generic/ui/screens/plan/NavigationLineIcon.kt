@@ -11,14 +11,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.generic.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
 
 @Composable
 fun NavigationLineIcon(
@@ -26,13 +26,13 @@ fun NavigationLineIcon(
     modifier: Modifier = Modifier,
     size: Dp = 44.dp
 ) {
-    val context = LocalContext.current
-    val iconRes = BusIconHelper.getResourceIdForLine(context, lineName)
+    val drawableName = LineIconResolver.getDrawableNameForLineName(lineName)
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
     val fallbackColor = Color(LineColorHelper.getColorForLineString(lineName))
 
-    if (iconRes != 0) {
+    if (drawableName.isNotBlank() && drawableProvider.hasDrawable(drawableName)) {
         Image(
-            painter = painterResource(id = iconRes),
+            painter = drawableProvider.getPainter(drawableName),
             contentDescription = null,
             modifier = modifier.size(size)
         )
