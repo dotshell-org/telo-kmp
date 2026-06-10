@@ -99,6 +99,12 @@ kotlin {
     }
 }
 
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.pelotcl.app.resources"
+    generateResClass = always
+}
+
 android {
     signingConfigs {
         create("release") {

@@ -130,8 +130,9 @@ class OfflineRepository(private val context: Context) : ApiOfflineRepository {
     suspend fun saveRxLines(lines: List<Feature>) =
         writeCompressed(FILE_RX_LINES, lines.sanitizeForSerialization())
 
-    override suspend fun saveStops(stops: List<StopFeature>) =
+    override suspend fun saveStops(stops: List<StopFeature>) {
         writeCompressed(FILE_STOPS, stops.sanitizeStopsForSerialization())
+    }
 
     override suspend fun clearStopsCache() {
         withContext(Dispatchers.IO) {
@@ -139,8 +140,9 @@ class OfflineRepository(private val context: Context) : ApiOfflineRepository {
         }
     }
 
-    suspend fun saveTrafficAlerts(alerts: List<TrafficAlert>) =
+    override suspend fun saveTrafficAlerts(alerts: List<TrafficAlert>) {
         writeCompressed(FILE_TRAFFIC_ALERTS, alerts)
+    }
 
     // ===== LOAD METHODS =====
 
@@ -172,14 +174,14 @@ class OfflineRepository(private val context: Context) : ApiOfflineRepository {
     override suspend fun loadStops(): List<StopFeature>? =
         readCompressed(FILE_STOPS)
 
-    suspend fun loadTrafficAlerts(): List<TrafficAlert>? =
+    override suspend fun loadTrafficAlerts(): List<TrafficAlert>? =
         readCompressed(FILE_TRAFFIC_ALERTS)
 
     /**
      * Loads non-bus offline lines (metro + tram + navigone + trambus + rx).
      * Bus lines are NOT included to avoid OOM — use loadBusLineByName() instead.
      */
-    suspend fun loadAllLines(): List<Feature> {
+    override suspend fun loadAllLines(): List<Feature> {
         // Log which files exist on disk
         val filesOnDisk = offlineDir.listFiles()?.map { it.name } ?: emptyList()
         Log.i(TAG, "loadAllLines: files on disk = $filesOnDisk")

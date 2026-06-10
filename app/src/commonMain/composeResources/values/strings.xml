@@ -1,0 +1,4 @@
+<resources>
+    <string name="line_icon">Icône de la ligne %s</string>
+    <string name="bus_mode_icon">Icône de mode bus</string>
+</resources>

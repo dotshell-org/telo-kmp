@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
  *  - Pending events from before opt-out are kept on disk until the user explicitly wipes them
  *    from the settings screen (so they can be inspected first if needed).
  */
-object TelemetryEmitter {
+actual object TelemetryEmitter {
 
     private const val TAG = "TelemetryEmitter"
 
@@ -97,12 +97,12 @@ object TelemetryEmitter {
 
     fun dailyIdProvider(): DailyIdProvider? = componentsRef.get()?.dailyIdProvider
 
-    fun localHistory(): LocalHistoryStorage? = componentsRef.get()?.localHistory
+    actual fun localHistory(): LocalHistoryStorage? = componentsRef.get()?.localHistory
 
     /**
      * Emit a generic telemetry event. No-op if not initialized or user is not opted-in.
      */
-    fun emit(event: TelemetryEvent) {
+    actual fun emit(event: TelemetryEvent) {
         val c = componentsRef.get() ?: return
         if (!c.optIn.isOptedIn) return
         c.scope.launch {

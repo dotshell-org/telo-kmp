@@ -22,7 +22,10 @@ class TrafficAlertsWorker(
 
     }
 
-    private val trafficAlertsRepository = TrafficAlertsRepository(TransportServiceProvider.getTransportApi(), applicationContext)
+    private val trafficAlertsRepository = TrafficAlertsRepository(
+        TransportServiceProvider.getTransportApi(),
+        com.pelotcl.app.platform.Settings(applicationContext, "traffic_alerts_cache")
+    )
 
     override suspend fun doWork(): Result {
         return try {
