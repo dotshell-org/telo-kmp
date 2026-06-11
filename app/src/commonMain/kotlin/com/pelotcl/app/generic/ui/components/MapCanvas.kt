@@ -1,6 +1,7 @@
 package com.pelotcl.app.generic.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +47,8 @@ fun MapCanvas(
     stops: StopCollection? = null,
     userLocation: Position? = null,
     onStopClick: (stopName: String) -> Unit = {},
+    onLineClick: (lineName: String) -> Unit = {},
+    centerOn: Position? = null,
 ) {
     val cameraState = rememberCameraState(
         firstPosition = CameraPosition(
@@ -53,6 +56,14 @@ fun MapCanvas(
             zoom = initialZoom,
         )
     )
+
+    LaunchedEffect(centerOn) {
+        if (centerOn != null) {
+            cameraState.animateTo(
+                CameraPosition(target = centerOn, zoom = 15.0)
+            )
+        }
+    }
 
     MaplibreMap(
         modifier = modifier,
@@ -67,6 +78,15 @@ fun MapCanvas(
                 source = lineSource,
                 color = feature["color"].convertToColor(),
                 width = const(3.dp),
+                onClick = { features ->
+                    val lineName = features.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                    if (lineName != null) {
+                        onLineClick(lineName)
+                        ClickResult.Consume
+                    } else {
+                        ClickResult.Pass
+                    }
+                },
             )
         }
 
