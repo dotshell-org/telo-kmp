@@ -11,7 +11,9 @@ import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.utils.map.toLinesGeoJson
 import com.pelotcl.app.generic.utils.map.toStopsGeoJson
 import org.maplibre.compose.camera.CameraPosition
+import org.maplibre.compose.camera.CameraState
 import org.maplibre.compose.camera.rememberCameraState
+import org.maplibre.compose.map.MapOptions
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.expressions.dsl.convertToColor
 import org.maplibre.compose.expressions.dsl.feature
@@ -43,21 +45,21 @@ fun MapCanvas(
     initialLatitude: Double = 45.75,
     initialLongitude: Double = 4.85,
     initialZoom: Double = 10.0,
-    lines: FeatureCollection? = null,
-    stops: StopCollection? = null,
-    itineraryGeoJson: String? = null,
-    userLocation: Position? = null,
-    onStopClick: (stopName: String) -> Unit = {},
-    onLineClick: (lineName: String) -> Unit = {},
-    centerOn: Position? = null,
-) {
-    val cameraState = rememberCameraState(
+    cameraState: CameraState = rememberCameraState(
         firstPosition = CameraPosition(
             target = Position(latitude = initialLatitude, longitude = initialLongitude),
             zoom = initialZoom,
         )
-    )
-
+    ),
+    lines: FeatureCollection? = null,
+    stops: StopCollection? = null,
+    itineraryGeoJson: String? = null,
+    userLocation: Position? = null,
+    interactive: Boolean = true,
+    onStopClick: (stopName: String) -> Unit = {},
+    onLineClick: (lineName: String) -> Unit = {},
+    centerOn: Position? = null,
+) {
     LaunchedEffect(centerOn) {
         if (centerOn != null) {
             cameraState.animateTo(
@@ -70,6 +72,7 @@ fun MapCanvas(
         modifier = modifier,
         baseStyle = BaseStyle.Uri(styleUrl),
         cameraState = cameraState,
+        options = MapOptions(gestureOptions = mapGestureOptions(interactive)),
     ) {
         if (lines != null) {
             val linesGeoJson = remember(lines) { lines.toLinesGeoJson() }
