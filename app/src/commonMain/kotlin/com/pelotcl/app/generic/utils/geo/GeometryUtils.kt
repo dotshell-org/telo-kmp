@@ -1,42 +1,51 @@
 package com.pelotcl.app.generic.utils.geo
 
 import com.pelotcl.app.generic.data.models.geojson.StopFeature
-import org.maplibre.android.geometry.LatLng
+import com.pelotcl.app.generic.utils.location.GeoPoint
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+/**
+ * Pure geometry/time helpers, decoupled from any map SDK. Uses the neutral [GeoPoint]
+ * lat/lng carrier (not `org.maplibre.android.geometry.LatLng`) and `kotlin.math` so it
+ * compiles on every target.
+ */
 object GeometryUtils {
+
+    private fun Double.toRadians(): Double = this * PI / 180.0
+    private fun Double.toDegrees(): Double = this * 180.0 / PI
 
     fun currentTimeInSeconds(): Int {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return now.hour * 3600 + now.minute * 60 + now.second
     }
 
-    fun computeBearingDegrees(from: LatLng, to: LatLng): Double {
-        val fromLat = Math.toRadians(from.latitude)
-        val fromLon = Math.toRadians(from.longitude)
-        val toLat = Math.toRadians(to.latitude)
-        val toLon = Math.toRadians(to.longitude)
+    fun computeBearingDegrees(from: GeoPoint, to: GeoPoint): Double {
+        val fromLat = from.latitude.toRadians()
+        val fromLon = from.longitude.toRadians()
+        val toLat = to.latitude.toRadians()
+        val toLon = to.longitude.toRadians()
         val dLon = toLon - fromLon
 
         val y = sin(dLon) * cos(toLat)
         val x = cos(fromLat) * sin(toLat) - sin(fromLat) * cos(toLat) * cos(dLon)
-        val bearing = Math.toDegrees(atan2(y, x))
+        val bearing = atan2(y, x).toDegrees()
         return (bearing + 360.0) % 360.0
     }
 
     fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val earthRadius = 6_371_000.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
+        val dLat = (lat2 - lat1).toRadians()
+        val dLon = (lon2 - lon1).toRadians()
         val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) *
-                cos(Math.toRadians(lat2)) *
+                cos(lat1.toRadians()) *
+                cos(lat2.toRadians()) *
                 sin(dLon / 2) * sin(dLon / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return earthRadius * c
@@ -49,14 +58,14 @@ object GeometryUtils {
     }
 
     fun findNavigationAxisSegment(
-        userLocation: LatLng,
-        pathPoints: List<LatLng>
-    ): Pair<LatLng, LatLng>? {
+        userLocation: GeoPoint,
+        pathPoints: List<GeoPoint>
+    ): Pair<GeoPoint, GeoPoint>? {
         if (pathPoints.size < 2) return null
 
         var bestDistanceSq = Double.MAX_VALUE
-        var bestProjectedPoint: LatLng? = null
-        var bestNextPoint: LatLng? = null
+        var bestProjectedPoint: GeoPoint? = null
+        var bestNextPoint: GeoPoint? = null
 
         for (index in 0 until pathPoints.lastIndex) {
             val start = pathPoints[index]
@@ -82,7 +91,7 @@ object GeometryUtils {
 
             if (distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq
-                bestProjectedPoint = LatLng(projLat, projLon)
+                bestProjectedPoint = GeoPoint(projLat, projLon)
                 bestNextPoint = if (clampedT >= 0.999 && index + 2 <= pathPoints.lastIndex) {
                     pathPoints[index + 2]
                 } else {
@@ -97,7 +106,7 @@ object GeometryUtils {
         return from to to
     }
 
-    fun findNearestStopName(userLocation: LatLng, stops: List<StopFeature>): String? {
+    fun findNearestStopName(userLocation: GeoPoint, stops: List<StopFeature>): String? {
         var nearestName: String? = null
         var nearestDistance = Double.MAX_VALUE
 

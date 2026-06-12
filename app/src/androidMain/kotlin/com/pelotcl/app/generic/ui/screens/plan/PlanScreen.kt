@@ -143,6 +143,7 @@ import com.pelotcl.app.generic.utils.geo.GeometryUtils.distanceMeters
 import com.pelotcl.app.generic.utils.geo.GeometryUtils.findNavigationAxisSegment
 import com.pelotcl.app.generic.utils.geo.GeometryUtils.findNearestStopName
 import com.pelotcl.app.generic.utils.geo.GeometryUtils.squaredDistance
+import com.pelotcl.app.generic.utils.geo.toGeoPoint
 import com.pelotcl.app.generic.utils.map.ItineraryMapManager.drawItinerariesOnMap
 import com.pelotcl.app.generic.utils.map.MapStopsManager.addStopsToMap
 import com.pelotcl.app.generic.utils.map.MapStopsManager.filterMapStopsWithSelectedStop
@@ -526,7 +527,7 @@ fun PlanScreen(
                 itineraryNearbyDepartureStops = nearestStopNames
 
                 val nearestStopName = nearestStopNames.firstOrNull()
-                    ?: stopsAtOpen?.let { findNearestStopName(locationAtOpen, it) }
+                    ?: stopsAtOpen?.let { findNearestStopName(locationAtOpen.toGeoPoint(), it) }
                 if (!nearestStopName.isNullOrBlank()) {
                     val ids = viewModel.raptorRepository.resolveStopIdsByName(nearestStopName)
                     if (ids.isNotEmpty()) {
@@ -1055,7 +1056,10 @@ fun PlanScreen(
             val currentUserLocation = userLocation
             val target = currentUserLocation ?: map.cameraPosition.target
             val axisSegment = if (currentUserLocation != null) {
-                findNavigationAxisSegment(currentUserLocation, navigationPathPoints)
+                findNavigationAxisSegment(
+                    currentUserLocation.toGeoPoint(),
+                    navigationPathPoints.map { it.toGeoPoint() }
+                )
             } else {
                 null
             }
