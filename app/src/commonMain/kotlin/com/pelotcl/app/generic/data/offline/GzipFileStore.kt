@@ -59,4 +59,9 @@ internal object GzipFileStore {
         val path = filePath.toPath()
         return if (fs.exists(path)) fs.metadata(path).size ?: 0L else 0L
     }
+
+    fun lastModified(filePath: String): Long {
+        val path = filePath.toPath()
+        return if (fs.exists(path)) fs.metadata(path).lastModifiedAtMillis ?: 0L else 0L
+    }
 }
