@@ -3,9 +3,6 @@ package com.pelotcl.app.generic.ui.screens.plan
 import com.pelotcl.app.platform.Log
 import com.pelotcl.app.platform.DrawableProvider
 import com.pelotcl.app.platform.LocalPlatformContext
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -988,10 +985,13 @@ private fun ConnectionBadge(
     size: Dp = 32.dp,
     onClick: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
-
-    // Convert line name to drawable resource ID using cached lookup
-    val resourceId = BusIconHelper.getResourceIdForLine(context, lineName)
+    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val drawableName = remember(lineName) {
+        LineIconResolver.getDrawableNameForLineName(lineName)
+    }
+    val hasIcon = remember(drawableName, drawableProvider) {
+        drawableProvider.hasDrawable(drawableName)
+    }
 
     val modifier = if (onClick != null) {
         Modifier
@@ -1001,10 +1001,10 @@ private fun ConnectionBadge(
         Modifier.size(size)
     }
 
-    if (resourceId != 0) {
-        // Display TCL image
+    if (hasIcon) {
+        // Display TCL image via Compose Resources (cross-platform)
         Image(
-            painter = painterResource(id = resourceId),
+            painter = drawableProvider.getPainter(drawableName),
             contentDescription = "Ligne $lineName",
             modifier = modifier
         )
