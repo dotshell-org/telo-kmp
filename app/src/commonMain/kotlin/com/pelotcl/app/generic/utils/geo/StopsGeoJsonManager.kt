@@ -1,17 +1,24 @@
 package com.pelotcl.app.generic.utils.geo
 
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import com.pelotcl.app.generic.data.models.geojson.Feature
 import com.pelotcl.app.generic.data.models.geojson.StopFeature
 import com.pelotcl.app.generic.data.models.stops.StopGeometry
 import com.pelotcl.app.generic.data.models.stops.StopProperties
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 
 object StopsGeoJsonManager {
 
     private val lineRules get() = TransportServiceProvider.getTransportLineRules()
+
+    private fun linesForStop(stop: StopFeature): List<String> =
+        LineIconResolver.parseDesserte(stop.properties.desserte)
 
     fun createStopsGeoJsonFromStops(
         stops: List<StopFeature>,
@@ -25,7 +32,7 @@ object StopsGeoJsonManager {
         var firstFeature = true
 
         for (stop in mergedStops) {
-            val lineNamesAll = BusIconHelper.getAllLinesForStop(stop)
+            val lineNamesAll = linesForStop(stop)
             if (lineNamesAll.isEmpty()) continue
 
             val hasTram = lineNamesAll.any { it.uppercase().startsWith("T") }
@@ -38,7 +45,7 @@ object StopsGeoJsonManager {
 
             for (lineName in lignesFortes) {
                 val upperName = lineName.uppercase()
-                val drawableName = BusIconHelper.getDrawableNameForLineName(lineName)
+                val drawableName = LineIconResolver.getDrawableNameForLineName(lineName)
                 if (validIcons.contains(drawableName)) {
                     val priority = when {
                         lineRules.isStrongLine(upperName) &&
@@ -120,7 +127,7 @@ object StopsGeoJsonManager {
         val weakLineStops = mutableListOf<StopFeature>()
 
         stops.forEach { stop ->
-            val allLines = BusIconHelper.getAllLinesForStop(stop)
+            val allLines = linesForStop(stop)
             val strongLines = allLines.filter { lineRules.isStrongLine(it) }
             val weakLines = allLines.filter { !lineRules.isStrongLine(it) }
 
@@ -184,7 +191,7 @@ object StopsGeoJsonManager {
                 stopsGroup.first()
             } else {
                 val mergedDesserte = stopsGroup
-                    .flatMap { BusIconHelper.getAllLinesForStop(it) }
+                    .flatMap { linesForStop(it) }
                     .distinct()
                     .sorted()
                     .joinToString(", ")
@@ -231,38 +238,28 @@ object StopsGeoJsonManager {
         return mergedStrongStops + weakLineStops
     }
 
-    fun createGeoJsonFromFeature(feature: Feature): String {
-        val geoJsonObject = JsonObject().apply {
-            addProperty("type", "Feature")
-
-            val geometryObject = JsonObject().apply {
-                addProperty("type", feature.geometry.type)
-                val coordinatesArray = JsonArray()
+    fun createGeoJsonFromFeature(feature: Feature): String = buildJsonObject {
+        put("type", "Feature")
+        putJsonObject("geometry") {
+            put("type", feature.geometry.type)
+            putJsonArray("coordinates") {
                 feature.geometry.coordinates.forEach { lineString ->
-                    val lineStringArray = JsonArray()
-                    lineString.forEach { point ->
-                        val pointArray = JsonArray()
-                        point.forEach { coord ->
-                            pointArray.add(coord)
+                    addJsonArray {
+                        lineString.forEach { point ->
+                            addJsonArray {
+                                point.forEach { coord -> add(coord) }
+                            }
                         }
-                        lineStringArray.add(pointArray)
                     }
-                    coordinatesArray.add(lineStringArray)
                 }
-                add("coordinates", coordinatesArray)
             }
-            add("geometry", geometryObject)
-
-            val propertiesObject = JsonObject().apply {
-                addProperty("ligne", feature.properties.lineName)
-                addProperty("nom_trace", feature.properties.traceName)
-                addProperty("couleur", feature.properties.color ?: "")
-            }
-            add("properties", propertiesObject)
         }
-
-        return geoJsonObject.toString()
-    }
+        putJsonObject("properties") {
+            put("ligne", feature.properties.lineName)
+            put("nom_trace", feature.properties.traceName)
+            put("couleur", feature.properties.color ?: "")
+        }
+    }.toString()
 
     fun escapeJsonString(s: String): String {
         if (s.isEmpty()) return s
