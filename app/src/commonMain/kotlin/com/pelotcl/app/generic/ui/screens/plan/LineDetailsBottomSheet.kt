@@ -543,7 +543,7 @@ private fun TrafficAlertsSection(
                             val alertKey = "alert_${alert.alertNumber}_${alert.lineCode}"
                             com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
                                 com.pelotcl.app.generic.data.telemetry.TelemetryEvent.AlertRead(
-                                    eventId = java.util.UUID.randomUUID().toString(),
+                                    eventId = randomId(),
                                     at = Clock.System.now().toString(),
                                     alertId = alertKey,
                                     readAt = Clock.System.now().toString()
@@ -640,7 +640,7 @@ private fun filterValidAlerts(
 }
 
 private fun formatTimeAgo(timestampMillis: Long): String {
-    val diffMs = System.currentTimeMillis() - timestampMillis
+    val diffMs = Clock.System.now().toEpochMilliseconds() - timestampMillis
     val diffMinutes = diffMs / 60_000
     val diffHours = diffMinutes / 60
     val diffDays = diffHours / 24

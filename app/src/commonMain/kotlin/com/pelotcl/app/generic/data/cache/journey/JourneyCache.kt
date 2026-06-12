@@ -39,10 +39,19 @@ class JourneyCache private constructor(context: PlatformContext) {
     private val diskMutex = Mutex()
     private val memoryMutex = Mutex()
 
-    // Access-ordered LRU; eldest entry evicted past MEMORY_CACHE_SIZE. Guarded by memoryMutex.
-    private val memoryCache = object : LinkedHashMap<String, CachedJourney>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: Map.Entry<String, CachedJourney>): Boolean =
-            size > MEMORY_CACHE_SIZE
+    // Manual LRU over an insertion-ordered LinkedHashMap. The JVM-only access-order constructor
+    // and removeEldestEntry override are NOT in the common stdlib (they'd compile for Android but
+    // break the iOS/Native build), so eviction is done by hand in [putMemory]. Insertion order is
+    // preserved identically on JVM and Native. Guarded by memoryMutex.
+    private val memoryCache = LinkedHashMap<String, CachedJourney>()
+
+    private fun putMemory(key: String, value: CachedJourney) {
+        memoryCache.remove(key) // re-insert to move the entry to the most-recently-used end
+        memoryCache[key] = value
+        while (memoryCache.size > MEMORY_CACHE_SIZE) {
+            val eldest = memoryCache.keys.firstOrNull() ?: break
+            memoryCache.remove(eldest)
+        }
     }
 
     @Volatile
@@ -74,6 +83,7 @@ class JourneyCache private constructor(context: PlatformContext) {
             val memoryCached = memoryCache[cacheKey]
             if (memoryCached != null) {
                 if (nowMs() - memoryCached.timestamp < MEMORY_CACHE_VALIDITY_MS) {
+                    putMemory(cacheKey, memoryCached) // mark as most-recently-used
                     return memoryCached.journeys.map { it.toJourneyResult() }
                 } else {
                     memoryCache.remove(cacheKey)
@@ -85,9 +95,12 @@ class JourneyCache private constructor(context: PlatformContext) {
             val diskResult = readFromDiskPath(getCacheFilePath(cacheKey))
             if (diskResult != null) {
                 memoryMutex.withLock {
-                    memoryCache[cacheKey] = CachedJourney(
-                        journeys = diskResult.map { SerializableJourneyResult.fromJourneyResult(it) },
-                        timestamp = nowMs()
+                    putMemory(
+                        cacheKey,
+                        CachedJourney(
+                            journeys = diskResult.map { SerializableJourneyResult.fromJourneyResult(it) },
+                            timestamp = nowMs()
+                        )
                     )
                 }
             }
@@ -102,7 +115,7 @@ class JourneyCache private constructor(context: PlatformContext) {
         val serializableJourneys = journeys.map { SerializableJourneyResult.fromJourneyResult(it) }
         val cachedJourney = CachedJourney(journeys = serializableJourneys, timestamp = nowMs())
 
-        memoryMutex.withLock { memoryCache[cacheKey] = cachedJourney }
+        memoryMutex.withLock { putMemory(cacheKey, cachedJourney) }
 
         withContext(Dispatchers.IO) { writeToDisk(cacheKey, serializableJourneys) }
     }
@@ -128,9 +141,12 @@ class JourneyCache private constructor(context: PlatformContext) {
                     val journeys = readFromDiskPath(path.toString())
                     if (journeys != null) {
                         memoryMutex.withLock {
-                            memoryCache[cacheKey] = CachedJourney(
-                                journeys = journeys.map { SerializableJourneyResult.fromJourneyResult(it) },
-                                timestamp = nowMs()
+                            putMemory(
+                                cacheKey,
+                                CachedJourney(
+                                    journeys = journeys.map { SerializableJourneyResult.fromJourneyResult(it) },
+                                    timestamp = nowMs()
+                                )
                             )
                         }
                     }
