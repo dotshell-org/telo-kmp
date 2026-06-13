@@ -1,40 +1,66 @@
 package com.pelotcl.app.generic.data.repository.offline
 
-import android.content.ComponentCallbacks2
-import android.content.Context
-import android.util.Log
-import android.util.LruCache
-import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorRepository
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
 import com.pelotcl.app.generic.data.repository.api.SchedulesRepository as ApiSchedulesRepository
-import com.pelotcl.app.generic.service.TransportServiceProvider
-import com.pelotcl.app.generic.utils.date.FrenchPublicHolidayStrategy
+import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorRepository
+import com.pelotcl.app.platform.Log
+import com.pelotcl.app.platform.PlatformContext
+import kotlin.concurrent.Volatile
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-class SchedulesRepository private constructor(context: Context) : ApiSchedulesRepository {
+class SchedulesRepository private constructor(context: PlatformContext) : ApiSchedulesRepository {
 
-    private val appContext = context.applicationContext
-    private val raptorRepository = RaptorRepository.getInstance(appContext)
+    private val raptorRepository = RaptorRepository.getInstance(context)
 
     companion object {
         @Volatile
         private var INSTANCE: SchedulesRepository? = null
 
-        private val searchCache = LruCache<String, List<StationSearchResult>>(30)
+        private const val SEARCH_CACHE_SIZE = 30
 
-        fun getInstance(context: Context): SchedulesRepository {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: SchedulesRepository(context.applicationContext).also { INSTANCE = it }
-            }
+        // Manual LRU over an insertion-ordered LinkedHashMap (no android.util.LruCache in
+        // commonMain). Guarded by [searchCacheMutex] for the suspend read/write paths.
+        private val searchCacheMutex = Mutex()
+        private val searchCache = LinkedHashMap<String, List<StationSearchResult>>()
+
+        /**
+         * Singleton. No `synchronized` in commonMain — a @Volatile double-check suffices for a
+         * startup singleton (a rare race only creates a discarded extra instance). Callers pass an
+         * application-scoped context.
+         */
+        fun getInstance(context: PlatformContext): SchedulesRepository {
+            return INSTANCE ?: SchedulesRepository(context).also { INSTANCE = it }
         }
 
         fun trimCaches(level: Int) {
-            if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) {
-                searchCache.evictAll()
-            } else if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-                searchCache.trimToSize(searchCache.maxSize() / 2)
+            // 20 = TRIM_MEMORY_UI_HIDDEN, 40 = TRIM_MEMORY_BACKGROUND (android ComponentCallbacks2).
+            // Best-effort and lock-free (a memory hint); the Raptor data is the source of truth.
+            if (level >= 20) {
+                runCatching { searchCache.clear() }
             }
         }
+
+        private suspend fun getCachedSearch(key: String): List<StationSearchResult>? =
+            searchCacheMutex.withLock {
+                val value = searchCache[key]
+                if (value != null) {
+                    searchCache.remove(key) // re-insert to mark as most-recently-used
+                    searchCache[key] = value
+                }
+                value
+            }
+
+        private suspend fun putCachedSearch(key: String, value: List<StationSearchResult>) =
+            searchCacheMutex.withLock {
+                searchCache.remove(key)
+                searchCache[key] = value
+                while (searchCache.size > SEARCH_CACHE_SIZE) {
+                    val eldest = searchCache.keys.firstOrNull() ?: break
+                    searchCache.remove(eldest)
+                }
+            }
     }
 
     fun warmupDatabase() {
@@ -43,7 +69,7 @@ class SchedulesRepository private constructor(context: Context) : ApiSchedulesRe
 
     override suspend fun searchStopsByName(query: String): List<StationSearchResult> {
         val cacheKey = query.trim().lowercase()
-        searchCache.get(cacheKey)?.let { return it }
+        getCachedSearch(cacheKey)?.let { return it }
 
         val assetsAvailable = raptorRepository.checkAssetsAvailable()
         val rawResults = raptorRepository.searchStopsByName(query)
@@ -88,7 +114,7 @@ class SchedulesRepository private constructor(context: Context) : ApiSchedulesRe
             .take(50)
 
         if (cacheKey.length >= 2 && results.isNotEmpty()) {
-            searchCache.put(cacheKey, results)
+            putCachedSearch(cacheKey, results)
         }
         return results
     }
