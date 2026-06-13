@@ -1,4 +1,12 @@
 <resources>
     <string name="line_icon">Icône de la ligne %s</string>
     <string name="bus_mode_icon">Icône de mode bus</string>
+    <string name="offline_available">Données hors ligne disponibles</string>
+    <string name="offline_unavailable">Données hors ligne non disponibles</string>
+    <string name="cancel_download">Annuler le téléchargement</string>
+    <string name="download_data">Télécharger les données</string>
+    <string name="selected">Sélectionné</string>
+    <string name="downloaded">Téléchargé</string>
+    <string name="stale_data_warning">Avertissement de données anciennes</string>
+    <string name="category_header">Catégorie</string>
 </resources>

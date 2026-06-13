@@ -1,7 +1,5 @@
 package com.pelotcl.app.generic.ui.screens.settings
 
-import android.content.Context
-import android.text.format.Formatter
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -35,14 +33,11 @@ import androidx.compose.ui.graphics.lerp
 import kotlin.math.PI
 import kotlin.math.sin
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pelotcl.app.R
 import com.pelotcl.app.generic.data.network.mapstyle.MapStyleCategory
 import com.pelotcl.app.generic.data.offline.OfflineDataInfo
 import com.pelotcl.app.generic.data.offline.OfflineDownloadState
@@ -53,9 +48,11 @@ import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.pelotcl.app.platform.LocalPlatformContext
+import com.pelotcl.app.platform.StringProvider
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun OfflineSettingsScreen(
@@ -63,7 +60,8 @@ fun OfflineSettingsScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    val context = LocalPlatformContext.current
+    val strings = StringProvider(context)
     val offlineDataInfo by viewModel.offlineDataInfo.collectAsState()
     val downloadState by viewModel.offlineDataManager.downloadState.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
@@ -90,9 +88,7 @@ fun OfflineSettingsScreen(
             Spacer(modifier = Modifier.height(60.dp))
             Icon(
                 imageVector = if (offlineDataInfo.isAvailable) Icons.Filled.CheckCircle else Icons.Filled.CloudOff,
-                contentDescription = if (offlineDataInfo.isAvailable) stringResource(R.string.offline_available) else stringResource(
-                    R.string.offline_unavailable
-                ),
+                contentDescription = if (offlineDataInfo.isAvailable) strings["offline_available"] else strings["offline_unavailable"],
                 tint = if (offlineDataInfo.isAvailable) Color(0xFF4CAF50) else Color.Gray,
                 modifier = Modifier.size(48.dp)
             )
@@ -118,7 +114,7 @@ fun OfflineSettingsScreen(
 
             // Status card
             if (offlineDataInfo.isAvailable) {
-                OfflineStatusCard(offlineDataInfo, context)
+                OfflineStatusCard(offlineDataInfo)
                 Spacer(modifier = Modifier.height(30.dp))
             }
 
@@ -153,7 +149,7 @@ fun OfflineSettingsScreen(
                     ) {
                         Icon(
                             Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.cancel_download),
+                            contentDescription = strings["cancel_download"],
                             modifier = Modifier.size(18.dp),
                             tint = Color.Gray
                         )
@@ -177,7 +173,7 @@ fun OfflineSettingsScreen(
                     ) {
                         Icon(
                             Icons.Filled.CloudDownload,
-                            stringResource(R.string.download_data),
+                            strings["download_data"],
                             modifier = Modifier.size(20.dp),
                             tint = SecondaryColor
                         )
@@ -223,6 +219,7 @@ fun OfflineSettingsScreen(
 
 @Composable
 private fun CategoryHeader(icon: ImageVector, title: String) {
+    val strings = StringProvider(LocalPlatformContext.current)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -231,7 +228,7 @@ private fun CategoryHeader(icon: ImageVector, title: String) {
     ) {
         Icon(
             icon,
-            stringResource(R.string.category_header),
+            strings["category_header"],
             tint = SecondaryColor,
             modifier = Modifier.size(20.dp)
         )
@@ -289,6 +286,7 @@ private fun MapStyleSelectionCard(
     isEnabled: Boolean,
     onStyleToggled: (String, Boolean) -> Unit
 ) {
+    val strings = StringProvider(LocalPlatformContext.current)
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
@@ -330,7 +328,7 @@ private fun MapStyleSelectionCard(
                     ) {
                         if (isSelected) Icon(
                             Icons.Default.Check,
-                            stringResource(R.string.selected),
+                            strings["selected"],
                             tint = SecondaryColor,
                             modifier = Modifier.size(16.dp)
                         )
@@ -347,7 +345,7 @@ private fun MapStyleSelectionCard(
                     if (isDownloaded && isSelected) {
                         Icon(
                             Icons.Filled.CheckCircle,
-                            stringResource(R.string.downloaded),
+                            strings["downloaded"],
                             tint = Color(0xFF4CAF50),
                             modifier = Modifier.size(18.dp)
                         )
@@ -368,7 +366,8 @@ private fun MapStyleSelectionCard(
 }
 
 @Composable
-private fun OfflineStatusCard(info: OfflineDataInfo, context: Context) {
+private fun OfflineStatusCard(info: OfflineDataInfo) {
+    val strings = StringProvider(LocalPlatformContext.current)
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
@@ -377,7 +376,7 @@ private fun OfflineStatusCard(info: OfflineDataInfo, context: Context) {
         Column(modifier = Modifier.padding(16.dp)) {
             StatusRow("Dernière mise à jour", formatTimestamp(info.lastDownloadTimestamp))
             Spacer(modifier = Modifier.height(8.dp))
-            StatusRow("Espace utilisé", Formatter.formatFileSize(context, info.totalSizeBytes))
+            StatusRow("Espace utilisé", formatFileSize(info.totalSizeBytes))
             Spacer(modifier = Modifier.height(8.dp))
             StatusRow(
                 "Lignes de bus",
@@ -392,13 +391,13 @@ private fun OfflineStatusCard(info: OfflineDataInfo, context: Context) {
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Warning,
-                        contentDescription = stringResource(R.string.stale_data_warning),
+                        contentDescription = strings["stale_data_warning"],
                         tint = Color(0xFFFF9800),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Données anciennes \u2014 mise à jour recommandée",
+                        text = "Données anciennes — mise à jour recommandée",
                         color = Color(0xFFFF9800),
                         fontSize = 13.sp
                     )
@@ -454,11 +453,6 @@ private fun FeatureRow(feature: String, available: Boolean) {
         Spacer(modifier = Modifier.width(12.dp))
         Text(feature, color = if (available) SecondaryColor else Color.Gray, fontSize = 14.sp)
     }
-}
-
-private fun formatTimestamp(timestamp: Long): String {
-    if (timestamp == 0L) return "Jamais"
-    return SimpleDateFormat("d MMM yyyy 'à' HH:mm", Locale.FRANCE).format(Date(timestamp))
 }
 
 @Composable
@@ -538,5 +532,45 @@ private fun WavyLinearProgressIndicator(
             path.close()
             drawPath(path, indicatorColor)
         }
+    }
+}
+
+private val FRENCH_MONTHS = listOf(
+    "janv.", "févr.", "mars", "avr.", "mai", "juin",
+    "juil.", "août", "sept.", "oct.", "nov.", "déc."
+)
+
+/**
+ * Formats an epoch-millis timestamp as e.g. "5 juin 2026 à 14:30" (was Android SimpleDateFormat).
+ */
+private fun formatTimestamp(timestamp: Long): String {
+    if (timestamp == 0L) return "Jamais"
+    val dt = Instant.fromEpochMilliseconds(timestamp)
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+    val month = FRENCH_MONTHS.getOrElse(dt.monthNumber - 1) { "" }
+    val hh = dt.hour.toString().padStart(2, '0')
+    val mm = dt.minute.toString().padStart(2, '0')
+    return "${dt.dayOfMonth} $month ${dt.year} à $hh:$mm"
+}
+
+/**
+ * Human-readable byte size in French units (was Android Formatter.formatFileSize, which is
+ * locale + Context-bound). Approximate (binary 1024 steps, one decimal from Mo up).
+ */
+private fun formatFileSize(bytes: Long): String {
+    if (bytes <= 0) return "0 o"
+    val units = listOf("o", "Ko", "Mo", "Go", "To")
+    var value = bytes.toDouble()
+    var i = 0
+    while (value >= 1024.0 && i < units.size - 1) {
+        value /= 1024.0
+        i++
+    }
+    return if (i == 0) {
+        "${value.toLong()} ${units[i]}"
+    } else {
+        val whole = value.toLong()
+        val decimal = ((value - whole) * 10).toLong()
+        "$whole,$decimal ${units[i]}"
     }
 }

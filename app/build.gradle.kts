@@ -41,6 +41,10 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.materialIconsExtended)
 
+            // JetBrains lifecycle (Compose Multiplatform) — provides androidx.lifecycle.ViewModel
+            // + viewModelScope in commonMain (same package as the Android artifact).
+            implementation(libs.jetbrains.lifecycle.viewmodel)
+
             // Ktor (replaces Retrofit/OkHttp/Gson)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)

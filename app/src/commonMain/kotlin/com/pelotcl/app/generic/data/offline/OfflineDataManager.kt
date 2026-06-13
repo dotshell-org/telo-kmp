@@ -1,7 +1,8 @@
 package com.pelotcl.app.generic.data.offline
 
-import android.content.Context
-import android.util.Log
+import com.pelotcl.app.platform.Log
+import com.pelotcl.app.platform.PlatformContext
+import com.pelotcl.app.platform.createOfflineTileDownloader
 import com.pelotcl.app.generic.data.network.transport.TransportApi
 import com.pelotcl.app.generic.data.network.transport.TransportLinesQuery
 import com.pelotcl.app.generic.data.models.geojson.Feature
@@ -30,7 +31,7 @@ import kotlinx.coroutines.withContext
  */
 class OfflineDataManager(
     private val transportApi: TransportApi,
-    context: Context
+    context: PlatformContext
 ) : ApiOfflineDataManager {
 
     companion object {
@@ -47,7 +48,7 @@ class OfflineDataManager(
     }
 
     private val offlineRepository = OfflineRepository(context)
-    private val offlineMapManager = OfflineMapManager(context)
+    private val offlineMapManager = createOfflineTileDownloader(context)
     private val schedulesRepository =
         SchedulesRepository.getInstance(context)
 
@@ -388,7 +389,7 @@ class OfflineDataManager(
                     if (stylesToDownload.isNotEmpty()) WEIGHT_MAP_TILES / stylesToDownload.size else WEIGHT_MAP_TILES
 
                 for ((styleIndex, style) in stylesToDownload.withIndex()) {
-                    val regionName = OfflineMapManager.regionNameForStyle(style.key)
+                    val regionName = offlineMapManager.regionNameForStyle(style.key)
                     val styleBaseProgress = cumulativeProgress + (styleIndex * weightPerStyle)
                     _downloadState.value = OfflineDownloadState.Downloading(
                         styleBaseProgress,

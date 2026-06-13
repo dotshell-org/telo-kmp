@@ -19,6 +19,9 @@ import com.pelotcl.app.generic.ui.screens.plan.SECONDARY_STOPS_MIN_ZOOM
 import com.pelotcl.app.generic.ui.screens.plan.SELECTED_STOP_MIN_ZOOM
 import com.pelotcl.app.generic.ui.screens.plan.TRAM_STOPS_MIN_ZOOM
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
+import com.pelotcl.app.generic.ui.viewmodel.cacheIconBitmap
+import com.pelotcl.app.generic.ui.viewmodel.getIconBitmap
+import com.pelotcl.app.generic.ui.viewmodel.hasAllIcons
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.geo.StopsGeoJsonManager
 import com.pelotcl.app.generic.utils.graphics.BusIconHelper

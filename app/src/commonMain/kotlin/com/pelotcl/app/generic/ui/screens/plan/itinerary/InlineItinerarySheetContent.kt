@@ -2,10 +2,7 @@
 
 package com.pelotcl.app.generic.ui.screens.plan.itinerary
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.pelotcl.app.platform.Log
-import java.util.Locale
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,8 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -55,9 +50,12 @@ import com.pelotcl.app.generic.data.models.itinerary.TimeMode
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
 import com.pelotcl.app.generic.ui.theme.SecondaryColor
 import com.pelotcl.app.generic.ui.viewmodel.TransportViewModel
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
 import com.pelotcl.app.generic.utils.search.SearchUtils
 import com.pelotcl.app.generic.utils.LineColorHelper
+import com.pelotcl.app.platform.DrawableProvider
+import com.pelotcl.app.platform.LocalPlatformContext
+import com.pelotcl.app.platform.randomId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -79,7 +77,6 @@ private data class AvoidedJourneyUi(
     val label: String
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun InlineItinerarySheetContent(
     viewModel: TransportViewModel,
@@ -95,13 +92,13 @@ fun InlineItinerarySheetContent(
     onRequestExpandSheet: () -> Unit = {}
 ) {
     val raptorRepository = viewModel.raptorRepository
-    val context = LocalContext.current
-    
+    val context = LocalPlatformContext.current
+
     // Load user preferences for route filtering
     val itineraryPrefsRepo = remember { ItineraryPreferencesRepository(context) }
     val jdLinesEnabled = remember { itineraryPrefsRepo.isJdLinesEnabled() }
     val rxLineEnabled = remember { itineraryPrefsRepo.isRxLineEnabled() }
-    
+
     // Build set of blocked route names based on user preferences
     // For JD lines, we need to block all possible JD line numbers (JD1-JD999)
     // since the Raptor library does exact matching, not prefix matching
@@ -240,7 +237,7 @@ fun InlineItinerarySheetContent(
                 ?: return "Alertes utilisateur évitées"
 
             val stopName = topEntry.key
-            val topAlertType = topEntry.value.maxByOrNull { it.karma }?.type?.lowercase(Locale.ROOT)
+            val topAlertType = topEntry.value.maxByOrNull { it.karma }?.type?.lowercase()
 
             return when (topAlertType) {
                 "closure" -> "Arret ferme évité à $stopName"
@@ -281,14 +278,14 @@ fun InlineItinerarySheetContent(
         // Raptor call. We use stop names (the canonical user-facing identifier from
         // SelectedStop) as the place ref — both ends are known stops, so no privacy scrubbing
         // is needed at this layer.
-        val calcId = java.util.UUID.randomUUID().toString()
+        val calcId = randomId()
         lastCalcId = calcId
         val originName = departureStop?.name.orEmpty()
         val destName = arrivalStop?.name.orEmpty()
         if (originName.isNotBlank() && destName.isNotBlank()) {
             com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
                 com.pelotcl.app.generic.data.telemetry.TelemetryEvent.SearchItinerary(
-                    eventId = java.util.UUID.randomUUID().toString(),
+                    eventId = randomId(),
                                 at = Clock.System.now().toString(),
                     originRef = com.pelotcl.app.generic.data.telemetry.PlaceRef(stopId = originName),
                     destRef = com.pelotcl.app.generic.data.telemetry.PlaceRef(stopId = destName)
@@ -385,7 +382,7 @@ fun InlineItinerarySheetContent(
                 } ?: nowIso
                 com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
                     com.pelotcl.app.generic.data.telemetry.TelemetryEvent.ItineraryCalculated(
-                        eventId = java.util.UUID.randomUUID().toString(),
+                        eventId = randomId(),
                         at = nowIso,
                         calcId = calcId,
                         origin = com.pelotcl.app.generic.data.telemetry.PlaceRef(stopId = originName),
@@ -513,7 +510,7 @@ fun InlineItinerarySheetContent(
                 )
             } else {
                 // Show extra large line icons on the left when a journey is selected
-                val context = LocalContext.current
+                val drawableProvider = DrawableProvider(context)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start
@@ -523,11 +520,11 @@ fun InlineItinerarySheetContent(
                     }
 
                     nonWalkingLegs.forEachIndexed { index, leg ->
-                        val resourceId = BusIconHelper.getResourceIdForLine(context, leg.routeName ?: "")
+                        val drawableName = LineIconResolver.getDrawableNameForLineName(leg.routeName ?: "")
 
-                        if (resourceId != 0) {
+                        if (drawableProvider.hasDrawable(drawableName)) {
                             Image(
-                                painter = painterResource(id = resourceId),
+                                painter = drawableProvider.getPainter(drawableName),
                                 contentDescription = null,
                                 modifier = Modifier.size(32.dp)
                             )
@@ -550,7 +547,7 @@ fun InlineItinerarySheetContent(
                                 )
                             }
                         }
-                        
+
                         if (index < nonWalkingLegs.size - 1) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -681,7 +678,7 @@ fun InlineItinerarySheetContent(
                     lastCalcId?.let { calcId ->
                         com.pelotcl.app.generic.data.telemetry.TelemetryEmitter.emit(
                             com.pelotcl.app.generic.data.telemetry.TelemetryEvent.ItineraryChosen(
-                                eventId = java.util.UUID.randomUUID().toString(),
+                                eventId = randomId(),
                     at = Clock.System.now().toString(),
                                 calcId = calcId,
                                 optionIndex = index
