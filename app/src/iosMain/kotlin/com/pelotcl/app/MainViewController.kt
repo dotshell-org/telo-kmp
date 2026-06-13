@@ -1,26 +1,15 @@
 package com.pelotcl.app
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
+import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
+import com.pelotcl.app.generic.ui.components.MapCanvas
 import com.pelotcl.app.generic.ui.theme.PeloTheme
 import com.pelotcl.app.platform.LocalPlatformContext
 import com.pelotcl.app.platform.PlatformContext
-import com.pelotcl.app.platform.appVersionName
 import platform.UIKit.UIViewController
 
 /**
@@ -49,37 +38,14 @@ fun MainViewController(): UIViewController = ComposeUIViewController {
 @Composable
 fun App() {
     PeloTheme {
-        Surface(
+        // §9.1 — prove the declarative maplibre-compose map renders on iOS (Metal).
+        // Real transport data (lines/stops) + the full PlanScreen UI come next.
+        MapCanvas(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Pelo",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "Compose Multiplatform tourne sur iOS 🎉",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "version ${appVersionName(IosPlatformContext)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+            styleUrl = MapStyleCompat.POSITRON.styleUrl,
+            initialLatitude = 45.75,
+            initialLongitude = 4.85,
+            initialZoom = 12.0,
+        )
     }
 }
