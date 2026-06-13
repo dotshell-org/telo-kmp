@@ -50,3 +50,16 @@ targets:
           export JAVA_HOME="$HOME/Library/Java/jdk-21.0.11+10/Contents/Home"
           export ANDROID_HOME="$HOME/Library/Android/sdk"
           "$PROJECT_DIR/../gradlew" -p "$PROJECT_DIR/.." :app:linkDebugFrameworkIosSimulatorArm64
+    postBuildScripts:
+      - name: Copy Compose resources into the app bundle
+        basedOnDependencyAnalysis: false
+        script: |
+          SRC="$PROJECT_DIR/../app/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources/files"
+          DST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/compose-resources/files"
+          if [ -d "$SRC" ]; then
+            mkdir -p "$DST"
+            rsync -a --delete "$SRC/" "$DST/"
+            echo "Copied Compose resources -> $DST"
+          else
+            echo "warning: Compose resources not found at $SRC"
+          fi

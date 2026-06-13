@@ -22,34 +22,14 @@ import platform.Foundation.create
 actual class FileSystem actual constructor(private val context: PlatformContext) {
 
     actual fun readAsset(path: String): String {
-        val components = path.split("/")
-        val fileName = components.last()
-        val nameComponents = fileName.split(".")
-        val name = nameComponents.dropLast(1).joinToString(".")
-        val ext = nameComponents.lastOrNull() ?: ""
-        val bundlePath = if (components.size > 1) {
-            val dir = components.dropLast(1).joinToString("/")
-            NSBundle.mainBundle.pathForResource(name, ofType = ext, inDirectory = dir)
-        } else {
-            NSBundle.mainBundle.pathForResource(name, ofType = ext)
-        }
+        val bundlePath = assetBundlePath(path)
         requireNotNull(bundlePath) { "Asset not found: $path" }
         return NSString.stringWithContentsOfFile(bundlePath, encoding = NSUTF8StringEncoding, error = null)
             ?: error("Failed to read asset: $path")
     }
 
     actual fun readAssetBytes(path: String): ByteArray {
-        val components = path.split("/")
-        val fileName = components.last()
-        val nameComponents = fileName.split(".")
-        val name = nameComponents.dropLast(1).joinToString(".")
-        val ext = nameComponents.lastOrNull() ?: ""
-        val bundlePath = if (components.size > 1) {
-            val dir = components.dropLast(1).joinToString("/")
-            NSBundle.mainBundle.pathForResource(name, ofType = ext, inDirectory = dir)
-        } else {
-            NSBundle.mainBundle.pathForResource(name, ofType = ext)
-        }
+        val bundlePath = assetBundlePath(path)
         requireNotNull(bundlePath) { "Asset not found: $path" }
         val data = NSData.dataWithContentsOfFile(bundlePath)
             ?: error("Failed to read asset bytes: $path")
@@ -60,19 +40,26 @@ actual class FileSystem actual constructor(private val context: PlatformContext)
         }
     }
 
-    actual fun assetExists(path: String): Boolean {
+    actual fun assetExists(path: String): Boolean = assetBundlePath(path) != null
+
+    /**
+     * Compose Resources `files/` assets are copied into the app bundle under [RESOURCE_ROOT]
+     * by an iosApp build phase (the static framework doesn't embed them). Resolves a relative
+     * asset path (e.g. "config.json", "raptor/stops_saturday.bin") to its on-disk bundle path.
+     */
+    private fun assetBundlePath(path: String): String? {
         val components = path.split("/")
         val fileName = components.last()
         val nameComponents = fileName.split(".")
         val name = nameComponents.dropLast(1).joinToString(".")
         val ext = nameComponents.lastOrNull() ?: ""
-        val bundlePath = if (components.size > 1) {
-            val dir = components.dropLast(1).joinToString("/")
-            NSBundle.mainBundle.pathForResource(name, ofType = ext, inDirectory = dir)
-        } else {
-            NSBundle.mainBundle.pathForResource(name, ofType = ext)
-        }
-        return bundlePath != null
+        val subDir = components.dropLast(1).joinToString("/")
+        val dir = if (subDir.isEmpty()) RESOURCE_ROOT else "$RESOURCE_ROOT/$subDir"
+        return NSBundle.mainBundle.pathForResource(name, ofType = ext, inDirectory = dir)
+    }
+
+    private companion object {
+        const val RESOURCE_ROOT = "compose-resources/files"
     }
 
     actual fun filesDir(): String {
