@@ -8,9 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -48,6 +49,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
@@ -213,9 +216,19 @@ private fun RootScaffold(viewModel: TransportViewModel) {
     val bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false)
     val bsScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = bottomSheetState)
     val hasSheet = itineraryActive || selectedStation != null || selectedLine != null || allSchedules != null
-    LaunchedEffect(hasSheet) {
-        if (hasSheet) bottomSheetState.partialExpand() else bottomSheetState.hide()
+    // Open the sheet at its content height (like PlanScreen's .expand()), not just the peek.
+    val sheetContentKey = "$itineraryActive|${selectedStation?.nom}|${selectedLine?.lineName}|${allSchedules?.lineName}"
+    LaunchedEffect(sheetContentKey) {
+        if (hasSheet) bottomSheetState.expand() else bottomSheetState.hide()
     }
+
+    // Cap the expanded sheet so its top stays just BELOW the top buttons (search/favorites),
+    // and let shorter content size itself naturally so its scroll fills to the bottom.
+    val density = LocalDensity.current
+    val windowInfo = LocalWindowInfo.current
+    val screenHeightDp = with(density) { windowInfo.containerSize.height.toDp() }
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val maxSheetHeight = (screenHeightDp - topInset - 220.dp).coerceAtLeast(320.dp)
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
@@ -258,8 +271,9 @@ private fun RootScaffold(viewModel: TransportViewModel) {
                     scaffoldState = bsScaffoldState,
                     sheetPeekHeight = if (hasSheet) 360.dp else 0.dp,
                     sheetContent = {
-                        // fillMaxHeight so the sheet can expand to (near) full screen, not just to the content height.
-                        Box(Modifier.fillMaxHeight(0.92f)) {
+                        // Cap the height so the sheet top stays below the search/favorites bar; shorter
+                        // content keeps its natural height so its scroll fills to the bottom.
+                        Box(Modifier.heightIn(max = maxSheetHeight)) {
                             val sc = allSchedules
                             val ln = selectedLine
                             val st = selectedStation
