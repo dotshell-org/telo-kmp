@@ -52,6 +52,8 @@ import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleRepository
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.ui.components.MapCanvas
+import com.pelotcl.app.generic.ui.components.favorites.AddFavoriteDialog
+import com.pelotcl.app.generic.ui.components.favorites.FavoritesBar
 import com.pelotcl.app.generic.ui.components.search.TransportSearchBar
 import com.pelotcl.app.generic.ui.screens.Destination
 import com.pelotcl.app.generic.ui.screens.plan.LineDetailsBottomSheet
@@ -217,6 +219,8 @@ private fun PlanContent(
 
     var tappedStopName by remember { mutableStateOf<String?>(null) }
     var searchExpanded by remember { mutableStateOf(false) }
+    val userFavorites by viewModel.userFavorites.collectAsState(initial = emptyList())
+    var showAddFavoriteDialog by remember { mutableStateOf(false) }
 
     // Itinerary: arrival = a chosen stop, departure = the nearest stop to the user's location.
     // The shared InlineItinerarySheetContent then computes and shows the journeys itself.
@@ -267,13 +271,23 @@ private fun PlanContent(
                 .then(if (searchExpanded) Modifier.background(Color.Black) else Modifier)
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            TransportSearchBar(
-                onSearchStops = { q -> viewModel.searchStops(q) },
-                onSearchLines = { q -> viewModel.searchLines(q) },
-                onExpandedChange = { searchExpanded = it },
-                onStopPrimary = { result -> tappedStopName = result.stopName },
-                onLineSelected = { line -> onShowLineDetails(line.lineName) },
-            )
+            Column {
+                TransportSearchBar(
+                    onSearchStops = { q -> viewModel.searchStops(q) },
+                    onSearchLines = { q -> viewModel.searchLines(q) },
+                    onExpandedChange = { searchExpanded = it },
+                    onStopPrimary = { result -> tappedStopName = result.stopName },
+                    onLineSelected = { line -> onShowLineDetails(line.lineName) },
+                )
+                if (!searchExpanded) {
+                    FavoritesBar(
+                        favorites = userFavorites,
+                        onAddFavoriteClick = { showAddFavoriteDialog = true },
+                        onFavoriteClick = { fav -> tappedStopName = fav.stopName },
+                        onRemoveFavoriteClick = { fav -> viewModel.removeUserFavorite(fav.id) },
+                    )
+                }
+            }
         }
 
         FloatingActionButton(
@@ -283,6 +297,17 @@ private fun PlanContent(
         ) {
             Icon(Icons.Filled.Layers, contentDescription = "Style de carte", tint = SecondaryColor)
         }
+    }
+
+    if (showAddFavoriteDialog) {
+        AddFavoriteDialog(
+            onDismiss = { showAddFavoriteDialog = false },
+            onFavoriteCreated = { name, iconName, stopName ->
+                viewModel.addUserFavorite(name, iconName, stopName)
+                showAddFavoriteDialog = false
+            },
+            viewModel = viewModel,
+        )
     }
 
     if (showStyleSheet) {
