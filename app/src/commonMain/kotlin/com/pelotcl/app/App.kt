@@ -3,9 +3,12 @@
 package com.pelotcl.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,10 +16,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -35,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,7 +53,9 @@ import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.data.models.geojson.StopFeature
+import com.pelotcl.app.generic.data.models.itinerary.ItineraryFieldTarget
 import com.pelotcl.app.generic.data.models.itinerary.SelectedStop
+import com.pelotcl.app.generic.data.models.search.TransportSearchContent
 import com.pelotcl.app.generic.data.models.stops.Favorite
 import com.pelotcl.app.generic.data.models.stops.StationInfo
 import com.pelotcl.app.generic.data.models.ui.AllSchedulesInfo
@@ -64,6 +75,7 @@ import com.pelotcl.app.generic.ui.screens.plan.LinesBottomSheet
 import com.pelotcl.app.generic.ui.screens.plan.MapStyleSelectionSheet
 import com.pelotcl.app.generic.ui.screens.plan.StationSheetContent
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
+import com.pelotcl.app.generic.ui.screens.plan.itinerary.ItinerarySearchBarField
 import com.pelotcl.app.generic.ui.screens.settings.ItinerarySettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.OfflineSettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.SettingsScreen
@@ -81,15 +93,13 @@ import com.pelotcl.app.generic.utils.location.LocationProvider
 import com.pelotcl.app.platform.LocalPlatformContext
 import com.pelotcl.app.platform.Log
 import com.pelotcl.app.platform.appVersionName
+import kotlinx.coroutines.launch
 import org.maplibre.spatialk.geojson.Position
 
 /**
  * Shared application root (commonMain) — the cross-platform Plan UI assembled from common
- * building blocks (MapCanvas, TransportSearchBar, the sheets, SettingsScreen, …).
- *
- * Each platform provides a [com.pelotcl.app.platform.PlatformContext] via [LocalPlatformContext]
- * and hosts this composable: iOS via `MainViewController()`; Android (eventually) via `MainActivity`.
- * `TransportServiceProvider.initialize` stands in for the Android `PeloApplication.onCreate` bootstrap.
+ * building blocks. Each platform provides a PlatformContext via [LocalPlatformContext] and hosts
+ * this composable: iOS via `MainViewController()`; Android (eventually) via `MainActivity`.
  */
 @Composable
 fun App() {
@@ -104,14 +114,11 @@ fun App() {
                 null
             }
         }
-
-        // Raptor backs stop/line search; load its .bin assets up front so search works.
         LaunchedEffect(viewModel) {
             val vm = viewModel ?: return@LaunchedEffect
             runCatching { vm.raptorRepository.initialize() }
                 .onFailure { Log.e("PeloApp", "Raptor init failed: ${it.message}") }
         }
-
         if (viewModel != null) {
             RootScaffold(viewModel)
         } else {
@@ -123,6 +130,7 @@ fun App() {
 @Composable
 private fun RootScaffold(viewModel: TransportViewModel) {
     val context = LocalPlatformContext.current
+    val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(Destination.PLAN) }
     var showLinesSheet by remember { mutableStateOf(false) }
 
@@ -140,7 +148,6 @@ private fun RootScaffold(viewModel: TransportViewModel) {
     val userFavorites by viewModel.userFavorites.collectAsState(initial = emptyList())
     val stops = (stopsUiState as? TransportStopsUiState.Success)?.stops
 
-    // Device location — shared by the map's user dot and the itinerary departure.
     var userLocation by remember { mutableStateOf<Position?>(null) }
     val locationProvider = remember { LocationProvider(context) }
     DisposableEffect(Unit) {
@@ -148,18 +155,20 @@ private fun RootScaffold(viewModel: TransportViewModel) {
         onDispose { locationProvider.stopUpdates() }
     }
 
-    // Itinerary state (arrival = chosen stop, departure = nearest stop to the user).
-    var itineraryArrivalName by remember { mutableStateOf<String?>(null) }
+    // Itinerary mode: two search fields at the top + a non-blocking results sheet.
+    var itineraryActive by remember { mutableStateOf(false) }
     var itineraryDeparture by remember { mutableStateOf<SelectedStop?>(null) }
     var itineraryArrival by remember { mutableStateOf<SelectedStop?>(null) }
     var itineraryNearby by remember { mutableStateOf<List<String>>(emptyList()) }
-    LaunchedEffect(itineraryArrivalName) {
-        val arrivalName = itineraryArrivalName ?: return@LaunchedEffect
+    var itinerarySearchTarget by remember { mutableStateOf<ItineraryFieldTarget?>(null) }
+    var itineraryArrivalSeed by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(itineraryArrivalSeed) {
+        val arrivalName = itineraryArrivalSeed ?: return@LaunchedEffect
         runCatching { viewModel.raptorRepository.resolveStopIdsByName(arrivalName) }
             .getOrDefault(emptyList()).takeIf { it.isNotEmpty() }
             ?.let { itineraryArrival = SelectedStop(name = arrivalName, stopIds = it) }
         val loc = userLocation
-        if (loc != null) {
+        if (loc != null && itineraryDeparture == null) {
             val nearest = runCatching { viewModel.raptorRepository.findNearestStops(loc.latitude, loc.longitude, 5) }
                 .getOrDefault(emptyList())
             val names = nearest.map { it.name }.distinct()
@@ -173,197 +182,243 @@ private fun RootScaffold(viewModel: TransportViewModel) {
     }
 
     val closeSheet = { selectedStation = null; selectedLine = null; allSchedules = null }
+    val closeItinerary = {
+        itineraryActive = false
+        itinerarySearchTarget = null
+        itineraryArrival = null
+        itineraryDeparture = null
+        itineraryArrivalSeed = null
+        itineraryNearby = emptyList()
+    }
     fun showStation(name: String) {
         val stop = stops?.firstOrNull { it.properties.nom.equals(name, ignoreCase = true) }
         selectedStation = if (stop != null) {
-            StationInfo(
-                nom = stop.properties.nom,
-                lignes = viewModel.parseLineCodesFromDesserte(stop.properties.desserte),
-                desserte = stop.properties.desserte,
-                stopIds = listOf(stop.properties.id),
-            )
+            StationInfo(stop.properties.nom, viewModel.parseLineCodesFromDesserte(stop.properties.desserte), stop.properties.desserte, listOf(stop.properties.id))
         } else {
             StationInfo(nom = name, lignes = emptyList())
         }
-        selectedLine = null
-        allSchedules = null
+        selectedLine = null; allSchedules = null
     }
     fun showLine(name: String) {
-        viewModel.selectLine(name)
-        lineDirection = 0
-        selectedLine = LineInfo(lineName = name, currentStationName = "")
-        selectedStation = null
-        allSchedules = null
+        viewModel.selectLine(name); lineDirection = 0
+        selectedLine = LineInfo(lineName = name, currentStationName = ""); selectedStation = null; allSchedules = null
     }
     fun startItinerary(name: String) {
-        itineraryArrival = null
-        itineraryDeparture = null
-        itineraryArrivalName = name
         closeSheet()
+        itineraryArrival = null; itineraryDeparture = null
+        itineraryArrivalSeed = name
+        itineraryActive = true
     }
 
     val bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false)
     val bsScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = bottomSheetState)
-    val hasSheet = selectedStation != null || selectedLine != null || allSchedules != null
+    val hasSheet = itineraryActive || selectedStation != null || selectedLine != null || allSchedules != null
     LaunchedEffect(hasSheet) {
         if (hasSheet) bottomSheetState.partialExpand() else bottomSheetState.hide()
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(containerColor = PrimaryColor) {
-                Destination.entries.forEach { destination ->
-                    NavigationBarItem(
-                        selected = when (destination) {
-                            Destination.LINES -> showLinesSheet
-                            Destination.PLAN -> selectedTab == Destination.PLAN && !showLinesSheet
-                            Destination.SETTINGS -> selectedTab == Destination.SETTINGS
-                        },
-                        onClick = {
-                            when (destination) {
-                                Destination.LINES -> { selectedTab = Destination.PLAN; showLinesSheet = true }
-                                Destination.PLAN -> { selectedTab = Destination.PLAN; showLinesSheet = false }
-                                Destination.SETTINGS -> { selectedTab = Destination.SETTINGS; showLinesSheet = false }
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
+                NavigationBar(containerColor = PrimaryColor) {
+                    Destination.entries.forEach { destination ->
+                        NavigationBarItem(
+                            selected = when (destination) {
+                                Destination.LINES -> showLinesSheet
+                                Destination.PLAN -> selectedTab == Destination.PLAN && !showLinesSheet
+                                Destination.SETTINGS -> selectedTab == Destination.SETTINGS
+                            },
+                            onClick = {
+                                when (destination) {
+                                    Destination.LINES -> { selectedTab = Destination.PLAN; showLinesSheet = true }
+                                    Destination.PLAN -> { selectedTab = Destination.PLAN; showLinesSheet = false }
+                                    Destination.SETTINGS -> { selectedTab = Destination.SETTINGS; showLinesSheet = false }
+                                }
+                            },
+                            icon = { Icon(destination.icon, contentDescription = destination.contentDescription) },
+                            label = { Text(destination.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = AccentColor,
+                                selectedIconColor = SecondaryColor,
+                                unselectedIconColor = SecondaryColor,
+                                selectedTextColor = SecondaryColor,
+                                unselectedTextColor = SecondaryColor,
+                            ),
+                        )
+                    }
+                }
+            },
+        ) { innerPadding ->
+            val contentModifier = Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding())
+            if (selectedTab == Destination.SETTINGS) {
+                SettingsTab(viewModel, Modifier.fillMaxSize()) { selectedTab = Destination.PLAN }
+            } else {
+                BottomSheetScaffold(
+                    modifier = contentModifier,
+                    scaffoldState = bsScaffoldState,
+                    sheetPeekHeight = if (hasSheet) 360.dp else 0.dp,
+                    sheetContent = {
+                        // fillMaxHeight so the sheet can expand to (near) full screen, not just to the content height.
+                        Box(Modifier.fillMaxHeight(0.92f)) {
+                            val sc = allSchedules
+                            val ln = selectedLine
+                            val st = selectedStation
+                            when {
+                                itineraryActive -> InlineItinerarySheetContent(
+                                    viewModel = viewModel,
+                                    departureStop = itineraryDeparture,
+                                    arrivalStop = itineraryArrival,
+                                    maxHeight = 600.dp,
+                                    nearbyDepartureStops = itineraryNearby,
+                                    onDepartureFallbackSelected = { itineraryDeparture = it },
+                                    onJourneysChanged = { },
+                                    onSelectedJourneyChanged = { },
+                                    onStartNavigation = { },
+                                    onClose = closeItinerary,
+                                    onRequestExpandSheet = { },
+                                )
+                                sc != null -> AllSchedulesSheetContent(
+                                    allSchedulesInfo = sc,
+                                    stationName = selectedLine?.currentStationName ?: "",
+                                    selectedDirection = lineDirection,
+                                    availableDirections = availableDirections,
+                                    headsigns = headsigns,
+                                    onDirectionChange = { lineDirection = it },
+                                    onBack = { allSchedules = null },
+                                )
+                                ln != null -> LineDetailsBottomSheet(
+                                    viewModel = viewModel,
+                                    lineInfo = ln,
+                                    sheetState = null,
+                                    selectedDirection = lineDirection,
+                                    onDirectionChange = { lineDirection = it },
+                                    onDismiss = closeSheet,
+                                    onStopClick = { stopName -> selectedLine = selectedLine?.copy(currentStationName = stopName) },
+                                    onBackToStation = {
+                                        val s = selectedLine?.currentStationName
+                                        if (!s.isNullOrBlank()) showStation(s) else closeSheet()
+                                    },
+                                    onShowAllSchedules = { lineName, directionName, schedules ->
+                                        allSchedules = AllSchedulesInfo(lineName = lineName, directionName = directionName, schedules = schedules)
+                                    },
+                                )
+                                st != null -> StationSheetContent(
+                                    stationInfo = st,
+                                    viewModel = viewModel,
+                                    onDismiss = closeSheet,
+                                    onDepartureClick = { lineName, _, _ -> showLine(lineName) },
+                                    isFavoriteStop = userFavorites.any { it.stopName.equals(st.nom, ignoreCase = true) },
+                                    onToggleFavoriteStop = {
+                                        val existing = userFavorites.firstOrNull { it.stopName.equals(st.nom, ignoreCase = true) }
+                                        if (existing != null) viewModel.removeUserFavorite(existing.id) else showAddFavoriteDialog = true
+                                    },
+                                    onAddFavoriteClick = { showAddFavoriteDialog = true },
+                                    onItineraryClick = { stopName -> startItinerary(stopName) },
+                                )
                             }
-                        },
-                        icon = { Icon(destination.icon, contentDescription = destination.contentDescription) },
-                        label = { Text(destination.label) },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = AccentColor,
-                            selectedIconColor = SecondaryColor,
-                            unselectedIconColor = SecondaryColor,
-                            selectedTextColor = SecondaryColor,
-                            unselectedTextColor = SecondaryColor,
-                        ),
+                        }
+                    },
+                ) {
+                    PlanContent(
+                        viewModel = viewModel,
+                        stops = stops,
+                        userLocation = userLocation,
+                        userFavorites = userFavorites,
+                        showTopBar = !itineraryActive,
+                        onStopSelected = { showStation(it) },
+                        onLineSelected = { showLine(it) },
+                        onAddFavoriteClick = { showAddFavoriteDialog = true },
                     )
                 }
             }
-        },
-    ) { innerPadding ->
-        val contentModifier = Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding())
-        if (selectedTab == Destination.SETTINGS) {
-            SettingsTab(viewModel, Modifier.fillMaxSize()) { selectedTab = Destination.PLAN }
-        } else {
-            BottomSheetScaffold(
-                modifier = contentModifier,
-                scaffoldState = bsScaffoldState,
-                sheetPeekHeight = if (hasSheet) 360.dp else 0.dp,
-                sheetContent = {
-                    val sc = allSchedules
-                    val ln = selectedLine
-                    val st = selectedStation
-                    when {
-                        sc != null -> AllSchedulesSheetContent(
-                            allSchedulesInfo = sc,
-                            stationName = selectedLine?.currentStationName ?: "",
-                            selectedDirection = lineDirection,
-                            availableDirections = availableDirections,
-                            headsigns = headsigns,
-                            onDirectionChange = { lineDirection = it },
-                            onBack = { allSchedules = null },
+        }
+
+        // Itinerary header: two stop fields (departure / arrival) + swap, replacing the search bar.
+        if (itineraryActive) {
+            Box(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = closeItinerary) {
+                        Icon(Icons.Filled.Close, contentDescription = "Fermer l'itinéraire", tint = PrimaryColor)
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ItinerarySearchBarField(
+                            selectedStop = itineraryDeparture,
+                            onClick = { itinerarySearchTarget = ItineraryFieldTarget.DEPARTURE },
+                            icon = Icons.Filled.MyLocation,
+                            placeholder = "Arrêt de départ",
                         )
-                        ln != null -> LineDetailsBottomSheet(
-                            viewModel = viewModel,
-                            lineInfo = ln,
-                            sheetState = null,
-                            selectedDirection = lineDirection,
-                            onDirectionChange = { lineDirection = it },
-                            onDismiss = closeSheet,
-                            // Tapping a stop loads its schedules; "back to station" shows the
-                            // multi-line station sheet for that stop.
-                            onStopClick = { stopName -> selectedLine = selectedLine?.copy(currentStationName = stopName) },
-                            onBackToStation = {
-                                val s = selectedLine?.currentStationName
-                                if (!s.isNullOrBlank()) showStation(s) else closeSheet()
-                            },
-                            onShowAllSchedules = { lineName, directionName, schedules ->
-                                allSchedules = AllSchedulesInfo(lineName = lineName, directionName = directionName, schedules = schedules)
-                            },
-                        )
-                        st != null -> StationSheetContent(
-                            stationInfo = st,
-                            viewModel = viewModel,
-                            onDismiss = closeSheet,
-                            onDepartureClick = { lineName, _, _ -> showLine(lineName) },
-                            isFavoriteStop = userFavorites.any { it.stopName.equals(st.nom, ignoreCase = true) },
-                            onToggleFavoriteStop = {
-                                val existing = userFavorites.firstOrNull { it.stopName.equals(st.nom, ignoreCase = true) }
-                                if (existing != null) viewModel.removeUserFavorite(existing.id) else showAddFavoriteDialog = true
-                            },
-                            onAddFavoriteClick = { showAddFavoriteDialog = true },
-                            onItineraryClick = { stopName -> startItinerary(stopName) },
+                        ItinerarySearchBarField(
+                            selectedStop = itineraryArrival,
+                            onClick = { itinerarySearchTarget = ItineraryFieldTarget.ARRIVAL },
+                            icon = Icons.Filled.Search,
+                            placeholder = "Arrêt d'arrivée",
                         )
                     }
+                    IconButton(onClick = {
+                        val tmp = itineraryDeparture; itineraryDeparture = itineraryArrival; itineraryArrival = tmp
+                    }) {
+                        Icon(Icons.Filled.SwapVert, contentDescription = "Inverser", tint = PrimaryColor)
+                    }
+                }
+            }
+        }
+
+        // Stop-search overlay shown when an itinerary field is being edited.
+        itinerarySearchTarget?.let { target ->
+            val isDeparture = target == ItineraryFieldTarget.DEPARTURE
+            TransportSearchBar(
+                onSearchStops = { q -> viewModel.searchStops(q) },
+                onSearchLines = { emptyList() },
+                modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars),
+                content = TransportSearchContent.STOPS_ONLY,
+                showHistory = false,
+                startExpanded = true,
+                searchPlaceholder = if (isDeparture) "Rechercher un départ" else "Rechercher une arrivée",
+                onExpandedChange = { expanded -> if (!expanded) itinerarySearchTarget = null },
+                onStopPrimary = { result ->
+                    scope.launch {
+                        val ids = runCatching { viewModel.raptorRepository.resolveStopIdsByName(result.stopName) }.getOrDefault(emptyList())
+                        val sel = SelectedStop(name = result.stopName, stopIds = ids)
+                        if (isDeparture) itineraryDeparture = sel else itineraryArrival = sel
+                        itinerarySearchTarget = null
+                    }
                 },
-            ) {
-                PlanContent(
+            )
+        }
+
+        // Lignes: a blocking modal sheet over the map (the one sheet meant to be blocking).
+        if (showLinesSheet) {
+            val linesSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            val allLines = remember(linesUiState, stopsUiState) { viewModel.getAllAvailableLines() }
+            ModalBottomSheet(onDismissRequest = { showLinesSheet = false }, sheetState = linesSheetState) {
+                LinesBottomSheet(
+                    allLines = allLines,
+                    onLineClick = { lineName -> showLinesSheet = false; showLine(lineName) },
                     viewModel = viewModel,
-                    stops = stops,
-                    userLocation = userLocation,
-                    userFavorites = userFavorites,
-                    onStopSelected = { showStation(it) },
-                    onLineSelected = { showLine(it) },
-                    onAddFavoriteClick = { showAddFavoriteDialog = true },
                 )
             }
         }
-    }
 
-    // Lignes: a blocking modal sheet over the map (the one sheet meant to be blocking).
-    if (showLinesSheet) {
-        val linesSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val allLines = remember(linesUiState, stopsUiState) { viewModel.getAllAvailableLines() }
-        ModalBottomSheet(onDismissRequest = { showLinesSheet = false }, sheetState = linesSheetState) {
-            LinesBottomSheet(
-                allLines = allLines,
-                onLineClick = { lineName -> showLinesSheet = false; showLine(lineName) },
+        if (showAddFavoriteDialog) {
+            AddFavoriteDialog(
+                onDismiss = { showAddFavoriteDialog = false },
+                onFavoriteCreated = { name, iconName, stopName ->
+                    viewModel.addUserFavorite(name, iconName, stopName)
+                    showAddFavoriteDialog = false
+                },
                 viewModel = viewModel,
             )
         }
-    }
-
-    // Itinerary results (kept as a modal for now; the two-search-bar layout comes next).
-    if (itineraryArrivalName != null) {
-        val itinSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val closeItinerary: () -> Unit = {
-            itineraryArrivalName = null
-            itineraryArrival = null
-            itineraryDeparture = null
-            itineraryNearby = emptyList()
-        }
-        ModalBottomSheet(onDismissRequest = closeItinerary, sheetState = itinSheetState) {
-            InlineItinerarySheetContent(
-                viewModel = viewModel,
-                departureStop = itineraryDeparture,
-                arrivalStop = itineraryArrival,
-                maxHeight = 600.dp,
-                nearbyDepartureStops = itineraryNearby,
-                onDepartureFallbackSelected = { itineraryDeparture = it },
-                onJourneysChanged = { },
-                onSelectedJourneyChanged = { },
-                onStartNavigation = { },
-                onClose = closeItinerary,
-                onRequestExpandSheet = { },
-            )
-        }
-    }
-
-    if (showAddFavoriteDialog) {
-        AddFavoriteDialog(
-            onDismiss = { showAddFavoriteDialog = false },
-            onFavoriteCreated = { name, iconName, stopName ->
-                viewModel.addUserFavorite(name, iconName, stopName)
-                showAddFavoriteDialog = false
-            },
-            viewModel = viewModel,
-        )
     }
 }
 
 /**
- * Presentational map screen: the MapCanvas + the search/favorites/map-style overlay. All taps
- * bubble up to [RootScaffold] (which owns the contextual sheets), so this composable holds no
- * sheet state.
+ * Presentational map screen: the MapCanvas + the search/favorites/map-style overlay. Taps bubble
+ * up to [RootScaffold] (which owns the sheets). [showTopBar] hides the search bar in itinerary mode.
  */
 @Composable
 private fun PlanContent(
@@ -371,6 +426,7 @@ private fun PlanContent(
     stops: List<StopFeature>?,
     userLocation: Position?,
     userFavorites: List<Favorite>,
+    showTopBar: Boolean,
     onStopSelected: (String) -> Unit,
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
@@ -388,7 +444,6 @@ private fun PlanContent(
         is TransportLinesUiState.PartialSuccess -> s.lines
         else -> null
     }
-    // Only the strong lines (metro/tram/funicular) on the map, like Android — every bus trace is laggy.
     val strongLines = allLines?.filter { lineRules.isStrongLine(it.properties.lineName) }
 
     Box(Modifier.fillMaxSize()) {
@@ -405,40 +460,40 @@ private fun PlanContent(
             onLineClick = { lineName -> onLineSelected(lineName) },
         )
 
-        // The black search zone only bleeds behind the status bar / notch while the search is open.
-        Box(
-            Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .then(if (searchExpanded) Modifier.background(Color.Black) else Modifier)
-                .windowInsetsPadding(WindowInsets.statusBars)
-        ) {
-            Column {
-                TransportSearchBar(
-                    onSearchStops = { q -> viewModel.searchStops(q) },
-                    onSearchLines = { q -> viewModel.searchLines(q) },
-                    onExpandedChange = { searchExpanded = it },
-                    onStopPrimary = { result -> onStopSelected(result.stopName) },
-                    onLineSelected = { line -> onLineSelected(line.lineName) },
-                )
-                if (!searchExpanded) {
-                    FavoritesBar(
-                        favorites = userFavorites,
-                        onAddFavoriteClick = onAddFavoriteClick,
-                        onFavoriteClick = { fav -> onStopSelected(fav.stopName) },
-                        onRemoveFavoriteClick = { fav -> viewModel.removeUserFavorite(fav.id) },
+        if (showTopBar) {
+            Box(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .then(if (searchExpanded) Modifier.background(Color.Black) else Modifier)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+            ) {
+                Column {
+                    TransportSearchBar(
+                        onSearchStops = { q -> viewModel.searchStops(q) },
+                        onSearchLines = { q -> viewModel.searchLines(q) },
+                        onExpandedChange = { searchExpanded = it },
+                        onStopPrimary = { result -> onStopSelected(result.stopName) },
+                        onLineSelected = { line -> onLineSelected(line.lineName) },
                     )
-                    // Map-style button, below the favorites row (right-aligned).
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, end = 8.dp),
-                        contentAlignment = Alignment.CenterEnd,
-                    ) {
-                        FloatingActionButton(
-                            onClick = { showStyleSheet = true },
-                            modifier = Modifier.size(48.dp),
-                            containerColor = PrimaryColor,
+                    if (!searchExpanded) {
+                        FavoritesBar(
+                            favorites = userFavorites,
+                            onAddFavoriteClick = onAddFavoriteClick,
+                            onFavoriteClick = { fav -> onStopSelected(fav.stopName) },
+                            onRemoveFavoriteClick = { fav -> viewModel.removeUserFavorite(fav.id) },
+                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, end = 8.dp),
+                            contentAlignment = Alignment.CenterEnd,
                         ) {
-                            Icon(Icons.Filled.Layers, contentDescription = "Style de carte", tint = SecondaryColor)
+                            FloatingActionButton(
+                                onClick = { showStyleSheet = true },
+                                modifier = Modifier.size(48.dp),
+                                containerColor = PrimaryColor,
+                            ) {
+                                Icon(Icons.Filled.Layers, contentDescription = "Style de carte", tint = SecondaryColor)
+                            }
                         }
                     }
                 }
