@@ -47,6 +47,7 @@ import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.data.models.itinerary.SelectedStop
+import com.pelotcl.app.generic.data.models.ui.AllSchedulesInfo
 import com.pelotcl.app.generic.data.repository.itinerary.itinerary.ItineraryPreferencesRepository
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleRepository
@@ -56,6 +57,7 @@ import com.pelotcl.app.generic.ui.components.favorites.AddFavoriteDialog
 import com.pelotcl.app.generic.ui.components.favorites.FavoritesBar
 import com.pelotcl.app.generic.ui.components.search.TransportSearchBar
 import com.pelotcl.app.generic.ui.screens.Destination
+import com.pelotcl.app.generic.ui.screens.plan.AllSchedulesSheetContent
 import com.pelotcl.app.generic.ui.screens.plan.LineDetailsBottomSheet
 import com.pelotcl.app.generic.ui.screens.plan.LineInfo
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
@@ -125,6 +127,9 @@ private fun RootScaffold(viewModel: TransportViewModel) {
     var selectedTab by remember { mutableStateOf(Destination.PLAN) }
     var selectedLine by remember { mutableStateOf<LineInfo?>(null) }
     var lineDirection by remember { mutableIntStateOf(0) }
+    var allSchedules by remember { mutableStateOf<AllSchedulesInfo?>(null) }
+    val availableDirections by viewModel.availableDirections.collectAsState(initial = emptyList())
+    val headsigns by viewModel.headsigns.collectAsState(initial = emptyMap())
     // Shared across tabs: tapping a line (map, search, or Lignes list) opens its details sheet.
     val onShowLineDetails: (String) -> Unit = { lineName ->
         viewModel.selectLine(lineName)
@@ -165,6 +170,21 @@ private fun RootScaffold(viewModel: TransportViewModel) {
 
     // Line details sheet — the (already-common) LineDetailsBottomSheet loads its own
     // headsigns / schedules / stops / alerts from the view model.
+    allSchedules?.let { info ->
+        val asSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { allSchedules = null }, sheetState = asSheetState) {
+            AllSchedulesSheetContent(
+                allSchedulesInfo = info,
+                stationName = selectedLine?.currentStationName ?: "",
+                selectedDirection = lineDirection,
+                availableDirections = availableDirections,
+                headsigns = headsigns,
+                onDirectionChange = { lineDirection = it },
+                onBack = { allSchedules = null },
+            )
+        }
+    }
+
     selectedLine?.let { line ->
         val lineSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(onDismissRequest = { selectedLine = null }, sheetState = lineSheetState) {
@@ -179,7 +199,9 @@ private fun RootScaffold(viewModel: TransportViewModel) {
                 // schedules for the selected direction. "Back to station" returns to the stop list.
                 onStopClick = { stopName -> selectedLine = selectedLine?.copy(currentStationName = stopName) },
                 onBackToStation = { selectedLine = selectedLine?.copy(currentStationName = "") },
-                onShowAllSchedules = { _, _, _ -> },
+                onShowAllSchedules = { lineName, directionName, schedules ->
+                    allSchedules = AllSchedulesInfo(lineName = lineName, directionName = directionName, schedules = schedules)
+                },
             )
         }
     }
