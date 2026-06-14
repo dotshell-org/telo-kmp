@@ -79,9 +79,14 @@ import com.pelotcl.app.generic.ui.screens.plan.MapStyleSelectionSheet
 import com.pelotcl.app.generic.ui.screens.plan.StationSheetContent
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.ItinerarySearchBarField
+import com.pelotcl.app.generic.data.local_history.LocalHistoryStorage
+import com.pelotcl.app.generic.data.telemetry.TelemetryEmitter
 import com.pelotcl.app.generic.ui.screens.settings.ItinerarySettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.OfflineSettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.SettingsScreen
+import com.pelotcl.app.generic.ui.screens.settings.TelemetryFaqScreen
+import com.pelotcl.app.generic.ui.screens.settings.TelemetryPreviewScreen
+import com.pelotcl.app.generic.ui.screens.settings.TelemetrySettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.ContactScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.CreditsScreen
 import com.pelotcl.app.generic.ui.screens.settings.about.LegalScreen
@@ -96,6 +101,7 @@ import com.pelotcl.app.generic.utils.location.LocationProvider
 import com.pelotcl.app.platform.LocalPlatformContext
 import com.pelotcl.app.platform.Log
 import com.pelotcl.app.platform.appVersionName
+import com.pelotcl.app.platform.ioDispatcher
 import kotlinx.coroutines.launch
 import org.maplibre.spatialk.geojson.Position
 
@@ -537,6 +543,7 @@ private fun PlanContent(
 @Composable
 private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modifier, onBack: () -> Unit) {
     val context = LocalPlatformContext.current
+    val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf("root") }
     val backToRoot = { route = "root" }
     // Full-screen (no inset padding) so settings covers the whole screen, behind the notch too.
@@ -561,6 +568,21 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                     getInitialOptionState = { opt -> prefs.isOptionEnabled(opt.key, opt.defaultEnabled) },
                 )
             }
+            "telemetry" -> TelemetrySettingsScreen(
+                onBackClick = backToRoot,
+                onShowCollectedData = { route = "telemetry_preview" },
+                onWipeHistory = { scope.launch(ioDispatcher) { runCatching { LocalHistoryStorage(context).wipeAll() } } },
+                onLegalClick = { route = "legal" },
+                onFaqClick = { route = "telemetry_faq" },
+            )
+            "telemetry_preview" -> TelemetryPreviewScreen(
+                snapshot = TelemetryEmitter.repository()?.state?.value,
+                onBackClick = { route = "telemetry" },
+            )
+            "telemetry_faq" -> TelemetryFaqScreen(
+                entries = TelemetryEmitter.config()?.disclosure?.faq.orEmpty(),
+                onBackClick = { route = "telemetry" },
+            )
             else -> SettingsScreen(
                 versionName = appVersionName(context),
                 onBackClick = onBack,
@@ -569,6 +591,7 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                 onCreditsClick = { route = "credits" },
                 onContactClick = { route = "contact" },
                 onOfflineClick = { route = "offline" },
+                onTelemetryClick = { route = "telemetry" },
             )
         }
     }
