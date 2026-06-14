@@ -52,7 +52,7 @@ class TrafficAlertsWorker(
 
         return alerts.filter { alert ->
             try {
-                val endDate = alert.endDate.replace(" ", "T").toLocalDateTime()
+                val endDate = LocalDateTime.parse(alert.endDate.replace(" ", "T"))
                 endDate > now
             } catch (e: Exception) {
                 true // Keep if we can't parse

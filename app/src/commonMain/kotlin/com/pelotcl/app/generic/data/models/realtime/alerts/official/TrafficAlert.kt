@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package com.pelotcl.app.generic.data.models.realtime.alerts.official
 
 import androidx.compose.runtime.Immutable

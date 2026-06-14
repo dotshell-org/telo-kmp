@@ -49,8 +49,8 @@ object StopMapper {
             lastUpdateFme = null,
             adresse = null,
             localiseFaceAAdresse = false,
-            commune = properties.city ?: "",
-            insee = properties.inseeCode ?: "",
+            commune = properties.city,
+            insee = properties.inseeCode,
             zone = null
         )
     }

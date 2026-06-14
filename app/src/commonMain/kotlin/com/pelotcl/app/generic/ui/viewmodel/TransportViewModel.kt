@@ -1288,6 +1288,7 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
 
         for (line in lines) {
             val lineGeometry = line.multiLineStringGeometry
+            @Suppress("USELESS_IS_CHECK")
             if (lineGeometry is MultiLineStringGeometry) {
                 val coordinates = lineGeometry.coordinates
                 val firstLine = coordinates.firstOrNull() ?: continue

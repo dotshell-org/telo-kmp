@@ -201,6 +201,7 @@ fun TermsConsentScreen(
     }
 }
 
+@Suppress("DEPRECATION") // ClickableText — migration to LinkAnnotation deferred (legal screen, kept stable)
 @Composable
 private fun ConsentCheckboxRow(
     checked: Boolean,

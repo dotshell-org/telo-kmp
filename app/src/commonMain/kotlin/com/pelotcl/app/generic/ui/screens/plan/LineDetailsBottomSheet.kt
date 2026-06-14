@@ -597,7 +597,7 @@ private fun TrafficAlertsSection(
 
                     fun formatDate(input: String): String {
                         val iso = input.replace(" ", "T")
-                        val date = try { iso.toLocalDateTime() } catch (e: Exception) { null }
+                        val date = try { LocalDateTime.parse(iso) } catch (e: Exception) { null }
                         if (date == null) return input
                         return "${date.dayOfMonth.toString().padStart(2, '0')}/${date.monthNumber.toString().padStart(2, '0')}/${date.year} ${date.hour.toString().padStart(2, '0')}:${date.minute.toString().padStart(2, '0')}"
                     }
@@ -633,7 +633,7 @@ private fun filterValidAlerts(
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     return alerts.filter { alert ->
         try {
-            val endDate = alert.endDate.replace(" ", "T").toLocalDateTime()
+            val endDate = LocalDateTime.parse(alert.endDate.replace(" ", "T"))
             endDate > now
         } catch (e: Exception) {
             true // Garder l'alerte si on ne peut pas parser la date

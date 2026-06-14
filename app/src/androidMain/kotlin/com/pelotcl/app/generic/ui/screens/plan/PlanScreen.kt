@@ -1069,6 +1069,7 @@ fun PlanScreen(
                 map.cameraPosition.bearing
             }
 
+            @Suppress("DEPRECATION")
             map.setPadding(
                 navHorizontalPaddingPx,
                 navTopPaddingPx,
@@ -1088,6 +1089,7 @@ fun PlanScreen(
                 1000
             )
         } else if (!isInNavigationMode && wasInNavigationMode) {
+            @Suppress("DEPRECATION")
             map.setPadding(0, 0, 0, 0)
             val resetCamera = CameraPosition.Builder(map.cameraPosition)
                 .tilt(0.0)
