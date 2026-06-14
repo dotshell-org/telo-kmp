@@ -16,7 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -44,6 +47,7 @@ import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.data.models.itinerary.SelectedStop
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
+import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleRepository
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.ui.components.MapCanvas
 import com.pelotcl.app.generic.ui.components.search.TransportSearchBar
@@ -52,6 +56,7 @@ import com.pelotcl.app.generic.ui.screens.plan.LineDetailsBottomSheet
 import com.pelotcl.app.generic.ui.screens.plan.LineInfo
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
 import com.pelotcl.app.generic.ui.screens.plan.LinesBottomSheet
+import com.pelotcl.app.generic.ui.screens.plan.MapStyleSelectionSheet
 import com.pelotcl.app.generic.ui.screens.settings.SettingsScreen
 import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.PeloTheme
@@ -181,6 +186,9 @@ private fun PlanContent(
     val linesState by viewModel.uiState.collectAsState()
     val stopsState by viewModel.stopsUiState.collectAsState()
     val lineRules = remember { TransportServiceProvider.getTransportLineRules() }
+    val mapStyleRepo = remember { MapStyleRepository(context, TransportServiceProvider.getMapStyleConfig()) }
+    var selectedMapStyle by remember { mutableStateOf(mapStyleRepo.getSelectedStyle()) }
+    var showStyleSheet by remember { mutableStateOf(false) }
 
     val allLines = when (val s = linesState) {
         is TransportLinesUiState.Success -> s.lines
@@ -233,7 +241,7 @@ private fun PlanContent(
     Box(modifier) {
         MapCanvas(
             modifier = Modifier.fillMaxSize(),
-            styleUrl = MapStyleCompat.POSITRON.styleUrl,
+            styleUrl = selectedMapStyle.styleUrl,
             initialLatitude = 45.75,
             initialLongitude = 4.85,
             initialZoom = 12.0,
@@ -260,6 +268,28 @@ private fun PlanContent(
                 onLineSelected = { line -> onShowLineDetails(line.lineName) },
             )
         }
+
+        FloatingActionButton(
+            onClick = { showStyleSheet = true },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            containerColor = PrimaryColor,
+        ) {
+            Icon(Icons.Filled.Layers, contentDescription = "Style de carte", tint = SecondaryColor)
+        }
+    }
+
+    if (showStyleSheet) {
+        MapStyleSelectionSheet(
+            isOffline = false,
+            downloadedMapStyles = emptySet(),
+            selectedMapStyle = selectedMapStyle,
+            onDismiss = { showStyleSheet = false },
+            onStyleSelected = { style ->
+                selectedMapStyle = style
+                mapStyleRepo.saveSelectedStyle(style)
+                showStyleSheet = false
+            },
+        )
     }
 
     if (itineraryArrivalName != null) {
