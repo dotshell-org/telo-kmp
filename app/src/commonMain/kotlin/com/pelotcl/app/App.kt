@@ -43,9 +43,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.data.models.itinerary.SelectedStop
+import com.pelotcl.app.generic.data.repository.itinerary.itinerary.ItineraryPreferencesRepository
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleRepository
 import com.pelotcl.app.generic.service.TransportServiceProvider
@@ -57,7 +59,12 @@ import com.pelotcl.app.generic.ui.screens.plan.LineInfo
 import com.pelotcl.app.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
 import com.pelotcl.app.generic.ui.screens.plan.LinesBottomSheet
 import com.pelotcl.app.generic.ui.screens.plan.MapStyleSelectionSheet
+import com.pelotcl.app.generic.ui.screens.settings.ItinerarySettingsScreen
+import com.pelotcl.app.generic.ui.screens.settings.OfflineSettingsScreen
 import com.pelotcl.app.generic.ui.screens.settings.SettingsScreen
+import com.pelotcl.app.generic.ui.screens.settings.about.ContactScreen
+import com.pelotcl.app.generic.ui.screens.settings.about.CreditsScreen
+import com.pelotcl.app.generic.ui.screens.settings.about.LegalScreen
 import com.pelotcl.app.generic.ui.theme.AccentColor
 import com.pelotcl.app.generic.ui.theme.PeloTheme
 import com.pelotcl.app.generic.ui.theme.PrimaryColor
@@ -402,14 +409,38 @@ private fun LinesTab(
 @Composable
 private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modifier, onBack: () -> Unit) {
     val context = LocalPlatformContext.current
+    var route by remember { mutableStateOf("root") }
+    val backToRoot = { route = "root" }
     Box(modifier.windowInsetsPadding(WindowInsets.systemBars)) {
-        SettingsScreen(
-            versionName = appVersionName(context),
-            onBackClick = onBack,
-            onItineraryClick = {},
-            onLegalClick = {},
-            onCreditsClick = {},
-            onContactClick = {},
-        )
+        when (route) {
+            "legal" -> LegalScreen(
+                legalSections = remember { AppConfigLoader.getConfig().about.legalSections },
+                onBackClick = backToRoot,
+            )
+            "credits" -> CreditsScreen(onBackClick = backToRoot)
+            "contact" -> ContactScreen(onBackClick = backToRoot)
+            "offline" -> OfflineSettingsScreen(viewModel = viewModel, onBackClick = backToRoot)
+            "itinerary" -> {
+                val cfg = remember { AppConfigLoader.getConfig().itinerarySettings }
+                val prefs = remember { ItineraryPreferencesRepository(context) }
+                ItinerarySettingsScreen(
+                    screenTitle = cfg.screenTitle,
+                    sectionTitle = cfg.sectionTitle,
+                    options = cfg.options,
+                    onBackClick = backToRoot,
+                    onOptionToggle = { key, enabled -> prefs.setOptionEnabled(key, enabled) },
+                    getInitialOptionState = { opt -> prefs.isOptionEnabled(opt.key, opt.defaultEnabled) },
+                )
+            }
+            else -> SettingsScreen(
+                versionName = appVersionName(context),
+                onBackClick = onBack,
+                onItineraryClick = { route = "itinerary" },
+                onLegalClick = { route = "legal" },
+                onCreditsClick = { route = "credits" },
+                onContactClick = { route = "contact" },
+                onOfflineClick = { route = "offline" },
+            )
+        }
     }
 }
