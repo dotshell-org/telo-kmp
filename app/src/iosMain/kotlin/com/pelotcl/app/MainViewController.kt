@@ -1,18 +1,27 @@
 package com.pelotcl.app
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.ui.components.MapCanvas
+import com.pelotcl.app.generic.ui.components.search.TransportSearchBar
 import com.pelotcl.app.generic.ui.theme.PeloTheme
 import com.pelotcl.app.generic.ui.viewmodel.TransportLinesUiState
 import com.pelotcl.app.generic.ui.viewmodel.TransportStopsUiState
@@ -41,15 +50,12 @@ fun MainViewController(): UIViewController = ComposeUIViewController {
 }
 
 /**
- * Shared root composable.
+ * Shared root composable. Being assembled incrementally on iOS from the already-common
+ * Plan building blocks (MapCanvas, TransportSearchBar, …), verified on the simulator, until
+ * it reaches parity with the androidMain PlanScreen orchestrator (§9.3–§9.5).
  *
- * §9.2: a full-screen [MapCanvas] fed with real transport lines/stops from the shared
- * [TransportViewModel]. This also exercises the iOS platform actuals at runtime (config +
- * asset loading via FileSystem, Ktor-Darwin networking). `TransportServiceProvider.initialize`
- * replaces the Android `PeloApplication.onCreate` bootstrap (there is no Application on iOS).
- *
- * The full PlanScreen UI (search, sheets, navigation) is promoted here once §9.3–§9.5 free
- * PlanScreen from androidMain.
+ * `TransportServiceProvider.initialize` replaces the Android `PeloApplication.onCreate`
+ * bootstrap (there is no Application on iOS).
  */
 @Composable
 fun App() {
@@ -65,9 +71,8 @@ fun App() {
         }
 
         if (viewModel != null) {
-            MapWithData(viewModel)
+            PlanContent(viewModel)
         } else {
-            // Data bootstrap failed (e.g. assets not found): still show the base map.
             MapCanvas(
                 modifier = Modifier.fillMaxSize(),
                 styleUrl = MapStyleCompat.POSITRON.styleUrl,
@@ -77,7 +82,7 @@ fun App() {
 }
 
 @Composable
-private fun MapWithData(viewModel: TransportViewModel) {
+private fun PlanContent(viewModel: TransportViewModel) {
     val linesState by viewModel.uiState.collectAsState()
     val stopsState by viewModel.stopsUiState.collectAsState()
 
@@ -88,13 +93,31 @@ private fun MapWithData(viewModel: TransportViewModel) {
     }
     val stops = (stopsState as? TransportStopsUiState.Success)?.stops
 
-    MapCanvas(
-        modifier = Modifier.fillMaxSize(),
-        styleUrl = MapStyleCompat.POSITRON.styleUrl,
-        initialLatitude = 45.75,
-        initialLongitude = 4.85,
-        initialZoom = 12.0,
-        lines = lines?.let { FeatureCollection(features = it) },
-        stops = stops?.let { StopCollection(features = it) },
-    )
+    Box(Modifier.fillMaxSize()) {
+        MapCanvas(
+            modifier = Modifier.fillMaxSize(),
+            styleUrl = MapStyleCompat.POSITRON.styleUrl,
+            initialLatitude = 45.75,
+            initialLongitude = 4.85,
+            initialZoom = 12.0,
+            lines = lines?.let { FeatureCollection(features = it) },
+            stops = stops?.let { StopCollection(features = it) },
+            onLineClick = { lineName -> viewModel.selectLine(lineName) },
+        )
+
+        Box(
+            Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            TransportSearchBar(
+                onSearchStops = { q -> viewModel.searchStops(q) },
+                onSearchLines = { q -> viewModel.searchLines(q) },
+                onStopPrimary = { },
+                onLineSelected = { line -> viewModel.selectLine(line.lineName) },
+            )
+        }
+    }
 }
