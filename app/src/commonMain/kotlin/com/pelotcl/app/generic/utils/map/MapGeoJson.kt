@@ -2,6 +2,7 @@ package com.pelotcl.app.generic.utils.map
 
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
+import com.pelotcl.app.generic.data.models.realtime.vehiclepositions.SimpleVehiclePosition
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.LineColorHelper
 import com.pelotcl.app.generic.utils.geo.StopsGeoJsonManager
@@ -74,6 +75,33 @@ fun StopCollection.toStopsGeoJson(): String = buildJsonObject {
                 putJsonObject("properties") {
                     put("nom", stop.properties.nom)
                     put("desserte", stop.properties.desserte)
+                }
+            }
+        }
+    }
+}.toString()
+
+/**
+ * Converts live vehicle positions into a GeoJSON FeatureCollection string. Each feature carries
+ * `lineName` (for click handling) and `bearing`, and one Point geometry.
+ */
+fun toVehiclesGeoJson(positions: List<SimpleVehiclePosition>): String = buildJsonObject {
+    put("type", "FeatureCollection")
+    putJsonArray("features") {
+        for (vehicle in positions) {
+            addJsonObject {
+                put("type", "Feature")
+                put("id", vehicle.vehicleId)
+                putJsonObject("geometry") {
+                    put("type", "Point")
+                    putJsonArray("coordinates") {
+                        add(vehicle.longitude)
+                        add(vehicle.latitude)
+                    }
+                }
+                putJsonObject("properties") {
+                    put("lineName", vehicle.lineName)
+                    vehicle.bearing?.let { put("bearing", it) }
                 }
             }
         }

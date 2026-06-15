@@ -73,6 +73,7 @@ fun MapCanvas(
     itineraryGeoJson: String? = null,
     userLocation: Position? = null,
     vehiclesGeoJson: String? = null,
+    vehicleIconName: String? = null,
     interactive: Boolean = true,
     onStopClick: (stopName: String) -> Unit = {},
     onLineClick: (lineName: String) -> Unit = {},
@@ -130,25 +131,13 @@ fun MapCanvas(
                 if (iconNames.isEmpty()) {
                     null
                 } else {
-                    // Rasterize each glyph at its own aspect ratio (fixed height, proportional
-                    // width) so non-square line badges keep their shape instead of being squished.
-                    fun sizeFor(p: Painter): DpSize {
-                        val s = p.intrinsicSize
-                        val ratio = if (s.isSpecified && s.width > 0f && s.height > 0f) {
-                            (s.width / s.height).coerceIn(0.4f, 2.5f)
-                        } else {
-                            1f
-                        }
-                        val height = 17f
-                        return DpSize((height * ratio).dp, height.dp)
-                    }
                     val cases = ArrayList<Case<StringValue, ImageValue>>(iconNames.size)
                     for (name in iconNames) {
                         val painter = drawableProvider.getPainter(name)
-                        cases.add(case(name, image(painter, sizeFor(painter))))
+                        cases.add(case(name, image(painter, glyphDpSize(painter, 17f))))
                     }
                     val firstPainter = drawableProvider.getPainter(iconNames.first())
-                    val fallback = image(firstPainter, sizeFor(firstPainter))
+                    val fallback = image(firstPainter, glyphDpSize(firstPainter, 17f))
                     switch(feature["icon"].convertToString(), *cases.toTypedArray(), fallback = fallback)
                 }
 
@@ -223,25 +212,35 @@ fun MapCanvas(
         }
 
         if (vehiclesGeoJson != null) {
-            // Live vehicles rendered as line-coloured dots (data-driven `color` per feature).
-            // The legacy bus/tram glyph markers can be reintroduced once named-image
-            // registration in maplibre-compose is settled.
+            // Live vehicles drawn with the selected line's glyph (image(painter), like the stops),
+            // a touch larger; falls back to dots when the line has no drawable.
             val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson))
-            CircleLayer(
-                id = "vehicles",
-                source = vehicleSource,
-                radius = const(7.dp),
-                color = feature["color"].convertToColor(),
-                onClick = { features ->
-                    val lineName = features.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                    if (lineName != null) {
-                        onVehicleClick(lineName)
-                        ClickResult.Consume
-                    } else {
-                        ClickResult.Pass
-                    }
-                },
-            )
+            val vContext = LocalPlatformContext.current
+            val vDrawables = remember(vContext) { DrawableProvider(vContext) }
+            if (vehicleIconName != null && vDrawables.hasDrawable(vehicleIconName)) {
+                val vehiclePainter = vDrawables.getPainter(vehicleIconName)
+                SymbolLayer(
+                    id = "vehicles",
+                    source = vehicleSource,
+                    iconImage = image(vehiclePainter, glyphDpSize(vehiclePainter, 22f)),
+                    iconAllowOverlap = const(true),
+                    onClick = { f ->
+                        val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                        if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
+                    },
+                )
+            } else {
+                CircleLayer(
+                    id = "vehicles",
+                    source = vehicleSource,
+                    radius = const(7.dp),
+                    color = const(Color(0xFF1F2937)),
+                    onClick = { f ->
+                        val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                        if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
+                    },
+                )
+            }
         }
 
         if (userLocation != null) {
@@ -258,4 +257,18 @@ fun MapCanvas(
             )
         }
     }
+}
+
+/**
+ * A [DpSize] that rasterizes [painter] at a fixed [heightDp] with width proportional to the
+ * painter's intrinsic aspect ratio (clamped), so glyphs keep their shape instead of squishing.
+ */
+private fun glyphDpSize(painter: Painter, heightDp: Float): DpSize {
+    val size = painter.intrinsicSize
+    val ratio = if (size.isSpecified && size.width > 0f && size.height > 0f) {
+        (size.width / size.height).coerceIn(0.4f, 2.5f)
+    } else {
+        1f
+    }
+    return DpSize((heightDp * ratio).dp, heightDp.dp)
 }

@@ -65,6 +65,8 @@ import com.pelotcl.app.generic.data.repository.itinerary.itinerary.ItineraryPref
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleCompat
 import com.pelotcl.app.generic.data.repository.offline.mapstyle.MapStyleRepository
 import com.pelotcl.app.generic.service.TransportServiceProvider
+import com.pelotcl.app.generic.utils.graphics.LineIconResolver
+import com.pelotcl.app.generic.utils.map.toVehiclesGeoJson
 import com.pelotcl.app.generic.ui.components.MapCanvas
 import com.pelotcl.app.generic.ui.components.favorites.AddFavoriteDialog
 import com.pelotcl.app.generic.ui.components.favorites.FavoritesBar
@@ -161,6 +163,19 @@ private fun RootScaffold(viewModel: TransportViewModel) {
     DisposableEffect(Unit) {
         locationProvider.startUpdates { p -> userLocation = Position(latitude = p.latitude, longitude = p.longitude) }
         onDispose { locationProvider.stopUpdates() }
+    }
+
+    // Live vehicles for the currently-open line (started/stopped with the line sheet).
+    val vehiclePositions by viewModel.vehiclePositions.collectAsState(initial = emptyList())
+    LaunchedEffect(selectedLine?.lineName) {
+        val ln = selectedLine?.lineName
+        if (!ln.isNullOrBlank()) viewModel.startLiveTracking(ln) else viewModel.stopLiveTracking()
+    }
+    val vehiclesGeoJson = remember(vehiclePositions) {
+        if (vehiclePositions.isEmpty()) null else toVehiclesGeoJson(vehiclePositions)
+    }
+    val vehicleIconName = remember(selectedLine?.lineName) {
+        selectedLine?.lineName?.let { LineIconResolver.getDrawableNameForLineName(it) }
     }
 
     // Itinerary mode: two search fields at the top + a non-blocking results sheet.
@@ -317,6 +332,8 @@ private fun RootScaffold(viewModel: TransportViewModel) {
                         userLocation = userLocation,
                         userFavorites = userFavorites,
                         showTopBar = !itineraryActive,
+                        vehiclesGeoJson = vehiclesGeoJson,
+                        vehicleIconName = vehicleIconName,
                         onStopSelected = { showStation(it) },
                         onLineSelected = { showLine(it) },
                         onAddFavoriteClick = { showAddFavoriteDialog = true },
@@ -451,6 +468,8 @@ private fun PlanContent(
     userLocation: Position?,
     userFavorites: List<Favorite>,
     showTopBar: Boolean,
+    vehiclesGeoJson: String?,
+    vehicleIconName: String?,
     onStopSelected: (String) -> Unit,
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
@@ -480,8 +499,11 @@ private fun PlanContent(
             lines = strongLines?.let { FeatureCollection(features = it) },
             stops = stops?.let { StopCollection(features = it) },
             userLocation = userLocation,
+            vehiclesGeoJson = vehiclesGeoJson,
+            vehicleIconName = vehicleIconName,
             onStopClick = { nom -> onStopSelected(nom) },
             onLineClick = { lineName -> onLineSelected(lineName) },
+            onVehicleClick = { lineName -> onLineSelected(lineName) },
         )
 
         if (showTopBar) {
