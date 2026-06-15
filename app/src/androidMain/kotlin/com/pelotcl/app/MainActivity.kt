@@ -293,7 +293,7 @@ fun NavBar(
     LaunchedEffect(favoriteStops, stopsUiState) {
         val stops = (stopsUiState as? TransportStopsUiState.Success)?.stops
         favoriteStops.map { stopName ->
-            val stop = stops?.find { (it as StopFeature).properties.nom.equals(stopName, ignoreCase = true) }
+            val stop = stops?.find { it.properties.nom.equals(stopName, ignoreCase = true) }
             val lines = stop?.let { BusIconHelper.getAllLinesForStop(it) } ?: emptyList()
             SearchHistoryItem(
                 query = stopName,

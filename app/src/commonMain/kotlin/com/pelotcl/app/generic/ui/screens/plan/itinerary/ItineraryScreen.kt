@@ -225,7 +225,7 @@ fun CompactJourneyCard(
                 nonWalkingLegs.forEachIndexed { index, leg ->
                     val drawableName = LineIconResolver.getDrawableNameForLineName(leg.routeName ?: "")
 
-                    if (drawableName != null) {
+                    if (drawableProvider.hasDrawable(drawableName)) {
                         Image(
                             painter = drawableProvider.getPainter(drawableName),
                             contentDescription = null,
@@ -326,7 +326,7 @@ private fun JourneyLegItem(
                 } else {
                     val drawableName = LineIconResolver.getDrawableNameForLineName(leg.routeName ?: "")
 
-                    if (drawableName != null) {
+                    if (drawableProvider.hasDrawable(drawableName)) {
                         Image(
                             painter = drawableProvider.getPainter(drawableName),
                             contentDescription = null,

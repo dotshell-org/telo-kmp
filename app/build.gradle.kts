@@ -16,6 +16,12 @@ if (localPropertiesFile.exists()) {
 }
 
 kotlin {
+    compilerOptions {
+        // expect/actual classes are still flagged "Beta"; this project relies on them
+        // intentionally (Settings, FileSystem, LocationProvider, …). Opt in to silence the warning.
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
