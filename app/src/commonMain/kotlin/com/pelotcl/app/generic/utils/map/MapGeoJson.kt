@@ -4,6 +4,7 @@ import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
 import com.pelotcl.app.generic.data.models.geojson.StopCollection
 import com.pelotcl.app.generic.service.TransportServiceProvider
 import com.pelotcl.app.generic.utils.LineColorHelper
+import com.pelotcl.app.generic.utils.geo.StopsGeoJsonManager
 import com.pelotcl.app.generic.utils.graphics.LineIconResolver
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonArray
@@ -95,10 +96,13 @@ class StopsRenderData(val geoJson: String, val iconNames: Set<String>)
 fun StopCollection.toStopsGeoJsonByPriority(hasDrawable: (String) -> Boolean): StopsRenderData {
     val lineRules = TransportServiceProvider.getTransportLineRules()
     val iconNames = LinkedHashSet<String>()
+    // Merge strong-line stops sharing a name into one point (like Android) so a multi-line station
+    // is a single marker rather than a cluster of overlapping platform stops.
+    val mergedStops = StopsGeoJsonManager.mergeStopsByName(features)
     val json = buildJsonObject {
         put("type", "FeatureCollection")
         putJsonArray("features") {
-            for (stop in features) {
+            for (stop in mergedStops) {
                 val lines = LineIconResolver.parseDesserte(stop.properties.desserte)
                 var priority = 0
                 var icon: String? = null

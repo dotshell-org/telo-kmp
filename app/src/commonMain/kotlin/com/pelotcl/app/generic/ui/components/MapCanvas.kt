@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
@@ -126,11 +128,25 @@ fun MapCanvas(
                 if (iconNames.isEmpty()) {
                     null
                 } else {
+                    // Rasterize each glyph at its own aspect ratio (fixed height, proportional
+                    // width) so non-square line badges keep their shape instead of being squished.
+                    fun sizeFor(p: Painter): DpSize {
+                        val s = p.intrinsicSize
+                        val ratio = if (s.isSpecified && s.width > 0f && s.height > 0f) {
+                            (s.width / s.height).coerceIn(0.4f, 2.5f)
+                        } else {
+                            1f
+                        }
+                        val height = 16f
+                        return DpSize((height * ratio).dp, height.dp)
+                    }
                     val cases = ArrayList<Case<StringValue, ImageValue>>(iconNames.size)
                     for (name in iconNames) {
-                        cases.add(case(name, image(drawableProvider.getPainter(name), DpSize(22.dp, 22.dp))))
+                        val painter = drawableProvider.getPainter(name)
+                        cases.add(case(name, image(painter, sizeFor(painter))))
                     }
-                    val fallback = image(drawableProvider.getPainter(iconNames.first()), DpSize(22.dp, 22.dp))
+                    val firstPainter = drawableProvider.getPainter(iconNames.first())
+                    val fallback = image(firstPainter, sizeFor(firstPainter))
                     switch(feature["icon"].convertToString(), *cases.toTypedArray(), fallback = fallback)
                 }
 
