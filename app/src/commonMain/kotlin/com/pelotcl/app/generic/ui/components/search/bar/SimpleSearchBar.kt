@@ -58,6 +58,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pelotcl.app.generic.data.repository.offline.search.SearchHistoryItem
+import com.pelotcl.app.generic.data.repository.offline.search.SearchType
 import com.pelotcl.app.generic.data.models.search.LineSearchResult
 import com.pelotcl.app.generic.data.models.search.StationSearchResult
 import com.pelotcl.app.generic.data.models.search.TransportSearchContent
@@ -349,15 +350,21 @@ fun SimpleSearchBar(
                             historyItem = historyItem,
                             showRemove = true,
                             onClick = {
-                                onHistoryItemClick(historyItem)
+                                if (historyItem.type == SearchType.LINE) {
+                                    onHistoryItemClick(historyItem)
+                                } else {
+                                    onHistoryItemOptionsClick(historyItem)
+                                }
                                 setQueryText("")
                                 setExpandedState(false)
                             },
                             onOptionsClick = {
+                                if (historyItem.type == SearchType.STOP) {
+                                    onHistoryItemClick(historyItem)
+                                }
                                 setQueryText("")
                                 setExpandedState(false)
                                 keyboardController?.hide()
-                                onHistoryItemOptionsClick(historyItem)
                             },
                             onRemoveClick = { onHistoryItemRemove(historyItem) }
                         )
