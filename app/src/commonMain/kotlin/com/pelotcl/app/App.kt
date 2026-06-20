@@ -112,7 +112,7 @@ import org.maplibre.spatialk.geojson.Position
  * this composable: iOS via `MainViewController()`; Android (eventually) via `MainActivity`.
  */
 @Composable
-fun App() {
+fun App(onNavigationModeChanged: (Boolean) -> Unit = {}) {
     PeloTheme {
         val context = LocalPlatformContext.current
         val viewModel = remember {
@@ -130,7 +130,7 @@ fun App() {
                 .onFailure { Log.e("PeloApp", "Raptor init failed: ${it.message}") }
         }
         if (viewModel != null) {
-            RootScaffold(viewModel)
+            RootScaffold(viewModel, onNavigationModeChanged)
         } else {
             MapCanvas(modifier = Modifier.fillMaxSize(), styleUrl = MapStyleCompat.POSITRON.styleUrl)
         }
@@ -138,7 +138,10 @@ fun App() {
 }
 
 @Composable
-private fun RootScaffold(viewModel: TransportViewModel) {
+private fun RootScaffold(
+    viewModel: TransportViewModel,
+    onNavigationModeChanged: (Boolean) -> Unit = {}
+) {
     val context = LocalPlatformContext.current
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(Destination.PLAN) }
@@ -212,13 +215,18 @@ private fun RootScaffold(viewModel: TransportViewModel) {
         itineraryDeparture = null
         itineraryArrivalSeed = null
         itineraryNearby = emptyList()
+        onNavigationModeChanged(false)
     }
-    fun showStation(name: String) {
-        val stop = stops?.firstOrNull { it.properties.nom.equals(name, ignoreCase = true) }
+    fun showStation(name: String, stopId: Int? = null, searchLines: List<String> = emptyList()) {
+        val stop = stops?.firstOrNull { 
+            (stopId != null && it.properties.id == stopId) || 
+            it.properties.nom.equals(name, ignoreCase = true) 
+        }
         selectedStation = if (stop != null) {
-            StationInfo(stop.properties.nom, viewModel.parseLineCodesFromDesserte(stop.properties.desserte), stop.properties.desserte, listOf(stop.properties.id))
+            val lines = (viewModel.parseLineCodesFromDesserte(stop.properties.desserte) + searchLines).distinct()
+            StationInfo(stop.properties.nom, lines, stop.properties.desserte, listOf(stop.properties.id))
         } else {
-            StationInfo(nom = name, lignes = emptyList())
+            StationInfo(nom = name, lignes = searchLines.distinct())
         }
         selectedLine = null; allSchedules = null
     }
@@ -280,7 +288,9 @@ private fun RootScaffold(viewModel: TransportViewModel) {
                                     onDepartureFallbackSelected = { itineraryDeparture = it },
                                     onJourneysChanged = { },
                                     onSelectedJourneyChanged = { },
-                                    onStartNavigation = { },
+                                    onStartNavigation = {
+                                        onNavigationModeChanged(true)
+                                    },
                                     onClose = closeItinerary,
                                     onRequestExpandSheet = { },
                                 )
@@ -326,6 +336,35 @@ private fun RootScaffold(viewModel: TransportViewModel) {
                         }
                     },
                 ) {
+                    val focusCenter: Position? = remember(selectedLine?.lineName, selectedStation?.nom, stops, linesUiState) {
+                        val st = selectedStation
+                        if (st != null) {
+                            val stop = stops?.firstOrNull { it.properties.nom.equals(st.nom, ignoreCase = true) }
+                            if (stop != null && stop.geometry.coordinates.size >= 2) {
+                                return@remember Position(latitude = stop.geometry.coordinates[1], longitude = stop.geometry.coordinates[0])
+                            }
+                        }
+                        val ln = selectedLine?.lineName
+                        if (ln != null) {
+                            val allLines = when (val s = linesUiState) {
+                                is TransportLinesUiState.Success -> s.lines
+                                is TransportLinesUiState.PartialSuccess -> s.lines
+                                else -> null
+                            }
+                            val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
+                            if (feat != null) {
+                                val points = feat.multiLineStringGeometry.coordinates.flatten()
+                                if (points.isNotEmpty()) {
+                                    return@remember Position(
+                                        latitude = points.map { it[1] }.average(),
+                                        longitude = points.map { it[0] }.average(),
+                                    )
+                                }
+                            }
+                        }
+                        null
+                    }
+
                     PlanContent(
                         viewModel = viewModel,
                         stops = stops,
@@ -334,8 +373,8 @@ private fun RootScaffold(viewModel: TransportViewModel) {
                         showTopBar = !itineraryActive,
                         vehiclesGeoJson = vehiclesGeoJson,
                         vehicleIconName = vehicleIconName,
-                        focusLineName = selectedLine?.lineName,
-                        onStopSelected = { showStation(it) },
+                        focusCenter = focusCenter,
+                        onStopSelected = { name, id, lines -> showStation(name, id, lines) },
                         onLineSelected = { showLine(it) },
                         onAddFavoriteClick = { showAddFavoriteDialog = true },
                     )
@@ -471,8 +510,8 @@ private fun PlanContent(
     showTopBar: Boolean,
     vehiclesGeoJson: String?,
     vehicleIconName: String?,
-    focusLineName: String?,
-    onStopSelected: (String) -> Unit,
+    focusCenter: Position?,
+    onStopSelected: (String, Int?, List<String>) -> Unit,
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
 ) {
@@ -484,25 +523,15 @@ private fun PlanContent(
     var showStyleSheet by remember { mutableStateOf(false) }
     var searchExpanded by remember { mutableStateOf(false) }
 
+    val isOffline by viewModel.isOffline.collectAsState()
+    val offlineDataInfo by viewModel.offlineDataInfo.collectAsState()
+
     val allLines = when (val s = linesState) {
         is TransportLinesUiState.Success -> s.lines
         is TransportLinesUiState.PartialSuccess -> s.lines
         else -> null
     }
     val strongLines = allLines?.filter { lineRules.isStrongLine(it.properties.lineName) }
-
-    // Move the camera onto the open line so it (and its live vehicles) come into view.
-    val focusCenter: Position? = remember(focusLineName, allLines) {
-        val name = focusLineName ?: return@remember null
-        val feat = allLines?.firstOrNull { it.properties.lineName.equals(name, ignoreCase = true) }
-            ?: return@remember null
-        val points = feat.multiLineStringGeometry.coordinates.flatten()
-        if (points.isEmpty()) return@remember null
-        Position(
-            latitude = points.map { it[1] }.average(),
-            longitude = points.map { it[0] }.average(),
-        )
-    }
 
     Box(Modifier.fillMaxSize()) {
         MapCanvas(
@@ -517,7 +546,7 @@ private fun PlanContent(
             userLocation = userLocation,
             vehiclesGeoJson = vehiclesGeoJson,
             vehicleIconName = vehicleIconName,
-            onStopClick = { nom -> onStopSelected(nom) },
+            onStopClick = { nom -> onStopSelected(nom, null, emptyList()) },
             onLineClick = { lineName -> onLineSelected(lineName) },
             onVehicleClick = { lineName -> onLineSelected(lineName) },
         )
@@ -535,14 +564,14 @@ private fun PlanContent(
                         onSearchStops = { q -> viewModel.searchStops(q) },
                         onSearchLines = { q -> viewModel.searchLines(q) },
                         onExpandedChange = { searchExpanded = it },
-                        onStopPrimary = { result -> onStopSelected(result.stopName) },
+                        onStopPrimary = { result -> onStopSelected(result.stopName, result.stopId, result.lines) },
                         onLineSelected = { line -> onLineSelected(line.lineName) },
                     )
                     if (!searchExpanded) {
                         FavoritesBar(
                             favorites = userFavorites,
                             onAddFavoriteClick = onAddFavoriteClick,
-                            onFavoriteClick = { fav -> onStopSelected(fav.stopName) },
+                            onFavoriteClick = { fav -> onStopSelected(fav.stopName, null, emptyList()) },
                             onRemoveFavoriteClick = { fav -> viewModel.removeUserFavorite(fav.id) },
                         )
                         Box(
@@ -565,8 +594,8 @@ private fun PlanContent(
 
     if (showStyleSheet) {
         MapStyleSelectionSheet(
-            isOffline = false,
-            downloadedMapStyles = emptySet(),
+            isOffline = isOffline,
+            downloadedMapStyles = offlineDataInfo.downloadedMapStyles,
             selectedMapStyle = selectedMapStyle,
             onDismiss = { showStyleSheet = false },
             onStyleSelected = { style ->

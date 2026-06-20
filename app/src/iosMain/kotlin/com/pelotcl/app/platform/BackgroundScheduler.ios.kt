@@ -1,21 +1,40 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 package com.pelotcl.app.platform
 
+import platform.BackgroundTasks.*
+import platform.Foundation.*
+
 /**
- * iOS stub: no deferrable-work scheduler is wired yet (a BGTaskScheduler-backed implementation
- * can replace this when iOS becomes an active target). All operations log and no-op.
+ * iOS implementation using BGTaskScheduler.
  */
 actual class BackgroundScheduler actual constructor(context: PlatformContext) {
 
     actual fun scheduleTelemetryUpload(delaySeconds: Long) {
-        Log.i(TAG, "scheduleTelemetryUpload($delaySeconds) — no-op on iOS")
+        val request = BGAppRefreshTaskRequest("com.pelotcl.app.telemetryUpload")
+        request.earliestBeginDate = NSDate.dateWithTimeIntervalSinceNow(delaySeconds.toDouble())
+        
+        val success = BGTaskScheduler.sharedScheduler.submitTaskRequest(request, null)
+        if (success) {
+            Log.i(TAG, "scheduleTelemetryUpload($delaySeconds) submitted")
+        } else {
+            Log.e(TAG, "Failed to submit telemetry upload task")
+        }
     }
 
     actual fun cancelTelemetryUpload() {
-        Log.i(TAG, "cancelTelemetryUpload — no-op on iOS")
+        BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier("com.pelotcl.app.telemetryUpload")
+        Log.i(TAG, "cancelTelemetryUpload() called")
     }
 
     actual fun ensureTrafficAlertsScheduled() {
-        Log.i(TAG, "ensureTrafficAlertsScheduled — no-op on iOS")
+        val request = BGAppRefreshTaskRequest("com.pelotcl.app.trafficAlerts")
+        
+        val success = BGTaskScheduler.sharedScheduler.submitTaskRequest(request, null)
+        if (success) {
+            Log.i(TAG, "ensureTrafficAlertsScheduled() submitted")
+        } else {
+            Log.e(TAG, "Failed to submit traffic alerts task")
+        }
     }
 
     private companion object {

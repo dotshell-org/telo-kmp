@@ -9,7 +9,6 @@ import com.pelotcl.app.generic.data.repository.itinerary.itinerary.RaptorReposit
 import com.pelotcl.app.generic.data.repository.offline.SchedulesRepository
 import com.pelotcl.app.generic.data.telemetry.TelemetryService
 import com.pelotcl.app.generic.service.TransportServiceProvider
-import com.pelotcl.app.generic.utils.graphics.BusIconHelper
 import com.pelotcl.app.platform.BackgroundScheduler
 
 class PeloApplication : Application(), Configuration.Provider {
@@ -74,7 +73,6 @@ class PeloApplication : Application(), Configuration.Provider {
         if (level >= TRIM_MEMORY_BACKGROUND) {
             Log.i(TAG, "onTrimMemory level=$level, trimming caches")
             SchedulesRepository.trimCaches(level)
-            BusIconHelper.trimCache(level)
             try {
                 JourneyCache.getInstance(this).trimMemory(level)
             } catch (_: Exception) {
