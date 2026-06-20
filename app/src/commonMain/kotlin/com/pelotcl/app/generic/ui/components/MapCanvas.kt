@@ -5,7 +5,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
@@ -80,6 +82,15 @@ fun MapCanvas(
     onVehicleClick: (lineName: String) -> Unit = {},
     centerOn: Position? = null,
 ) {
+    val fallbackPainter = remember {
+        object : Painter() {
+            override val intrinsicSize: Size = Size(14f, 14f)
+            override fun DrawScope.onDraw() {
+                drawCircle(color = Color(0xFF1F2937))
+            }
+        }
+    }
+
     LaunchedEffect(centerOn) {
         if (centerOn != null) {
             cameraState.animateTo(
@@ -94,9 +105,29 @@ fun MapCanvas(
         cameraState = cameraState,
         options = MapOptions(gestureOptions = mapGestureOptions(interactive)),
     ) {
+        // Unconditional sources to stabilize Compose slots and prevent MLNRedundantSourceException on iOS
+        val linesGeoJson = remember(lines) { lines?.toLinesGeoJson() ?: """{"type":"FeatureCollection","features":[]}""" }
+        val lineSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(linesGeoJson))
+
+        val context = LocalPlatformContext.current
+        val drawableProvider = remember(context) { DrawableProvider(context) }
+        val render = remember(stops) { stops?.toStopsGeoJsonByPriority { drawableProvider.hasDrawable(it) } }
+        val stopsSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(render?.geoJson ?: """{"type":"FeatureCollection","features":[]}"""))
+
+        val itinerarySource = rememberGeoJsonSource(data = GeoJsonData.JsonString(itineraryGeoJson ?: """{"type":"FeatureCollection","features":[]}"""))
+
+        val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson ?: """{"type":"FeatureCollection","features":[]}"""))
+
+        val userLocationGeoJson = remember(userLocation) {
+            if (userLocation != null) {
+                """{"type":"Feature","geometry":{"type":"Point","coordinates":[${userLocation.longitude},${userLocation.latitude}]},"properties":{}}"""
+            } else {
+                """{"type":"FeatureCollection","features":[]}"""
+            }
+        }
+        val userSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(userLocationGeoJson))
+
         if (lines != null) {
-            val linesGeoJson = remember(lines) { lines.toLinesGeoJson() }
-            val lineSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(linesGeoJson))
             LineLayer(
                 id = "transport-lines",
                 source = lineSource,
@@ -114,15 +145,10 @@ fun MapCanvas(
             )
         }
 
-        if (stops != null) {
+        if (stops != null && render != null) {
             // Stop GeoJSON: each feature carries a `stop_priority` (2 = metro/funicular/strong bus,
             // 1 = tram, 0 = bus) so stops reveal progressively by zoom, plus an `icon` (line glyph
             // drawable name) so each stop draws its line icon — matching the Android map.
-            val context = LocalPlatformContext.current
-            val drawableProvider = remember(context) { DrawableProvider(context) }
-            val render = remember(stops) { stops.toStopsGeoJsonByPriority { drawableProvider.hasDrawable(it) } }
-            val stopsSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(render.geoJson))
-
             // Per-feature icon image: embed each line-glyph painter and select it by the feature's
             // `icon` name. image(painter) embeds the bitmap directly, so it works without named-image
             // registration (which maplibre-compose 0.13 can't do on iOS).
@@ -202,7 +228,6 @@ fun MapCanvas(
         }
 
         if (itineraryGeoJson != null) {
-            val itinerarySource = rememberGeoJsonSource(data = GeoJsonData.JsonString(itineraryGeoJson))
             LineLayer(
                 id = "itinerary",
                 source = itinerarySource,
@@ -213,42 +238,26 @@ fun MapCanvas(
 
         if (vehiclesGeoJson != null) {
             // Live vehicles drawn with the selected line's glyph (image(painter), like the stops),
-            // a touch larger; falls back to dots when the line has no drawable.
-            val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson))
-            val vContext = LocalPlatformContext.current
-            val vDrawables = remember(vContext) { DrawableProvider(vContext) }
-            if (vehicleIconName != null && vDrawables.hasDrawable(vehicleIconName)) {
-                val vehiclePainter = vDrawables.getPainter(vehicleIconName)
-                SymbolLayer(
-                    id = "vehicles",
-                    source = vehicleSource,
-                    iconImage = image(vehiclePainter, glyphDpSize(vehiclePainter, 22f)),
-                    iconAllowOverlap = const(true),
-                    onClick = { f ->
-                        val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                        if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
-                    },
-                )
+            // a touch larger; falls back to a solid circle painter when the line has no drawable.
+            val vehiclePainter = if (vehicleIconName != null && drawableProvider.hasDrawable(vehicleIconName)) {
+                drawableProvider.getPainter(vehicleIconName)
             } else {
-                CircleLayer(
-                    id = "vehicles",
-                    source = vehicleSource,
-                    radius = const(7.dp),
-                    color = const(Color(0xFF1F2937)),
-                    onClick = { f ->
-                        val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                        if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
-                    },
-                )
+                fallbackPainter
             }
+            val sizeDp = if (vehiclePainter === fallbackPainter) 14f else 22f
+            SymbolLayer(
+                id = "vehicles",
+                source = vehicleSource,
+                iconImage = image(vehiclePainter, glyphDpSize(vehiclePainter, sizeDp)),
+                iconAllowOverlap = const(true),
+                onClick = { f ->
+                    val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                    if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
+                },
+            )
         }
 
         if (userLocation != null) {
-            val userSource = rememberGeoJsonSource(
-                data = GeoJsonData.JsonString(
-                    """{"type":"Feature","geometry":{"type":"Point","coordinates":[${userLocation.longitude},${userLocation.latitude}]},"properties":{}}"""
-                )
-            )
             CircleLayer(
                 id = "user-location",
                 source = userSource,
