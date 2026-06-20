@@ -377,6 +377,7 @@ private fun RootScaffold(
                         onStopSelected = { name, id, lines -> showStation(name, id, lines) },
                         onLineSelected = { showLine(it) },
                         onAddFavoriteClick = { showAddFavoriteDialog = true },
+                        onItinerarySelected = { name -> startItinerary(name) },
                     )
                 }
             }
@@ -514,6 +515,7 @@ private fun PlanContent(
     onStopSelected: (String, Int?, List<String>) -> Unit,
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
+    onItinerarySelected: (String) -> Unit,
 ) {
     val context = LocalPlatformContext.current
     val linesState by viewModel.uiState.collectAsState()
@@ -565,6 +567,7 @@ private fun PlanContent(
                         onSearchLines = { q -> viewModel.searchLines(q) },
                         onExpandedChange = { searchExpanded = it },
                         onStopPrimary = { result -> onStopSelected(result.stopName, result.stopId, result.lines) },
+                        onStopSecondary = { result -> onItinerarySelected(result.stopName) },
                         onLineSelected = { line -> onLineSelected(line.lineName) },
                     )
                     if (!searchExpanded) {

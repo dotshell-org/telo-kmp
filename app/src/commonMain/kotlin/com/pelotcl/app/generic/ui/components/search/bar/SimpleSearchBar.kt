@@ -393,12 +393,12 @@ fun SimpleSearchBar(
                                     onClick = {
                                         setQueryText("")
                                         setExpandedState(false)
-                                        onSearch(unifiedResult.result)
+                                        onStopOptionsClick(unifiedResult.result)
                                     },
                                     onOptionsClick = {
                                         setQueryText("")
                                         setExpandedState(false)
-                                        onStopOptionsClick(unifiedResult.result)
+                                        onSearch(unifiedResult.result)
                                     }
                                 )
                             }
