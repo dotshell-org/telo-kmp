@@ -421,7 +421,7 @@ private fun RootScaffold(
                     val focusZoom: Double? = remember(selectedLine?.lineName, selectedStation?.nom, stops, linesUiState) {
                         val st = selectedStation
                         if (st != null) {
-                            return@remember 15.5
+                            return@remember 17.0
                         }
                         val ln = selectedLine?.lineName
                         if (ln != null) {
