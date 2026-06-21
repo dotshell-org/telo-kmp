@@ -255,18 +255,34 @@ fun MapCanvas(
         }
 
         if (vehiclesGeoJson != null) {
-            // Live vehicles drawn with the selected line's glyph (image(painter), like the stops),
-            // a touch larger; falls back to a solid circle painter when the line has no drawable.
-            val vehiclePainter = if (vehicleIconName != null && drawableProvider.hasDrawable(vehicleIconName)) {
-                drawableProvider.getPainter(vehicleIconName)
-            } else {
-                fallbackPainter
-            }
-            val sizeDp = if (vehiclePainter === fallbackPainter) 14f else 22f
-            SymbolLayer(
-                id = "vehicles",
+            // Circle background for vehicles (color based on line color)
+            CircleLayer(
+                id = "vehicles-bg",
                 source = vehicleSource,
-                iconImage = image(vehiclePainter, glyphDpSize(vehiclePainter, sizeDp)),
+                radius = const(11.dp),
+                color = feature["color"].convertToColor(),
+                onClick = { f ->
+                    val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                    if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
+                },
+            )
+
+            // White pictogram icon (bus or tram) centered inside the colored circle
+            val vContext = LocalPlatformContext.current
+            val vDrawables = remember(vContext) { DrawableProvider(vContext) }
+            val busPainter = if (vDrawables.hasDrawable("ic_bus_vehicle")) vDrawables.getPainter("ic_bus_vehicle") else fallbackPainter
+            val tramPainter = if (vDrawables.hasDrawable("ic_tramway_vehicle")) vDrawables.getPainter("ic_tramway_vehicle") else fallbackPainter
+
+            val vehicleIconImage = switch(
+                feature["markerType"].convertToString(),
+                case("TRAM", image(tramPainter, glyphDpSize(tramPainter, 12f))),
+                fallback = image(busPainter, glyphDpSize(busPainter, 12f))
+            )
+
+            SymbolLayer(
+                id = "vehicles-pictogram",
+                source = vehicleSource,
+                iconImage = vehicleIconImage,
                 iconAllowOverlap = const(true),
                 onClick = { f ->
                     val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull

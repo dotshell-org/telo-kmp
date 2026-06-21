@@ -86,6 +86,7 @@ fun StopCollection.toStopsGeoJson(): String = buildJsonObject {
  * `lineName` (for click handling) and `bearing`, and one Point geometry.
  */
 fun toVehiclesGeoJson(positions: List<SimpleVehiclePosition>): String = buildJsonObject {
+    val lineRules = TransportServiceProvider.getTransportLineRules()
     put("type", "FeatureCollection")
     putJsonArray("features") {
         for (vehicle in positions) {
@@ -102,6 +103,8 @@ fun toVehiclesGeoJson(positions: List<SimpleVehiclePosition>): String = buildJso
                 putJsonObject("properties") {
                     put("lineName", vehicle.lineName)
                     vehicle.bearing?.let { put("bearing", it) }
+                    put("color", LineColorHelper.getColorForLineStringAux(vehicle.lineName))
+                    put("markerType", lineRules.getVehicleMarkerType(vehicle.lineName).name)
                 }
             }
         }
@@ -146,17 +149,21 @@ fun StopCollection.toStopsGeoJsonByPriority(
                 if (upperSelected != null) {
                     val isServedBySelected = lines.any { it.uppercase() == upperSelected }
                     if (isServedBySelected) {
-                        val type = lineRules.getTransportType(upperSelected)
-                        val isMetroTramFun = type == "METRO" || type == "TRAM" || type == "FUNICULAR"
-                        if (isMetroTramFun) {
+                        if (lineRules.isStrongLine(upperSelected)) {
+                            // Metro / Tram / Funicular: show the line-specific icon (e.g. "a", "t1")
                             val priority = if (upperSelected.startsWith("T")) 1 else 2
                             val name = LineIconResolver.getDrawableNameForLineName(selectedLineName)
                             if (hasDrawable(name)) {
                                 icons.add(name to priority)
                             }
                         } else {
-                            val mode = lineRules.getModeIcon(upperSelected) ?: "mode_bus"
-                            if (hasDrawable(mode)) {
+                            // Non-strong line: use the mode icon from config (e.g. mode_chrono, mode_bus)
+                            // falling back to mode_bus if the configured icon drawable is missing
+                            val configMode = lineRules.getModeIcon(upperSelected)
+                            val mode = if (configMode != null && hasDrawable(configMode)) configMode
+                                       else if (hasDrawable("mode_bus")) "mode_bus"
+                                       else null
+                            if (mode != null) {
                                 icons.add(mode to 2)
                             }
                         }
