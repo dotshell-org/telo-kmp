@@ -602,8 +602,8 @@ private fun PlanContent(
         val selected = if (!selectedLineName.isNullOrBlank()) {
             allLines.firstOrNull { it.properties.lineName.equals(selectedLineName, ignoreCase = true) }
         } else null
-        if (selected != null && !strongs.contains(selected)) {
-            strongs + selected
+        if (selected != null) {
+            listOf(selected)
         } else {
             strongs
         }
