@@ -127,10 +127,11 @@ class LyonKtorClient(private val baseUrl: String) : TransportApi {
     }
 
     private suspend fun fetchLineByName(lineName: String): FeatureCollection {
+        val rules = com.pelotcl.app.generic.service.TransportServiceProvider.getTransportLineRules()
         val normalized = normalizeToken(lineName)
         val isMetroRequest    = normalized in listOf("a", "b", "c", "d")
         val isTramRequest     = normalized.startsWith("t") && normalized.length <= 3 && !normalized.startsWith("tb")
-        val isNavigoneRequest = normalized == "vaporetto" || normalized == "navigone"
+        val isNavigoneRequest = normalized == "vaporetto" || normalized == "navigone" || rules.isNavigoneLine(lineName)
 
         val features: List<Feature> = when {
             lineName == "RX" -> fetchRhonexpressFeatures()
@@ -141,11 +142,18 @@ class LyonKtorClient(private val baseUrl: String) : TransportApi {
             isTramRequest -> fetchLines(TYPENAME_TRAM, SRSNAME_4171, COUNT_METRO_TRAM_NAVIGONE)
                 .filter { normalizeToken(it.properties.lineName) == normalized }
 
-            isNavigoneRequest -> fetchLines(TYPENAME_NAVIGONE, SRSNAME_4171, COUNT_METRO_TRAM_NAVIGONE)
-                .filter { normalizeToken(it.properties.lineName) == normalized }
+            isNavigoneRequest -> {
+                fetchLines(TYPENAME_NAVIGONE, SRSNAME_4171, COUNT_METRO_TRAM_NAVIGONE)
+                    .filter { feat ->
+                        val featName = feat.properties.lineName
+                        normalized == "navigone" || normalized == "vaporetto" ||
+                        rules.normalizeForComparison(featName) == rules.normalizeForComparison(lineName)
+                    }
+            }
 
             else -> {
-                val escapedAlias = normalized.replace("'", "''")
+                val canonical = rules.canonicalRouteName(lineName)
+                val escapedAlias = normalizeToken(canonical).replace("'", "''")
                 val cqlFilter = "ligne = '$escapedAlias'"
                 fetchBusLinesByFilter(cqlFilter, BUS_LINE_BY_NAME_COUNT)
             }

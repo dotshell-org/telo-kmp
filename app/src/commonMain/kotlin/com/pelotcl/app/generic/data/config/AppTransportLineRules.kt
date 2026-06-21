@@ -67,14 +67,18 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
 
     override fun isStrongLine(lineName: String): Boolean {
         val upperName = lineName.uppercase()
-        if (strongLineSet.contains(upperName)) return true
-        return strongLinePatterns.any { it.matches(upperName) }
+        val canonical = canonicalRouteName(lineName).uppercase()
+        val uiName = normalizeLineNameForUi(lineName).uppercase()
+        if (strongLineSet.contains(upperName) || strongLineSet.contains(canonical) || strongLineSet.contains(uiName)) return true
+        return strongLinePatterns.any { it.matches(upperName) || it.matches(canonical) || it.matches(uiName) }
     }
 
     override fun getTransportType(lineName: String): String {
         val upperName = lineName.uppercase()
+        val canonical = canonicalRouteName(lineName).uppercase()
+        val uiName = normalizeLineNameForUi(lineName).uppercase()
         for ((type, regex) in transportTypePatterns) {
-            if (regex.matches(upperName)) return type.name
+            if (regex.matches(upperName) || regex.matches(canonical) || regex.matches(uiName)) return type.name
         }
         return "Bus" // Default
     }
@@ -82,28 +86,40 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
     override fun getModeIcon(lineName: String): String? {
         if (isStrongLine(lineName)) return null
         val upperName = lineName.uppercase()
+        val canonical = canonicalRouteName(lineName).uppercase()
+        val uiName = normalizeLineNameForUi(lineName).uppercase()
         for ((type, regex) in transportTypePatterns) {
-            if (regex.matches(upperName)) return type.icon
+            if (regex.matches(upperName) || regex.matches(canonical) || regex.matches(uiName)) return type.icon
         }
         return "mode_bus"
     }
 
     override fun isNavigoneLine(lineName: String): Boolean {
-        return getTransportType(lineName) == "Navigone"
+        val canonical = canonicalRouteName(lineName)
+        val uiName = normalizeLineNameForUi(lineName)
+        return getTransportType(lineName) == "Navigone" ||
+               getTransportType(canonical) == "Navigone" ||
+               getTransportType(uiName) == "Navigone"
     }
 
     override fun isLiveTrackableLine(lineName: String): Boolean {
         val upperName = lineName.uppercase()
         if (isStrongLine(lineName)) {
             // Tram lines are trackable despite being strong
-            return upperName.startsWith("T")
+            return upperName.startsWith("T") || canonicalRouteName(lineName).uppercase().startsWith("T")
         }
         return true
     }
 
     override fun getVehicleMarkerType(lineName: String): VehicleMarkerType {
         val upperName = lineName.uppercase()
-        val matched = vehicleMarkerRules.firstOrNull { upperName.startsWith(it.prefix.uppercase()) }
+        val canonical = canonicalRouteName(lineName).uppercase()
+        val uiName = normalizeLineNameForUi(lineName).uppercase()
+        val matched = vehicleMarkerRules.firstOrNull { 
+            upperName.startsWith(it.prefix.uppercase()) ||
+            canonical.startsWith(it.prefix.uppercase()) ||
+            uiName.startsWith(it.prefix.uppercase())
+        }
         return matched?.let { parseMarker(it.marker) } ?: defaultVehicleMarker
     }
 
