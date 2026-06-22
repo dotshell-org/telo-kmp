@@ -213,7 +213,13 @@ private fun RootScaffold(
 
     LaunchedEffect(selectedLine?.lineName) {
         val ln = selectedLine?.lineName
-        if (!ln.isNullOrBlank()) viewModel.startLiveTracking(ln) else viewModel.stopLiveTracking()
+        if (!ln.isNullOrBlank()) {
+            if (isLiveTrackingEnabled) {
+                viewModel.startLiveTracking(ln)
+            }
+        } else {
+            viewModel.stopLiveTracking()
+        }
     }
 
     val activeVehiclePositions = remember(selectedLineName, isGlobalLiveEnabled, isLiveTrackingEnabled, vehiclePositions, globalVehiclePositions) {
@@ -399,10 +405,10 @@ private fun RootScaffold(
                         }
                     },
                 ) {
-                    val focusCenter: Position? = remember(selectedLine?.lineName, selectedStation?.nom, stops, linesUiState) {
-                        val st = selectedStation
-                        if (st != null) {
-                            val stop = stops?.firstOrNull { it.properties.nom.equals(st.nom, ignoreCase = true) }
+                    val focusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState) {
+                        val stName = selectedStation?.nom ?: selectedLine?.currentStationName
+                        if (!stName.isNullOrBlank()) {
+                            val stop = stops?.firstOrNull { it.properties.nom.equals(stName, ignoreCase = true) }
                             if (stop != null && stop.geometry.coordinates.size >= 2) {
                                 return@remember Position(latitude = stop.geometry.coordinates[1], longitude = stop.geometry.coordinates[0])
                             }
@@ -428,9 +434,9 @@ private fun RootScaffold(
                         null
                     }
 
-                    val focusZoom: Double? = remember(selectedLine?.lineName, selectedStation?.nom, stops, linesUiState) {
-                        val st = selectedStation
-                        if (st != null) {
+                    val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState) {
+                        val stName = selectedStation?.nom ?: selectedLine?.currentStationName
+                        if (!stName.isNullOrBlank()) {
                             return@remember 17.0
                         }
                         val ln = selectedLine?.lineName
