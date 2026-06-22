@@ -216,9 +216,15 @@ private fun RootScaffold(
         if (!ln.isNullOrBlank()) {
             if (isLiveTrackingEnabled) {
                 viewModel.startLiveTracking(ln)
+            } else if (isGlobalLiveEnabled) {
+                viewModel.stopGlobalLive()
+                viewModel.startLiveTracking(ln)
             }
         } else {
-            viewModel.stopLiveTracking()
+            if (isLiveTrackingEnabled) {
+                viewModel.stopLiveTracking()
+                viewModel.toggleGlobalLive()
+            }
         }
     }
 
