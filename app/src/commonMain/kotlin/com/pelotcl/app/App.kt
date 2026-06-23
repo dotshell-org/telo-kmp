@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -71,6 +72,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.pelotcl.app.generic.data.config.AppConfigLoader
 import com.pelotcl.app.generic.data.models.geojson.FeatureCollection
@@ -357,13 +359,139 @@ private fun RootScaffold(
             if (selectedTab == Destination.SETTINGS) {
                 SettingsTab(viewModel, Modifier.fillMaxSize()) { selectedTab = Destination.PLAN }
             } else {
-                BottomSheetScaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    scaffoldState = bsScaffoldState,
+                val focusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney) {
+                    if (itineraryActive && activeJourneys.isNotEmpty()) {
+                        val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
+                        val lats = mutableListOf<Double>()
+                        val lons = mutableListOf<Double>()
+                        for (journey in journeysToDraw) {
+                            for (leg in journey.legs) {
+                                lats.add(leg.fromLat)
+                                lons.add(leg.fromLon)
+                                lats.add(leg.toLat)
+                                lons.add(leg.toLon)
+                                for (stop in leg.intermediateStops) {
+                                    lats.add(stop.lat)
+                                    lons.add(stop.lon)
+                                }
+                            }
+                        }
+                        if (lats.isNotEmpty()) {
+                            return@remember Position(latitude = lats.average(), longitude = lons.average())
+                        }
+                    }
+                    val stName = selectedStation?.nom ?: selectedLine?.currentStationName
+                    if (!stName.isNullOrBlank()) {
+                        val stop = stops?.firstOrNull { it.properties.nom.equals(stName, ignoreCase = true) }
+                        if (stop != null && stop.geometry.coordinates.size >= 2) {
+                            return@remember Position(latitude = stop.geometry.coordinates[1], longitude = stop.geometry.coordinates[0])
+                        }
+                    }
+                    val ln = selectedLine?.lineName
+                    if (ln != null) {
+                        val allLines = when (val s = linesUiState) {
+                            is TransportLinesUiState.Success -> s.lines
+                            is TransportLinesUiState.PartialSuccess -> s.lines
+                            else -> null
+                        }
+                        val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
+                        if (feat != null) {
+                            val points = feat.multiLineStringGeometry.coordinates.flatten()
+                            if (points.isNotEmpty()) {
+                                return@remember Position(
+                                    latitude = points.map { it[1] }.average(),
+                                    longitude = points.map { it[0] }.average(),
+                                )
+                            }
+                        }
+                    }
+                    null
+                }
+
+                val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney) {
+                    if (itineraryActive && activeJourneys.isNotEmpty()) {
+                        val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
+                        val lats = mutableListOf<Double>()
+                        val lons = mutableListOf<Double>()
+                        for (journey in journeysToDraw) {
+                            for (leg in journey.legs) {
+                                lats.add(leg.fromLat)
+                                lons.add(leg.fromLon)
+                                lats.add(leg.toLat)
+                                lons.add(leg.toLon)
+                                for (stop in leg.intermediateStops) {
+                                    lats.add(stop.lat)
+                                    lons.add(stop.lon)
+                                }
+                            }
+                        }
+                        if (lats.isNotEmpty()) {
+                            val latMin = lats.minOrNull() ?: 45.75
+                            val latMax = lats.maxOrNull() ?: 45.75
+                            val lonMin = lons.minOrNull() ?: 4.85
+                            val lonMax = lons.maxOrNull() ?: 4.85
+                            val latDiff = latMax - latMin
+                            val lonDiff = lonMax - lonMin
+                            val span = maxOf(latDiff, lonDiff)
+                            if (span > 0.0001) {
+                                val log2Val = kotlin.math.log2(360.0 / span)
+                                return@remember (log2Val - 1.2).coerceIn(9.5, 15.0)
+                            }
+                        }
+                    }
+                    val stName = selectedStation?.nom ?: selectedLine?.currentStationName
+                    if (!stName.isNullOrBlank()) {
+                        return@remember 17.0
+                    }
+                    val ln = selectedLine?.lineName
+                    if (ln != null) {
+                        val allLines = when (val s = linesUiState) {
+                            is TransportLinesUiState.Success -> s.lines
+                            is TransportLinesUiState.PartialSuccess -> s.lines
+                            else -> null
+                        }
+                        val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
+                        if (feat != null) {
+                            val points = feat.multiLineStringGeometry.coordinates.flatten()
+                            if (points.isNotEmpty()) {
+                                val lats = points.map { it[1] }
+                                val lons = points.map { it[0] }
+                                val latMin = lats.minOrNull() ?: 45.75
+                                val latMax = lats.maxOrNull() ?: 45.75
+                                val lonMin = lons.minOrNull() ?: 4.85
+                                val lonMax = lons.maxOrNull() ?: 4.85
+                                val latDiff = latMax - latMin
+                                val lonDiff = lonMax - lonMin
+                                val span = maxOf(latDiff, lonDiff)
+                                if (span > 0.0001) {
+                                    val log2Val = kotlin.math.log2(360.0 / span)
+                                    return@remember (log2Val - 1.2).coerceIn(9.5, 15.0)
+                                }
+                            }
+                        }
+                    }
+                    null
+                }
+
+                PlanContent(
+                    viewModel = viewModel,
+                    stops = planStops,
+                    userLocation = userLocation,
+                    userFavorites = userFavorites,
+                    showTopBar = !itineraryActive,
+                    vehiclesGeoJson = vehiclesGeoJson,
+                    vehicleIconName = vehicleIconName,
+                    focusCenter = focusCenter,
+                    focusZoom = focusZoom,
+                    selectedLineName = selectedLine?.lineName,
+                    itineraryGeoJson = itineraryGeoJson,
+                    onStopSelected = { nom, id, lns -> showStation(nom, id, lns) },
+                    onLineSelected = { name -> showLine(name) },
+                    onAddFavoriteClick = { showAddFavoriteDialog = true },
+                    onItinerarySelected = { name -> startItinerary(name) },
+                    bsScaffoldState = bsScaffoldState,
                     sheetPeekHeight = if (hasSheet) 130.dp else 0.dp,
                     sheetContent = {
-                        // Cap the height so the sheet top stays below the search/favorites bar; shorter
-                        // content keeps its natural height so its scroll fills to the bottom.
                         Box(Modifier.heightIn(max = maxSheetHeight)) {
                             val sc = allSchedules
                             val ln = selectedLine
@@ -425,140 +553,8 @@ private fun RootScaffold(
                                 )
                             }
                         }
-                    },
-                ) {
-                    val focusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney) {
-                        if (itineraryActive && activeJourneys.isNotEmpty()) {
-                            val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
-                            val lats = mutableListOf<Double>()
-                            val lons = mutableListOf<Double>()
-                            for (journey in journeysToDraw) {
-                                for (leg in journey.legs) {
-                                    lats.add(leg.fromLat)
-                                    lons.add(leg.fromLon)
-                                    lats.add(leg.toLat)
-                                    lons.add(leg.toLon)
-                                    for (stop in leg.intermediateStops) {
-                                        lats.add(stop.lat)
-                                        lons.add(stop.lon)
-                                    }
-                                }
-                            }
-                            if (lats.isNotEmpty()) {
-                                return@remember Position(latitude = lats.average(), longitude = lons.average())
-                            }
-                        }
-                        val stName = selectedStation?.nom ?: selectedLine?.currentStationName
-                        if (!stName.isNullOrBlank()) {
-                            val stop = stops?.firstOrNull { it.properties.nom.equals(stName, ignoreCase = true) }
-                            if (stop != null && stop.geometry.coordinates.size >= 2) {
-                                return@remember Position(latitude = stop.geometry.coordinates[1], longitude = stop.geometry.coordinates[0])
-                            }
-                        }
-                        val ln = selectedLine?.lineName
-                        if (ln != null) {
-                            val allLines = when (val s = linesUiState) {
-                                is TransportLinesUiState.Success -> s.lines
-                                is TransportLinesUiState.PartialSuccess -> s.lines
-                                else -> null
-                            }
-                            val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
-                            if (feat != null) {
-                                val points = feat.multiLineStringGeometry.coordinates.flatten()
-                                if (points.isNotEmpty()) {
-                                    return@remember Position(
-                                        latitude = points.map { it[1] }.average(),
-                                        longitude = points.map { it[0] }.average(),
-                                    )
-                                }
-                            }
-                        }
-                        null
                     }
-
-                    val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney) {
-                        if (itineraryActive && activeJourneys.isNotEmpty()) {
-                            val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
-                            val lats = mutableListOf<Double>()
-                            val lons = mutableListOf<Double>()
-                            for (journey in journeysToDraw) {
-                                for (leg in journey.legs) {
-                                    lats.add(leg.fromLat)
-                                    lons.add(leg.fromLon)
-                                    lats.add(leg.toLat)
-                                    lons.add(leg.toLon)
-                                    for (stop in leg.intermediateStops) {
-                                        lats.add(stop.lat)
-                                        lons.add(stop.lon)
-                                    }
-                                }
-                            }
-                            if (lats.isNotEmpty()) {
-                                val latMin = lats.minOrNull() ?: 45.75
-                                val latMax = lats.maxOrNull() ?: 45.75
-                                val lonMin = lons.minOrNull() ?: 4.85
-                                val lonMax = lons.maxOrNull() ?: 4.85
-                                val latDiff = latMax - latMin
-                                val lonDiff = lonMax - lonMin
-                                val span = maxOf(latDiff, lonDiff)
-                                if (span > 0.0001) {
-                                    val log2Val = kotlin.math.log2(360.0 / span)
-                                    return@remember (log2Val - 1.2).coerceIn(9.5, 15.0)
-                                }
-                            }
-                        }
-                        val stName = selectedStation?.nom ?: selectedLine?.currentStationName
-                        if (!stName.isNullOrBlank()) {
-                            return@remember 17.0
-                        }
-                        val ln = selectedLine?.lineName
-                        if (ln != null) {
-                            val allLines = when (val s = linesUiState) {
-                                is TransportLinesUiState.Success -> s.lines
-                                is TransportLinesUiState.PartialSuccess -> s.lines
-                                else -> null
-                            }
-                            val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
-                            if (feat != null) {
-                                val points = feat.multiLineStringGeometry.coordinates.flatten()
-                                if (points.isNotEmpty()) {
-                                    val lats = points.map { it[1] }
-                                    val lons = points.map { it[0] }
-                                    val latMin = lats.minOrNull() ?: 45.75
-                                    val latMax = lats.maxOrNull() ?: 45.75
-                                    val lonMin = lons.minOrNull() ?: 4.85
-                                    val lonMax = lons.maxOrNull() ?: 4.85
-                                    val latDiff = latMax - latMin
-                                    val lonDiff = lonMax - lonMin
-                                    val span = maxOf(latDiff, lonDiff)
-                                    if (span > 0.0001) {
-                                        val log2Val = kotlin.math.log2(360.0 / span)
-                                        return@remember (log2Val - 1.2).coerceIn(9.5, 15.0)
-                                    }
-                                }
-                            }
-                        }
-                        null
-                    }
-
-                    PlanContent(
-                        viewModel = viewModel,
-                        stops = planStops,
-                        userLocation = userLocation,
-                        userFavorites = userFavorites,
-                        showTopBar = !itineraryActive,
-                        vehiclesGeoJson = vehiclesGeoJson,
-                        vehicleIconName = vehicleIconName,
-                        focusCenter = focusCenter,
-                        focusZoom = focusZoom,
-                        selectedLineName = selectedLine?.lineName,
-                        itineraryGeoJson = itineraryGeoJson,
-                        onStopSelected = { nom, id, lns -> showStation(nom, id, lns) },
-                        onLineSelected = { name -> showLine(name) },
-                        onAddFavoriteClick = { showAddFavoriteDialog = true },
-                        onItinerarySelected = { name -> startItinerary(name) },
-                    )
-                }
+                )
             }
             }
             NavigationBar(containerColor = PrimaryColor) {
@@ -711,6 +707,9 @@ private fun PlanContent(
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
     onItinerarySelected: (String) -> Unit,
+    bsScaffoldState: BottomSheetScaffoldState,
+    sheetPeekHeight: Dp,
+    sheetContent: @Composable () -> Unit,
 ) {
     val context = LocalPlatformContext.current
     val searchHistoryRepo = remember { SearchHistoryRepository(context) }
@@ -751,25 +750,34 @@ private fun PlanContent(
     }
 
     Box(Modifier.fillMaxSize()) {
-        MapCanvas(
+        BottomSheetScaffold(
             modifier = Modifier.fillMaxSize(),
-            styleUrl = selectedMapStyle.styleUrl,
-            initialLatitude = 45.75,
-            initialLongitude = 4.85,
-            initialZoom = 12.0,
-            centerOn = focusCenter,
-            focusZoom = focusZoom,
-            lines = mapLines?.let { FeatureCollection(features = it) },
-            stops = stops?.let { StopCollection(features = it) },
-            userLocation = userLocation,
-            vehiclesGeoJson = vehiclesGeoJson,
-            vehicleIconName = vehicleIconName,
-            selectedLineName = selectedLineName,
-            itineraryGeoJson = itineraryGeoJson,
-            onStopClick = { nom -> onStopSelected(nom, null, emptyList()) },
-            onLineClick = { lineName -> onLineSelected(lineName) },
-            onVehicleClick = { lineName -> onLineSelected(lineName) },
-        )
+            scaffoldState = bsScaffoldState,
+            sheetPeekHeight = sheetPeekHeight,
+            sheetContent = {
+                sheetContent()
+            }
+        ) {
+            MapCanvas(
+                modifier = Modifier.fillMaxSize(),
+                styleUrl = selectedMapStyle.styleUrl,
+                initialLatitude = 45.75,
+                initialLongitude = 4.85,
+                initialZoom = 12.0,
+                centerOn = focusCenter,
+                focusZoom = focusZoom,
+                lines = mapLines?.let { FeatureCollection(features = it) },
+                stops = stops?.let { StopCollection(features = it) },
+                userLocation = userLocation,
+                vehiclesGeoJson = vehiclesGeoJson,
+                vehicleIconName = vehicleIconName,
+                selectedLineName = selectedLineName,
+                itineraryGeoJson = itineraryGeoJson,
+                onStopClick = { nom -> onStopSelected(nom, null, emptyList()) },
+                onLineClick = { lineName -> onLineSelected(lineName) },
+                onVehicleClick = { lineName -> onLineSelected(lineName) },
+            )
+        }
 
         if (showTopBar) {
             Box(
