@@ -1,6 +1,6 @@
 name: iosApp
 options:
-  bundleIdPrefix: com.pelotcl
+  bundleIdPrefix: eu.dotshell
   deploymentTarget:
     iOS: "15.0"
   createIntermediateGroups: true

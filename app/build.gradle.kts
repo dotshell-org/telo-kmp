@@ -103,8 +103,8 @@ kotlin {
         }
 
         androidMain {
-            kotlin.exclude("com/pelotcl/app/generic/data/models/**")
-            kotlin.exclude("com/pelotcl/app/specific/data/model/**")
+            kotlin.exclude("eu/dotshell/pelo/generic/data/models/**")
+            kotlin.exclude("eu/dotshell/pelo/specific/data/model/**")
         }
 
         iosMain.dependencies {
