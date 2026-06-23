@@ -345,7 +345,7 @@ private fun RootScaffold(
     val windowInfo = LocalWindowInfo.current
     val screenHeightDp = with(density) { windowInfo.containerSize.height.toDp() }
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topMargin = if (itineraryActive) 80.dp else 320.dp
+    val topMargin = if (itineraryActive) 290.dp else 320.dp
     val maxSheetHeight = minOf(700.dp, screenHeightDp - topInset - topMargin).coerceAtLeast(130.dp)
 
     Box(Modifier.fillMaxSize()) {
@@ -593,33 +593,46 @@ private fun RootScaffold(
         // Itinerary header: two stop fields (departure / arrival) + swap, replacing the search bar.
         if (itineraryActive) {
             Box(
-                Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = closeItinerary) {
-                        Icon(Icons.Filled.Close, contentDescription = "Fermer l'itinéraire", tint = PrimaryColor)
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ItinerarySearchBarField(
-                            selectedStop = itineraryDeparture,
-                            onClick = { itinerarySearchTarget = ItineraryFieldTarget.DEPARTURE },
-                            icon = Icons.Filled.MyLocation,
-                            placeholder = "Arrêt de départ",
-                        )
-                        ItinerarySearchBarField(
-                            selectedStop = itineraryArrival,
-                            onClick = { itinerarySearchTarget = ItineraryFieldTarget.ARRIVAL },
-                            icon = Icons.Filled.Search,
-                            placeholder = "Arrêt d'arrivée",
-                        )
-                    }
-                    IconButton(onClick = {
-                        val tmp = itineraryDeparture; itineraryDeparture = itineraryArrival; itineraryArrival = tmp
-                    }) {
-                        Icon(Icons.Filled.SwapVert, contentDescription = "Inverser", tint = PrimaryColor)
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    ItinerarySearchBarField(
+                        selectedStop = itineraryDeparture,
+                        onClick = { itinerarySearchTarget = ItineraryFieldTarget.DEPARTURE },
+                        icon = Icons.Filled.MyLocation,
+                        placeholder = "Arrêt de départ",
+                    )
+                    ItinerarySearchBarField(
+                        selectedStop = itineraryArrival,
+                        onClick = { itinerarySearchTarget = ItineraryFieldTarget.ARRIVAL },
+                        icon = Icons.Filled.Search,
+                        placeholder = "Arrêt d'arrivée",
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(Color.White, CircleShape)
+                        .clickable {
+                            val tmp = itineraryDeparture; itineraryDeparture = itineraryArrival; itineraryArrival = tmp
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SwapVert,
+                        contentDescription = "Inverser",
+                        tint = Color.Black,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }
