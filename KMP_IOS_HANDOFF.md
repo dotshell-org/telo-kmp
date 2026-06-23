@@ -6,7 +6,7 @@
 
 ## 1. TL;DR
 
-`com.pelotcl.app` (app de transport en commun TCL Lyon, Compose + MapLibre) a été migrée d'une **app Android mono-cible** vers un **projet Kotlin Multiplatform** sur la branche `feat/kmp`. **84% du code Kotlin (233 fichiers) est déjà en `commonMain`.** La cible Android compile, tourne et a été vérifiée à chaque étape.
+`eu.dotshell.pelo` (app de transport en commun TCL Lyon, Compose + MapLibre) a été migrée d'une **app Android mono-cible** vers un **projet Kotlin Multiplatform** sur la branche `feat/kmp`. **84% du code Kotlin (233 fichiers) est déjà en `commonMain`.** La cible Android compile, tourne et a été vérifiée à chaque étape.
 
 **Ce qui n'a JAMAIS pu être fait sous Windows et t'attend sur Mac :**
 1. **Compiler `commonMain` pour iOS pour de vrai** (`linkDebugFrameworkIosSimulatorArm64`). Jamais exécuté. C'est la priorité n°1 — voir §5.

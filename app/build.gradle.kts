@@ -116,7 +116,7 @@ kotlin {
 
 compose.resources {
     publicResClass = true
-    packageOfResClass = "com.pelotcl.app.resources"
+    packageOfResClass = "eu.dotshell.pelo.resources"
     generateResClass = always
 }
 
@@ -129,11 +129,11 @@ android {
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: ""
         }
     }
-    namespace = "com.pelotcl.app"
+    namespace = "eu.dotshell.pelo"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.pelotcl.app"
+        applicationId = "eu.dotshell.pelo"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

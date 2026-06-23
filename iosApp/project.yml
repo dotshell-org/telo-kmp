@@ -40,7 +40,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pelotcl.app
+        PRODUCT_BUNDLE_IDENTIFIER: eu.dotshell.pelo
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         ENABLE_USER_SCRIPT_SANDBOXING: "NO"
@@ -67,7 +67,7 @@ targets:
           # under the package-prefixed path the iOS Res reader expects:
           #   <bundle>/compose-resources/composeResources/<packageOfResClass>/...
           SRC="$PROJECT_DIR/../app/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources"
-          DST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/compose-resources/composeResources/com.pelotcl.app.resources"
+          DST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/compose-resources/composeResources/eu.dotshell.pelo.resources"
           if [ -d "$SRC" ]; then
             mkdir -p "$DST"
             rsync -a --delete "$SRC/" "$DST/"

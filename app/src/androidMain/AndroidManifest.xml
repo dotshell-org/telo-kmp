@@ -40,7 +40,7 @@
         </activity>
 
         <service
-            android:name="com.pelotcl.app.generic.service.NavigationModeForegroundService"
+            android:name="eu.dotshell.pelo.generic.service.NavigationModeForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
