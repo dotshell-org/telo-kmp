@@ -144,8 +144,8 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
     private val _selectedLineName = MutableStateFlow<String?>(null)
     override val selectedLineName: StateFlow<String?> = _selectedLineName.asStateFlow()
 
-    private val _offlineDataInfo = MutableStateFlow(OfflineDataInfo())
-    override val offlineDataInfo: StateFlow<OfflineDataInfo> = _offlineDataInfo.asStateFlow()
+    override val offlineDataInfo: StateFlow<OfflineDataInfo>
+        get() = offlineDataManager.offlineDataInfo
 
     override val offlineDownloadState: StateFlow<OfflineDownloadState>
         get() = offlineDataManager.downloadState
@@ -166,6 +166,9 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
     init {
         // Load favorites first (synchronous SharedPrefs read, instant)
         loadFavorites()
+        viewModelScope.launch(ioDispatcher) {
+            offlineDataManager.refreshOfflineDataInfo()
+        }
         // Fire all async loads in parallel — each launches its own coroutine
         loadTransportLines()
         loadStops()
@@ -194,38 +197,49 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
                         // Show the strong lines (metro/tram/RX) immediately.
                         _uiState.value = TransportLinesUiState.Success(strongFeatures)
 
-                        // Save lines to cache for future use
-                        val cache = transportCache
-                        val metroLines = strongFeatures.filter {
-                            it.properties.transportType == "METRO" ||
-                                it.properties.transportType == "FUNICULAR"
-                        }
-                        val tramLines = strongFeatures.filter {
-                            it.properties.transportType == "TRAM"
+                        // Offload heavy IO / processing to background thread
+                        val allFeatures = withContext(ioDispatcher) {
+                            // Save lines to cache for future use
+                            val cache = transportCache
+                            val metroLines = strongFeatures.filter {
+                                it.properties.transportType == "METRO" ||
+                                    it.properties.transportType == "FUNICULAR"
+                            }
+                            val tramLines = strongFeatures.filter {
+                                it.properties.transportType == "TRAM"
+                            }
+
+                            if (metroLines.isNotEmpty()) {
+                                cache.saveMetroLines(metroLines)
+                            }
+                            if (tramLines.isNotEmpty()) {
+                                cache.saveTramLines(tramLines)
+                            }
+
+                            // Then load bus (incl. trambus, which lives in the bus typename) and
+                            // navigone, and merge them in so every line trace shows on the map.
+                            // Best-effort: a failure here keeps the strong lines displayed.
+                            val lineService = TransportServiceProvider.getTransportLineService()
+                            val busFeatures = runCatching {
+                                lineService.getBusLines().features.orEmpty()
+                            }.getOrElse { emptyList() }
+                            val navigoneFeatures = runCatching {
+                                lineService.getNavigoneLines().features.orEmpty()
+                            }.getOrElse { emptyList() }
+                            Log.i(TAG, "loadTransportLines: got bus=${busFeatures.size} nav=${navigoneFeatures.size} features, setting final state")
+                            
+                            if (busFeatures.isNotEmpty() || navigoneFeatures.isNotEmpty()) {
+                                strongFeatures + busFeatures + navigoneFeatures
+                            } else {
+                                emptyList()
+                            }
                         }
 
-                        if (metroLines.isNotEmpty()) {
-                            cache.saveMetroLines(metroLines)
-                        }
-                        if (tramLines.isNotEmpty()) {
-                            cache.saveTramLines(tramLines)
-                        }
-
-                        // Then load bus (incl. trambus, which lives in the bus typename) and
-                        // navigone, and merge them in so every line trace shows on the map.
-                        // Best-effort: a failure here keeps the strong lines displayed.
-                        val lineService = TransportServiceProvider.getTransportLineService()
-                        val busFeatures = runCatching {
-                            lineService.getBusLines().features.orEmpty()
-                        }.getOrElse { emptyList() }
-                        val navigoneFeatures = runCatching {
-                            lineService.getNavigoneLines().features.orEmpty()
-                        }.getOrElse { emptyList() }
-                        if (busFeatures.isNotEmpty() || navigoneFeatures.isNotEmpty()) {
-                            val allFeatures = strongFeatures + busFeatures + navigoneFeatures
+                        if (allFeatures.isNotEmpty()) {
                             _linesState.value = TransportLinesState.Success(lines.copy(features = allFeatures))
                             _uiState.value = TransportLinesUiState.Success(allFeatures)
                         }
+                        Log.i(TAG, "loadTransportLines: success path done")
                         return@launch // Success — stop retrying
                     }.onFailure { error ->
                         Log.w("TransportViewModel", "loadTransportLines attempt ${attempt + 1} failed: ${error.message}")
@@ -249,13 +263,14 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
      * Charge tous les arrêts
      */
     fun loadStops() {
-        viewModelScope.launch {
+        Log.i(TAG, "loadStops: entered")
+        viewModelScope.launch(ioDispatcher) {
+            Log.i(TAG, "loadStops: coroutine started on ioDispatcher")
             _stopsUiState.value = TransportStopsUiState.Loading
-            val cache = transportCache
 
             // Try to load from offline cache first
             val offlineStops = runCatching {
-                withContext(ioDispatcher) { offlineRepository.loadStops() }
+                offlineRepository.loadStops()
             }.getOrNull().orEmpty()
 
             if (DEBUG_LOGGING) Log.i(TAG, "Loaded ${offlineStops.size} stops from offline cache")
@@ -268,23 +283,19 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
                 // If most stops have empty desserte, force refresh from WFS
                 if (emptyDesserteCount > sampleSize * 0.8) {
                     Log.w("TransportViewModel", "Offline cache has mostly empty desserte - forcing refresh from WFS")
-                    // Clear the cache and force fresh data load
-                    withContext(ioDispatcher) {
-                        try {
-                            offlineRepository.clearStopsCache()
-                            if (DEBUG_LOGGING) Log.i(TAG, "Cleared stale stops cache")
-                        } catch (e: Exception) {
-                            Log.e("TransportViewModel", "Failed to clear cache: ${e.message}")
-                        }
+                    try {
+                        offlineRepository.clearStopsCache()
+                        if (DEBUG_LOGGING) Log.i(TAG, "Cleared stale stops cache")
+                    } catch (e: Exception) {
+                        Log.e("TransportViewModel", "Failed to clear cache: ${e.message}")
                     }
-                    // Now load fresh data
                     return@launch loadStops()
                 }
             }
 
-            // If offline data is empty, try to get stops from cache
+            val cache = transportCache
             val cachedStops = runCatching {
-                withContext(ioDispatcher) { cache.getStops() }
+                cache.getStops()
             }.getOrNull().orEmpty()
 
             if (DEBUG_LOGGING) Log.i(TAG, "Loaded ${cachedStops.size} stops from TransportCache")
@@ -300,24 +311,27 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
                     cachedStops
                 }
                 else -> {
-                    // Both caches empty - load from WFS API
                     if (DEBUG_LOGGING) Log.i(TAG, "Both offline cache and TransportCache are empty, loading from WFS API")
                     val wfsResult = runCatching {
-                        withContext(ioDispatcher) { transportApi.getTransportStops() }
+                        transportApi.getTransportStops()
                     }
                     wfsResult.onFailure { error ->
                         Log.e("TransportViewModel", "Failed to load transport stops from WFS API: ${error.message}", error)
-                        _stopsUiState.value = TransportStopsUiState.Error(
-                            error.message ?: "Unable to load transport stops"
-                        )
+                        withContext(Dispatchers.Main) {
+                            _stopsUiState.value = TransportStopsUiState.Error(
+                                error.message ?: "Unable to load transport stops"
+                            )
+                        }
                         return@launch
                     }
                     val features = wfsResult.getOrNull()?.features
                     if (features.isNullOrEmpty()) {
                         Log.e("TransportViewModel", "WFS API returned empty or null features")
-                        _stopsUiState.value = TransportStopsUiState.Error(
-                            "No transport stops available from server"
-                        )
+                        withContext(Dispatchers.Main) {
+                            _stopsUiState.value = TransportStopsUiState.Error(
+                                "No transport stops available from server"
+                            )
+                        }
                         return@launch
                     }
                     if (DEBUG_LOGGING) Log.i(TAG, "WFS API returned ${features.size} stop features")
@@ -326,202 +340,165 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
             }
 
             if (baseStops.isEmpty()) {
-                _stopsUiState.value = TransportStopsUiState.Error("No transport stops available")
+                withContext(Dispatchers.Main) {
+                    _stopsUiState.value = TransportStopsUiState.Error("No transport stops available")
+                }
                 return@launch
             }
 
-            // WFS "desserte" is not guaranteed to be present/accurate across versions.
-            // To keep line/stop matching working (map + bottom sheets), we enrich stops
-            // using the local Raptor/GTFS dataset when most stops have empty desserte.
-            val (enrichedStops, didEnrich) = withContext(Dispatchers.Default) {
-                fun hasStrongToken(desserte: String): Boolean {
-                    if (desserte.isBlank()) return false
-                    val strongTokens = setOf("A", "B", "C", "D", "F1", "F2", "RX")
-                    val entries = desserte.split(",")
-                    for (entry in entries) {
-                        val token = entry.trim().substringBefore(":").trim()
-                        if (token.isEmpty()) continue
-                        val up = token.uppercase()
-                        if (up in strongTokens) return true
-                        if (up.startsWith("T")) return true // includes TBxx
-                        if (up.startsWith("NAV")) return true // NAV1 / NAVI1
+            Log.i(TAG, "loadStops: baseStops loaded (${baseStops.size}), showing on Main")
+            // Show stops immediately — display is the priority
+            Log.i(TAG, "loadStops: before withContext(Main) for Success state")
+            withContext(Dispatchers.Main) {
+                Log.i(TAG, "loadStops: INSIDE withContext(Main), about to set Success")
+                _stopsUiState.value = TransportStopsUiState.Success(baseStops)
+                Log.i(TAG, "loadStops: Success state set on Main")
+            }
+            Log.i(TAG, "loadStops: baseStops shown, launching enrichment")
+
+            // Enrich stop data in background (desserte + names)
+            launch(ioDispatcher) {
+                Log.i(TAG, "loadStops: enrichment started")
+                val enriched = enrichStops(baseStops)
+                if (enriched !== baseStops) {
+                    Log.i(TAG, "loadStops: enrichment produced changes, updating UI")
+                    withContext(Dispatchers.Main) {
+                        _stopsUiState.value = TransportStopsUiState.Success(enriched)
                     }
-                    return false
-                }
-
-                // Only check a small sample of stops to determine if enrichment is needed
-                val sampleSize = minOf(50, baseStops.size)
-                val sampleStops = baseStops.take(sampleSize) // Take first stops for consistency
-                val nonBlankCount = sampleStops.count { it.properties.desserte.isNotBlank() }
-                val ratioNonBlank = nonBlankCount.toDouble() / sampleSize.toDouble()
-                val strongStopCount = sampleStops.count { it.properties.desserte.isNotBlank() && hasStrongToken(it.properties.desserte) }
-
-                val unknownCount = sampleStops.count { it.properties.desserte.equals("UNKNOWN", ignoreCase = true) }
-                val emptyCount = sampleStops.count { it.properties.desserte.isBlank() }
-
-                if (DEBUG_LOGGING) {
-                    Log.i(TAG, "Stop desserte analysis (sample=$sampleSize):")
-                    Log.i(TAG, "  Non-blank: $nonBlankCount (${ratioNonBlank * 100}%)")
-                    Log.i(TAG, "  Strong stops: $strongStopCount")
-                    Log.i(TAG, "  UNKNOWN: $unknownCount")
-                    Log.i(TAG, "  Empty: $emptyCount")
-                }
-
-                // Enrichment conditions:
-                // 1. Original condition: very few stops have desserte (legacy case)
-                // 2. Many stops have "UNKNOWN" desserte (WFS data quality issue)
-                // 3. Few strong stops relative to total (indicates missing bus data)
-                val shouldEnrich = strongStopCount == 0 && ratioNonBlank < 0.1 ||
-                                 unknownCount > sampleSize * 0.3 ||
-                                 (strongStopCount < sampleSize * 0.2 && unknownCount > sampleSize * 0.2)
-
-                if (!shouldEnrich) {
-                    baseStops to false
+                    analyzeLoadedStops(enriched)
+                    persistStopsAfterDelay(enriched)
                 } else {
-                    // Enrich ALL stops that need it, regardless of count
-                    // This ensures metro/tram/funicular stops are properly enriched
-                    val desserteCache = HashMap<String, String>(512)
-                    val stopsNeedingEnrichment = baseStops.filter { it.properties.desserte.isBlank() }
+                    Log.i(TAG, "loadStops: enrichment skipped (no changes needed)")
+                }
+                Log.i(TAG, "loadStops: enrichment phase complete")
+            }
+        }
+        Log.i(TAG, "loadStops: coroutine completed")
+    }
 
-                    if (DEBUG_LOGGING) Log.i(TAG, "Enriching ${stopsNeedingEnrichment.size} stops that have empty desserte")
+    private suspend fun enrichStops(stops: List<StopFeature>): List<StopFeature> {
+        fun hasStrongToken(desserte: String): Boolean {
+            if (desserte.isBlank()) return false
+            val strongTokens = setOf("A", "B", "C", "D", "F1", "F2", "RX")
+            val entries = desserte.split(",")
+            for (entry in entries) {
+                val token = entry.trim().substringBefore(":").trim()
+                if (token.isEmpty()) continue
+                val up = token.uppercase()
+                if (up in strongTokens) return true
+                if (up.startsWith("T")) return true
+                if (up.startsWith("NAV")) return true
+            }
+            return false
+        }
 
-                    val enriched = stopsNeedingEnrichment.mapNotNull { stop ->
-                        val name = stop.properties.nom
-                        if (name.isBlank()) {
-                            stop
-                        } else {
-                            val desserte = desserteCache.getOrPut(name) {
-                                schedulesRepository.getDesserteForStop(name).orEmpty()
-                            }
-                            if (DEBUG_LOGGING) Log.i(TAG, "Enriching stop '$name': WFS desserte='' -> Raptor desserte='$desserte'")
-                            if (desserte.isBlank()) {
-                                null // Skip stops with no desserte from Raptor
-                            } else {
-                                stop.copy(properties = stop.properties.copy(desserte = desserte))
+        val sampleSize = minOf(50, stops.size)
+        val sampleStops = stops.take(sampleSize)
+        val nonBlankCount = sampleStops.count { it.properties.desserte.isNotBlank() }
+        val ratioNonBlank = nonBlankCount.toDouble() / sampleSize.toDouble()
+        val strongStopCount = sampleStops.count { it.properties.desserte.isNotBlank() && hasStrongToken(it.properties.desserte) }
+        val unknownCount = sampleStops.count { it.properties.desserte.equals("UNKNOWN", ignoreCase = true) }
+
+        val shouldEnrich = strongStopCount == 0 && ratioNonBlank < 0.1 ||
+                         unknownCount > sampleSize * 0.3 ||
+                         (strongStopCount < sampleSize * 0.2 && unknownCount > sampleSize * 0.2)
+
+        if (!shouldEnrich) return stops
+
+        val desserteCache = HashMap<String, String>(1024)
+        val resultStops = stops.toMutableList()
+
+        for (i in resultStops.indices) {
+            val stop = resultStops[i]
+            if (stop.properties.desserte.isBlank()) {
+                val name = stop.properties.nom
+                if (name.isNotBlank()) {
+                    val cached = desserteCache[name]
+                    val desserte = if (cached != null) cached else {
+                        val d = schedulesRepository.getDesserteForStop(name).orEmpty()
+                        desserteCache[name] = d
+                        d
+                    }
+                    if (desserte.isNotBlank()) {
+                        resultStops[i] = stop.copy(properties = stop.properties.copy(desserte = desserte))
+                    }
+                }
+            }
+        }
+
+        val enriched = resultStops
+
+        // Phase 2: Enrich stop names by coordinates
+        val stopsNeedingNameEnrichment = enriched.filter {
+            it.properties.nom.startsWith("Arret ") ||
+            it.properties.nom.contains("Arrondissement")
+        }
+
+        if (stopsNeedingNameEnrichment.isEmpty()) return enriched
+
+        val raptorStopsWithCoords = raptorRepository.getAllStopsWithCoords()
+        val gridCellSize = 0.001
+        val spatialGrid = HashMap<Long, MutableList<RaptorStopWithCoords>>()
+        for (raptorStop in raptorStopsWithCoords) {
+            if (raptorStop.lat == 0.0 && raptorStop.lon == 0.0) continue
+            val latBucket = (raptorStop.lat / gridCellSize).toLong()
+            val lonBucket = (raptorStop.lon / gridCellSize).toLong()
+            val key = latBucket * 1_000_000L + lonBucket
+            spatialGrid.getOrPut(key) { mutableListOf() }.add(raptorStop)
+        }
+
+        return enriched.map { stop ->
+            if (stop.properties.nom.startsWith("Arret ") || stop.properties.nom.contains("Arrondissement")) {
+                val coords = stop.geometry.coordinates
+                if (coords.size >= 2) {
+                    val wfsLon = coords[0]
+                    val wfsLat = coords[1]
+                    val latBucket = (wfsLat / gridCellSize).toLong()
+                    val lonBucket = (wfsLon / gridCellSize).toLong()
+
+                    var bestStop: RaptorStopWithCoords? = null
+                    var bestDistSq = Double.MAX_VALUE
+                    for (dLat in -1L..1L) {
+                        for (dLon in -1L..1L) {
+                            val key = (latBucket + dLat) * 1_000_000L + (lonBucket + dLon)
+                            val cell = spatialGrid[key] ?: continue
+                            for (raptorStop in cell) {
+                                val latDiff = wfsLat - raptorStop.lat
+                                val lonDiff = wfsLon - raptorStop.lon
+                                val distSq = latDiff * latDiff + lonDiff * lonDiff
+                                if (distSq < bestDistSq) {
+                                    bestDistSq = distSq
+                                    bestStop = raptorStop
+                                }
                             }
                         }
                     }
 
-                    if (DEBUG_LOGGING) Log.i(TAG, "Successfully enriched ${enriched.size} stops, ${stopsNeedingEnrichment.size - enriched.size} stops have no Raptor data")
-
-                    // Merge enriched stops back with original stops (keep original if not enriched)
-                    val stopMap = baseStops.associateBy { it.properties.nom }.toMutableMap()
-                    enriched.forEach { enrichedStop ->
-                        stopMap[enrichedStop.properties.nom] = enrichedStop
+                    if (bestStop != null && bestDistSq < 0.0005 * 0.0005) {
+                        stop.copy(properties = stop.properties.copy(nom = bestStop.name))
+                    } else {
+                        stop
                     }
-
-                    stopMap.values.toList() to (enriched.isNotEmpty())
-                }
-            }
-
-            // Enrich stop names from Raptor/GTFS by matching coordinates
-            val stopsWithNames = withContext(Dispatchers.Default) {
-                val stopsNeedingNameEnrichment = enrichedStops.filter {
-                    it.properties.nom.startsWith("Arret ") ||
-                    it.properties.nom.contains("Arrondissement")
-                }
-
-                if (stopsNeedingNameEnrichment.isNotEmpty()) {
-                    val raptorStopsWithCoords = raptorRepository.getAllStopsWithCoords()
-                    Log.d("TransportViewModel", "Raptor stops with coords: ${raptorStopsWithCoords.size}")
-                    val sampleRaptorCoords = raptorStopsWithCoords.take(3).map { "(${it.lat}, ${it.lon})" }
-                    Log.d("TransportViewModel", "Sample Raptor coords: $sampleRaptorCoords")
-                    val zeroCoordCount = raptorStopsWithCoords.count { it.lat == 0.0 && it.lon == 0.0 }
-                    Log.d("TransportViewModel", "Raptor stops with 0,0 coords: $zeroCoordCount")
-
-                    // Build spatial hash grid for O(1) nearest-neighbor lookup
-                    // Key = (latBucket, lonBucket) truncated to ~100m cells
-                    val gridCellSize = 0.001 // ~100m in degrees
-                    val spatialGrid = HashMap<Long, MutableList<RaptorStopWithCoords>>()
-                    for (raptorStop in raptorStopsWithCoords) {
-                        val latBucket = (raptorStop.lat / gridCellSize).toLong()
-                        val lonBucket = (raptorStop.lon / gridCellSize).toLong()
-                        val key = latBucket * 1_000_000L + lonBucket
-                        spatialGrid.getOrPut(key) { mutableListOf() }.add(raptorStop)
-                    }
-
-                    val sampleWfsCoords = stopsNeedingNameEnrichment.take(3).map { "${it.properties.nom} -> coords=${it.geometry.coordinates}" }
-                    Log.d("TransportViewModel", "Sample WFS coords: $sampleWfsCoords")
-
-                    var enrichedCount = 0
-                    val result = enrichedStops.map { stop ->
-                        if (stop.properties.nom.startsWith("Arret ") || stop.properties.nom.contains("Arrondissement")) {
-                            val coords = stop.geometry.coordinates
-                            if (coords.size >= 2) {
-                                val wfsLon = coords[0]
-                                val wfsLat = coords[1]
-                                val latBucket = (wfsLat / gridCellSize).toLong()
-                                val lonBucket = (wfsLon / gridCellSize).toLong()
-
-                                // Search current cell + 8 neighbors for closest stop
-                                var bestStop: RaptorStopWithCoords? = null
-                                var bestDistSq = Double.MAX_VALUE
-                                for (dLat in -1L..1L) {
-                                    for (dLon in -1L..1L) {
-                                        val key = (latBucket + dLat) * 1_000_000L + (lonBucket + dLon)
-                                        spatialGrid[key]?.forEach { raptorStop ->
-                                            val latDiff = wfsLat - raptorStop.lat
-                                            val lonDiff = wfsLon - raptorStop.lon
-                                            val distSq = latDiff * latDiff + lonDiff * lonDiff
-                                            if (distSq < bestDistSq) {
-                                                bestDistSq = distSq
-                                                bestStop = raptorStop
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Only use match if within ~50 meters (0.0005 degrees)
-                                val matched = bestStop
-                                if (matched != null && bestDistSq < 0.0005 * 0.0005) {
-                                    enrichedCount++
-                                    stop.copy(properties = stop.properties.copy(nom = matched.name))
-                                } else {
-                                    stop
-                                }
-                            } else {
-                                stop
-                            }
-                        } else {
-                            stop
-                        }
-                    }
-                    if (DEBUG_LOGGING) Log.i(TAG, "Enriched $enrichedCount stop names by coordinates")
-                    result
-                } else {
-                    enrichedStops
-                }
-            }
-
-            _stopsUiState.value = TransportStopsUiState.Success(stopsWithNames)
-
-            // Analyze loaded stops to understand data quality
-            analyzeLoadedStops(stopsWithNames)
-
-            // Warm offline storage and cache for next launches.
-            // Always save to both stores when we have valid data, regardless of source.
-            // Failures are logged but do not break the UI.
-            if (stopsWithNames.isNotEmpty()) {
-                withContext(ioDispatcher) {
-                    try {
-                        offlineRepository.saveStops(stopsWithNames)
-                        if (DEBUG_LOGGING) Log.i(TAG, "Saved ${stopsWithNames.size} stops to offline storage")
-                    } catch (e: Exception) {
-                        Log.e("TransportViewModel", "Failed to save to offline storage: ${e.message}", e)
-                    }
-                    try {
-                        cache.saveStops(stopsWithNames)
-                        if (DEBUG_LOGGING) Log.i(TAG, "Saved ${stopsWithNames.size} stops to TransportCache")
-                    } catch (e: Exception) {
-                        Log.e("TransportViewModel", "Failed to save to TransportCache: ${e.message}", e)
-                    }
-                }
-            } else {
-                Log.e("TransportViewModel", "No stops to cache (stopsWithNames is empty)")
-            }
+                } else stop
+            } else stop
         }
     }
 
+    private suspend fun persistStopsAfterDelay(stops: List<StopFeature>) {
+        kotlinx.coroutines.delay(10_000)
+        try {
+            offlineRepository.saveStops(stops)
+            if (DEBUG_LOGGING) Log.i(TAG, "Saved ${stops.size} stops to offline storage")
+        } catch (e: Exception) {
+            Log.e("TransportViewModel", "Failed to save to offline storage: ${e.message}", e)
+        }
+        try {
+            transportCache.saveStops(stops)
+            if (DEBUG_LOGGING) Log.i(TAG, "Saved ${stops.size} stops to TransportCache")
+        } catch (e: Exception) {
+            Log.e("TransportViewModel", "Failed to save to TransportCache: ${e.message}", e)
+        }
+    }
     /**
      * Charge les favoris
      */

@@ -38,6 +38,7 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,7 +86,6 @@ import eu.dotshell.pelo.generic.data.models.stops.Favorite
 import eu.dotshell.pelo.generic.data.models.stops.StationInfo
 import eu.dotshell.pelo.generic.data.models.ui.AllSchedulesInfo
 import eu.dotshell.pelo.generic.data.repository.itinerary.itinerary.ItineraryPreferencesRepository
-import eu.dotshell.pelo.generic.data.repository.offline.mapstyle.MapStyleCompat
 import eu.dotshell.pelo.generic.data.repository.offline.mapstyle.MapStyleRepository
 import eu.dotshell.pelo.generic.service.TransportServiceProvider
 import eu.dotshell.pelo.generic.utils.graphics.LineIconResolver
@@ -133,36 +133,72 @@ import eu.dotshell.pelo.platform.LocalPlatformContext
 import eu.dotshell.pelo.platform.Log
 import eu.dotshell.pelo.platform.appVersionName
 import eu.dotshell.pelo.platform.ioDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.maplibre.spatialk.geojson.Position
 
-/**
- * Shared application root (commonMain) — the cross-platform Plan UI assembled from common
- * building blocks. Each platform provides a PlatformContext via [LocalPlatformContext] and hosts
- * this composable: iOS via `MainViewController()`; Android (eventually) via `MainActivity`.
- */
 @Composable
 fun App(onNavigationModeChanged: (Boolean) -> Unit = {}) {
-    PeloTheme {
-        val context = LocalPlatformContext.current
-        val viewModel = remember {
+    val context = LocalPlatformContext.current
+    var viewModel by remember { mutableStateOf<TransportViewModel?>(null) }
+    var isInitializing by remember { mutableStateOf(true) }
+
+    LaunchedEffect(context) {
+        Log.i("PeloApp", "LaunchedEffect: starting init")
+        launch(ioDispatcher) {
+            Log.i("PeloApp", "ioDispatcher: start")
             try {
                 TransportServiceProvider.initialize(context)
-                TransportViewModel(context)
+                Log.i("PeloApp", "TransportProvider init done")
+                val vm = TransportViewModel(context)
+                Log.i("PeloApp", "TransportViewModel constructor done")
+                withContext(Dispatchers.Main) {
+                    viewModel = vm
+                    isInitializing = false
+                    Log.i("PeloApp", "viewModel set on Main")
+                }
+                Log.i("PeloApp", "before raptor init")
+                runCatching { vm.raptorRepository.initialize() }
+                    .onSuccess { Log.i("PeloApp", "Raptor initialized") }
+                    .onFailure { Log.e("PeloApp", "Raptor init failed: ${it.message}") }
+                Log.i("PeloApp", "ioDispatcher: done")
             } catch (t: Throwable) {
                 Log.e("PeloApp", "Transport data init failed: ${t.message}")
-                null
+                withContext(Dispatchers.Main) {
+                    isInitializing = false
+                }
             }
         }
-        LaunchedEffect(viewModel) {
-            val vm = viewModel ?: return@LaunchedEffect
-            runCatching { vm.raptorRepository.initialize() }
-                .onFailure { Log.e("PeloApp", "Raptor init failed: ${it.message}") }
-        }
-        if (viewModel != null) {
-            RootScaffold(viewModel, onNavigationModeChanged)
-        } else {
-            MapCanvas(modifier = Modifier.fillMaxSize(), styleUrl = MapStyleCompat.POSITRON.styleUrl)
+    }
+
+    PeloTheme {
+        Box(Modifier.fillMaxSize()) {
+            val vm = viewModel
+            if (vm != null) {
+                RootScaffold(vm, onNavigationModeChanged)
+            } else {
+                Box(Modifier.fillMaxSize().background(Color.White))
+            }
+
+            if (isInitializing) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.85f),
+                            RoundedCornerShape(999.dp)
+                        )
+                        .padding(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryColor
+                    )
+                }
+            }
         }
     }
 }
@@ -178,22 +214,17 @@ private fun RootScaffold(
     var selectedTab by remember { mutableStateOf(Destination.PLAN) }
     var showLinesSheet by remember { mutableStateOf(false) }
 
-    // Contextual sheet state — shown in a NON-blocking BottomSheetScaffold (map usable behind).
     var selectedLine by remember { mutableStateOf<LineInfo?>(null) }
     var lineDirection by remember { mutableIntStateOf(0) }
     var selectedStation by remember { mutableStateOf<StationInfo?>(null) }
     var allSchedules by remember { mutableStateOf<AllSchedulesInfo?>(null) }
     var showAddFavoriteDialog by remember { mutableStateOf(false) }
 
-    // Alert report sheet
     var showAlertReport by remember { mutableStateOf(false) }
     var alertReportInitialStopName by remember { mutableStateOf<String?>(null) }
     var alertReportInitialLines by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    // FAB state: true = centered on user (show alert icon), false = not centered (show location icon)
     var isCenteredOnUser by remember { mutableStateOf(false) }
-
-    // Manual recenter: when non-null, overrides the computed focusCenter for one frame.
     var manualFocusCenter by remember { mutableStateOf<Position?>(null) }
 
     val availableDirections by viewModel.availableDirections.collectAsState(initial = emptyList())
@@ -203,18 +234,7 @@ private fun RootScaffold(
     val userFavorites by viewModel.userFavorites.collectAsState(initial = emptyList())
     val stops = (stopsUiState as? TransportStopsUiState.Success)?.stops
     val selectedLineName = selectedLine?.lineName
-    val planStops = remember(stops, selectedLineName) {
-        if (selectedLineName.isNullOrBlank()) {
-            stops
-        } else {
-            val normSelected = lineRules.normalizeForComparison(selectedLineName)
-            stops?.filter { stop ->
-                viewModel.parseLineCodesFromDesserte(stop.properties.desserte)
-                    .any { lineRules.normalizeForComparison(it) == normSelected }
-            }
-        }
-    }
-
+    
     var userLocation by remember { mutableStateOf<Position?>(null) }
     val locationProvider = remember { LocationProvider(context) }
     DisposableEffect(Unit) {
@@ -222,7 +242,6 @@ private fun RootScaffold(
         onDispose { locationProvider.stopUpdates() }
     }
 
-    // Live vehicles
     val vehiclePositions by viewModel.vehiclePositions.collectAsState(initial = emptyList())
     val isGlobalLiveEnabled by viewModel.isGlobalLiveEnabled.collectAsState(initial = false)
     val isLiveTrackingEnabled by viewModel.isLiveTrackingEnabled.collectAsState(initial = false)
@@ -260,7 +279,6 @@ private fun RootScaffold(
         selectedLine?.lineName?.let { LineIconResolver.getDrawableNameForLineName(it) }
     }
 
-    // Itinerary mode: two search fields at the top + a non-blocking results sheet.
     var itineraryActive by remember { mutableStateOf(false) }
     var activeJourneys by remember { mutableStateOf<List<JourneyResult>>(emptyList()) }
     var selectedJourney by remember { mutableStateOf<JourneyResult?>(null) }
@@ -295,8 +313,35 @@ private fun RootScaffold(
         }
     }
 
+    val fabDrawableProvider = DrawableProvider(LocalPlatformContext.current)
+
+    var filteredStopsCollection by remember { mutableStateOf<StopCollection?>(null) }
+    LaunchedEffect(stops, selectedLineName) {
+        if (stops == null) {
+            filteredStopsCollection = null
+        } else {
+            val collection = withContext(Dispatchers.Default) {
+                val lineRules = TransportServiceProvider.getTransportLineRules()
+                val finalStops = if (selectedLineName.isNullOrBlank()) {
+                    stops
+                } else {
+                    val normSelected = lineRules.normalizeForComparison(selectedLineName)
+                    stops.filter { stop ->
+                        val desserte = stop.properties.desserte
+                        if (desserte.isBlank()) return@filter false
+                        viewModel.parseLineCodesFromDesserte(desserte)
+                            .any { lineRules.normalizeForComparison(it) == normSelected }
+                    }
+                }
+                StopCollection(features = finalStops)
+            }
+            Log.i("PeloApp", "filteredStopsCollection: before setting on Main")
+            filteredStopsCollection = collection
+            Log.i("PeloApp", "filteredStopsCollection: set on Main (size=${collection.features.size})")
+        }
+    }
+
     val closeSheet = { selectedStation = null; selectedLine = null; allSchedules = null }
-    // Reset centered-on-user state when a station/line is selected (focus moves away from user)
     LaunchedEffect(selectedStation?.nom, selectedLine?.lineName) {
         if (selectedStation != null || selectedLine != null) isCenteredOnUser = false
     }
@@ -342,7 +387,6 @@ private fun RootScaffold(
     val bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false)
     val bsScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = bottomSheetState)
     val hasSheet = itineraryActive || selectedStation != null || selectedLine != null || allSchedules != null
-    // Open the sheet at its content height (like PlanScreen's .expand()), not just the peek.
     val sheetContentKey = "$itineraryActive|${selectedStation?.nom}|${selectedLine?.lineName}|${allSchedules?.lineName}"
     LaunchedEffect(sheetContentKey) {
         if (hasSheet) bottomSheetState.expand() else bottomSheetState.hide()
@@ -356,10 +400,6 @@ private fun RootScaffold(
         }
     }
 
-    // Cap the expanded sheet so its top stays just BELOW the top buttons (search/favorites/LIVE/LAYERS).
-    // The top elements (search + favorites + LIVE buttons) take up ~180.dp of vertical space.
-    // Since the BottomSheetScaffold is nested inside a Column above the NavigationBar (~80-100.dp),
-    // we use a 320.dp margin to ensure the sheet stays below the LIVE button on iPad and other devices.
     val density = LocalDensity.current
     val windowInfo = LocalWindowInfo.current
     val screenHeightDp = with(density) { windowInfo.containerSize.height.toDp() }
@@ -368,116 +408,85 @@ private fun RootScaffold(
     val maxSheetHeight = minOf(700.dp, screenHeightDp - topInset - topMargin).coerceAtLeast(130.dp)
 
     Box(Modifier.fillMaxSize()) {
-        // Column instead of Scaffold(bottomBar) so the content area (and the BottomSheetScaffold's
-        // sheet) is hard-constrained above the navbar — the sheet's bottom rests on the navbar top
-        // instead of sliding behind it.
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (selectedTab == Destination.SETTINGS) {
-                SettingsTab(viewModel, Modifier.fillMaxSize()) { selectedTab = Destination.PLAN }
-            } else {
-                // manualFocusCenter (set by the recenter FAB) takes precedence for one frame,
-                // then the normal selection-based logic kicks back in.
-                val computedFocusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney, manualFocusCenter) {
-                    if (manualFocusCenter != null) return@remember manualFocusCenter
-                    if (itineraryActive && activeJourneys.isNotEmpty()) {
-                        val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
-                        val lats = mutableListOf<Double>()
-                        val lons = mutableListOf<Double>()
-                        for (journey in journeysToDraw) {
-                            for (leg in journey.legs) {
-                                lats.add(leg.fromLat)
-                                lons.add(leg.fromLon)
-                                lats.add(leg.toLat)
-                                lons.add(leg.toLon)
-                                for (stop in leg.intermediateStops) {
-                                    lats.add(stop.lat)
-                                    lons.add(stop.lon)
+                if (selectedTab == Destination.SETTINGS) {
+                    SettingsTab(viewModel, Modifier.fillMaxSize()) { selectedTab = Destination.PLAN }
+                } else {
+                    val computedFocusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney, manualFocusCenter) {
+                        if (manualFocusCenter != null) return@remember manualFocusCenter
+                        if (itineraryActive && activeJourneys.isNotEmpty()) {
+                            val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
+                            val lats = mutableListOf<Double>()
+                            val lons = mutableListOf<Double>()
+                            for (journey in journeysToDraw) {
+                                for (leg in journey.legs) {
+                                    lats.add(leg.fromLat)
+                                    lons.add(leg.fromLon)
+                                    lats.add(leg.toLat)
+                                    lons.add(leg.toLon)
+                                    for (stop in leg.intermediateStops) {
+                                        lats.add(stop.lat)
+                                        lons.add(stop.lon)
+                                    }
+                                }
+                            }
+                            if (lats.isNotEmpty()) {
+                                return@remember Position(latitude = lats.average(), longitude = lons.average())
+                            }
+                        }
+                        val stName = selectedStation?.nom ?: selectedLine?.currentStationName
+                        if (!stName.isNullOrBlank()) {
+                            val stop = stops?.firstOrNull { it.properties.nom.equals(stName, ignoreCase = true) }
+                            if (stop != null && stop.geometry.coordinates.size >= 2) {
+                                return@remember Position(latitude = stop.geometry.coordinates[1], longitude = stop.geometry.coordinates[0])
+                            }
+                        }
+                        val ln = selectedLine?.lineName
+                        if (ln != null) {
+                            val allLines = when (val s = linesUiState) {
+                                is TransportLinesUiState.Success -> s.lines
+                                is TransportLinesUiState.PartialSuccess -> s.lines
+                                else -> null
+                            }
+                            val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
+                            if (feat != null) {
+                                val points = feat.multiLineStringGeometry.coordinates.flatten()
+                                if (points.isNotEmpty()) {
+                                    return@remember Position(
+                                        latitude = points.map { it[1] }.average(),
+                                        longitude = points.map { it[0] }.average(),
+                                    )
                                 }
                             }
                         }
-                        if (lats.isNotEmpty()) {
-                            return@remember Position(latitude = lats.average(), longitude = lons.average())
-                        }
+                        null
                     }
-                    val stName = selectedStation?.nom ?: selectedLine?.currentStationName
-                    if (!stName.isNullOrBlank()) {
-                        val stop = stops?.firstOrNull { it.properties.nom.equals(stName, ignoreCase = true) }
-                        if (stop != null && stop.geometry.coordinates.size >= 2) {
-                            return@remember Position(latitude = stop.geometry.coordinates[1], longitude = stop.geometry.coordinates[0])
-                        }
-                    }
-                    val ln = selectedLine?.lineName
-                    if (ln != null) {
-                        val allLines = when (val s = linesUiState) {
-                            is TransportLinesUiState.Success -> s.lines
-                            is TransportLinesUiState.PartialSuccess -> s.lines
-                            else -> null
-                        }
-                        val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
-                        if (feat != null) {
-                            val points = feat.multiLineStringGeometry.coordinates.flatten()
-                            if (points.isNotEmpty()) {
-                                return@remember Position(
-                                    latitude = points.map { it[1] }.average(),
-                                    longitude = points.map { it[0] }.average(),
-                                )
-                            }
-                        }
-                    }
-                    null
-                }
-                val focusCenter: Position? = computedFocusCenter
+                    var lastFocusCenter by remember { mutableStateOf<Position?>(null) }
+                    val focusCenter: Position? = if (computedFocusCenter != lastFocusCenter) {
+                        lastFocusCenter = computedFocusCenter
+                        computedFocusCenter
+                    } else null
 
-                val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney, manualFocusCenter) {
-                    if (manualFocusCenter != null) return@remember 18.0
-                    if (itineraryActive && activeJourneys.isNotEmpty()) {
-                        val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
-                        val lats = mutableListOf<Double>()
-                        val lons = mutableListOf<Double>()
-                        for (journey in journeysToDraw) {
-                            for (leg in journey.legs) {
-                                lats.add(leg.fromLat)
-                                lons.add(leg.fromLon)
-                                lats.add(leg.toLat)
-                                lons.add(leg.toLon)
-                                for (stop in leg.intermediateStops) {
-                                    lats.add(stop.lat)
-                                    lons.add(stop.lon)
+                    val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney, manualFocusCenter) {
+                        if (manualFocusCenter != null) return@remember 18.0
+                        if (itineraryActive && activeJourneys.isNotEmpty()) {
+                            val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
+                            val lats = mutableListOf<Double>()
+                            val lons = mutableListOf<Double>()
+                            for (journey in journeysToDraw) {
+                                for (leg in journey.legs) {
+                                    lats.add(leg.fromLat)
+                                    lons.add(leg.fromLon)
+                                    lats.add(leg.toLat)
+                                    lons.add(leg.toLon)
+                                    for (stop in leg.intermediateStops) {
+                                        lats.add(stop.lat)
+                                        lons.add(stop.lon)
+                                    }
                                 }
                             }
-                        }
-                        if (lats.isNotEmpty()) {
-                            val latMin = lats.minOrNull() ?: 45.75
-                            val latMax = lats.maxOrNull() ?: 45.75
-                            val lonMin = lons.minOrNull() ?: 4.85
-                            val lonMax = lons.maxOrNull() ?: 4.85
-                            val latDiff = latMax - latMin
-                            val lonDiff = lonMax - lonMin
-                            val span = maxOf(latDiff, lonDiff)
-                            if (span > 0.0001) {
-                                val log2Val = kotlin.math.log2(360.0 / span)
-                                return@remember (log2Val - 1.2).coerceIn(9.5, 15.0)
-                            }
-                        }
-                    }
-                    val stName = selectedStation?.nom ?: selectedLine?.currentStationName
-                    if (!stName.isNullOrBlank()) {
-                        return@remember 18.0
-                    }
-                    val ln = selectedLine?.lineName
-                    if (ln != null) {
-                        val allLines = when (val s = linesUiState) {
-                            is TransportLinesUiState.Success -> s.lines
-                            is TransportLinesUiState.PartialSuccess -> s.lines
-                            else -> null
-                        }
-                        val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
-                        if (feat != null) {
-                            val points = feat.multiLineStringGeometry.coordinates.flatten()
-                            if (points.isNotEmpty()) {
-                                val lats = points.map { it[1] }
-                                val lons = points.map { it[0] }
+                            if (lats.isNotEmpty()) {
                                 val latMin = lats.minOrNull() ?: 45.75
                                 val latMax = lats.maxOrNull() ?: 45.75
                                 val lonMin = lons.minOrNull() ?: 4.85
@@ -491,122 +500,157 @@ private fun RootScaffold(
                                 }
                             }
                         }
-                    }
-                    null
-                }
-
-                PlanContent(
-                    viewModel = viewModel,
-                    stops = planStops,
-                    userLocation = userLocation,
-                    userFavorites = userFavorites,
-                    showTopBar = !itineraryActive,
-                    vehiclesGeoJson = vehiclesGeoJson,
-                    vehicleIconName = vehicleIconName,
-                    focusCenter = focusCenter,
-                    focusZoom = focusZoom,
-                    selectedLineName = selectedLine?.lineName,
-                    itineraryGeoJson = itineraryGeoJson,
-                    onStopSelected = { nom, id, lns -> showStation(nom, id, lns) },
-                    onLineSelected = { name -> showLine(name) },
-                    onAddFavoriteClick = { showAddFavoriteDialog = true },
-                    onItinerarySelected = { name -> startItinerary(name) },
-                    isCenteredOnUser = isCenteredOnUser,
-                    onFabClick = {
-                        if (isCenteredOnUser) {
-                            // Already centered → open alert report
-                            alertReportInitialStopName = null
-                            alertReportInitialLines = emptyList()
-                            showAlertReport = true
-                        } else {
-                            // Not centered → recenter on user
-                            val loc = userLocation
-                            if (loc != null) {
-                                // Reset then set to force a change and trigger LaunchedEffect in MapCanvas
-                                manualFocusCenter = null
-                                scope.launch {
-                                    kotlinx.coroutines.delay(10)
-                                    manualFocusCenter = loc
-                                    isCenteredOnUser = true
+                        val stName = selectedStation?.nom ?: selectedLine?.currentStationName
+                        if (!stName.isNullOrBlank()) {
+                            return@remember 18.0
+                        }
+                        val ln = selectedLine?.lineName
+                        if (ln != null) {
+                            val allLines = when (val s = linesUiState) {
+                                is TransportLinesUiState.Success -> s.lines
+                                is TransportLinesUiState.PartialSuccess -> s.lines
+                                else -> null
+                            }
+                            val feat = allLines?.firstOrNull { it.properties.lineName.equals(ln, ignoreCase = true) }
+                            if (feat != null) {
+                                val points = feat.multiLineStringGeometry.coordinates.flatten()
+                                if (points.isNotEmpty()) {
+                                    val lats = points.map { it[1] }
+                                    val lons = points.map { it[0] }
+                                    val latMin = lats.minOrNull() ?: 45.75
+                                    val latMax = lats.maxOrNull() ?: 45.75
+                                    val lonMin = lons.minOrNull() ?: 4.85
+                                    val lonMax = lons.maxOrNull() ?: 4.85
+                                    val latDiff = latMax - latMin
+                                    val lonDiff = lonMax - lonMin
+                                    val span = maxOf(latDiff, lonDiff)
+                                    if (span > 0.0001) {
+                                        val log2Val = kotlin.math.log2(360.0 / span)
+                                        return@remember (log2Val - 1.2).coerceIn(9.5, 15.0)
+                                    }
                                 }
                             }
                         }
-                    },
-                    onFabReset = { isCenteredOnUser = false },
-                    showAlertReport = showAlertReport,
-                    bsScaffoldState = bsScaffoldState,
-                    sheetPeekHeight = if (hasSheet) 130.dp else 0.dp,
-                    sheetContent = {
-                        Box(Modifier.heightIn(max = maxSheetHeight)) {
-                            val sc = allSchedules
-                            val ln = selectedLine
-                            val st = selectedStation
-                            when {
-                                itineraryActive -> InlineItinerarySheetContent(
-                                    viewModel = viewModel,
-                                    departureStop = itineraryDeparture,
-                                    arrivalStop = itineraryArrival,
-                                    maxHeight = maxSheetHeight,
-                                    nearbyDepartureStops = itineraryNearby,
-                                    onDepartureFallbackSelected = { itineraryDeparture = it },
-                                    onJourneysChanged = { activeJourneys = it },
-                                    onSelectedJourneyChanged = { selectedJourney = it },
-                                    onStartNavigation = {
-                                        onNavigationModeChanged(true)
-                                    },
-                                    onClose = closeItinerary,
-                                    onRequestExpandSheet = { },
-                                )
-                                sc != null -> AllSchedulesSheetContent(
-                                    allSchedulesInfo = sc,
-                                    stationName = selectedLine?.currentStationName ?: "",
-                                    selectedDirection = lineDirection,
-                                    availableDirections = availableDirections,
-                                    headsigns = headsigns,
-                                    onDirectionChange = { lineDirection = it },
-                                    onBack = { allSchedules = null },
-                                )
-                                ln != null -> LineDetailsBottomSheet(
-                                    viewModel = viewModel,
-                                    lineInfo = ln,
-                                    sheetState = null,
-                                    selectedDirection = lineDirection,
-                                    onDirectionChange = { lineDirection = it },
-                                    onDismiss = closeSheet,
-                                    onStopClick = { stopName -> selectedLine = selectedLine?.copy(currentStationName = stopName) },
-                                    onBackToStation = {
-                                        val s = selectedLine?.currentStationName
-                                        if (!s.isNullOrBlank()) showStation(s) else closeSheet()
-                                    },
-                                    onShowAllSchedules = { lineName, directionName, schedules ->
-                                        allSchedules = AllSchedulesInfo(lineName = lineName, directionName = directionName, schedules = schedules)
-                                    },
-                                    onItineraryClick = { name -> startItinerary(name) },
-                                )
-                                st != null -> StationSheetContent(
-                                    stationInfo = st,
-                                    viewModel = viewModel,
-                                    onDismiss = closeSheet,
-                                    onDepartureClick = { lineName, _, _ -> showLineAtStation(lineName, st.nom) },
-                                    isFavoriteStop = userFavorites.any { it.stopName.equals(st.nom, ignoreCase = true) },
-                                    onToggleFavoriteStop = {
-                                        val existing = userFavorites.firstOrNull { it.stopName.equals(st.nom, ignoreCase = true) }
-                                        if (existing != null) viewModel.removeUserFavorite(existing.id) else showAddFavoriteDialog = true
-                                    },
-                                    onAddFavoriteClick = { showAddFavoriteDialog = true },
-                                    onItineraryClick = { stopName -> startItinerary(stopName) },
-                                    onReportAlertClick = { stopName, lines ->
-                                        alertReportInitialStopName = stopName
-                                        alertReportInitialLines = lines
-                                        showAlertReport = true
-                                    },
-                                )
+                        null
+                    }
+                    var lastFocusZoom by remember { mutableStateOf<Double?>(null) }
+                    val actualFocusZoom: Double? = if (focusZoom != lastFocusZoom || focusCenter != null) {
+                        lastFocusZoom = focusZoom
+                        focusZoom
+                    } else null
+
+                    PlanContent(
+                        viewModel = viewModel,
+                        stops = filteredStopsCollection?.features,
+                        userLocation = userLocation,
+                        userFavorites = userFavorites,
+                        showTopBar = !itineraryActive,
+                        vehiclesGeoJson = vehiclesGeoJson,
+                        vehicleIconName = vehicleIconName,
+                        focusCenter = focusCenter,
+                        focusZoom = actualFocusZoom,
+                        selectedLineName = selectedLine?.lineName,
+                        itineraryGeoJson = itineraryGeoJson,
+                        filteredStopsCollection = filteredStopsCollection,
+                        fabDrawableProvider = fabDrawableProvider,
+                        onStopSelected = { nom, id, lns -> showStation(nom, id, lns) },
+                        onLineSelected = { name -> showLine(name) },
+                        onAddFavoriteClick = { showAddFavoriteDialog = true },
+                        onItinerarySelected = { name -> startItinerary(name) },
+                        isCenteredOnUser = isCenteredOnUser,
+                        onFabClick = {
+                            if (isCenteredOnUser) {
+                                alertReportInitialStopName = null
+                                alertReportInitialLines = emptyList()
+                                showAlertReport = true
+                            } else {
+                                val loc = userLocation
+                                if (loc != null) {
+                                    manualFocusCenter = null
+                                    scope.launch {
+                                        kotlinx.coroutines.delay(10)
+                                        manualFocusCenter = loc
+                                        isCenteredOnUser = true
+                                    }
+                                }
+                            }
+                        },
+                        onFabReset = { isCenteredOnUser = false },
+                        showAlertReport = showAlertReport,
+                        bsScaffoldState = bsScaffoldState,
+                        sheetPeekHeight = if (hasSheet) 130.dp else 0.dp,
+                        sheetContent = {
+                            Box(Modifier.heightIn(max = maxSheetHeight)) {
+                                val sc = allSchedules
+                                val ln = selectedLine
+                                val st = selectedStation
+                                when {
+                                    itineraryActive -> InlineItinerarySheetContent(
+                                        viewModel = viewModel,
+                                        departureStop = itineraryDeparture,
+                                        arrivalStop = itineraryArrival,
+                                        maxHeight = maxSheetHeight,
+                                        nearbyDepartureStops = itineraryNearby,
+                                        onDepartureFallbackSelected = { itineraryDeparture = it },
+                                        onJourneysChanged = { activeJourneys = it },
+                                        onSelectedJourneyChanged = { selectedJourney = it },
+                                        onStartNavigation = {
+                                            onNavigationModeChanged(true)
+                                        },
+                                        onClose = closeItinerary,
+                                        onRequestExpandSheet = { },
+                                    )
+                                    sc != null -> AllSchedulesSheetContent(
+                                        allSchedulesInfo = sc,
+                                        stationName = selectedLine?.currentStationName ?: "",
+                                        selectedDirection = lineDirection,
+                                        availableDirections = availableDirections,
+                                        headsigns = headsigns,
+                                        onDirectionChange = { lineDirection = it },
+                                        onBack = { allSchedules = null },
+                                    )
+                                    ln != null -> LineDetailsBottomSheet(
+                                        viewModel = viewModel,
+                                        lineInfo = ln,
+                                        sheetState = null,
+                                        selectedDirection = lineDirection,
+                                        onDirectionChange = { lineDirection = it },
+                                        onDismiss = closeSheet,
+                                        onStopClick = { stopName -> selectedLine = selectedLine?.copy(currentStationName = stopName) },
+                                        onBackToStation = {
+                                            val s = selectedLine?.currentStationName
+                                            if (!s.isNullOrBlank()) showStation(s) else closeSheet()
+                                        },
+                                        onShowAllSchedules = { lineName, directionName, schedules ->
+                                            allSchedules = AllSchedulesInfo(lineName = lineName, directionName = directionName, schedules = schedules)
+                                        },
+                                        onItineraryClick = { name -> startItinerary(name) },
+                                    )
+                                    st != null -> StationSheetContent(
+                                        stationInfo = st,
+                                        viewModel = viewModel,
+                                        onDismiss = closeSheet,
+                                        onDepartureClick = { lineName, _, _ -> showLineAtStation(lineName, st.nom) },
+                                        isFavoriteStop = userFavorites.any { it.stopName.equals(st.nom, ignoreCase = true) },
+                                        onToggleFavoriteStop = {
+                                            val existing = userFavorites.firstOrNull { it.stopName.equals(st.nom, ignoreCase = true) }
+                                            if (existing != null) viewModel.removeUserFavorite(existing.id) else showAddFavoriteDialog = true
+                                        },
+                                        onAddFavoriteClick = { showAddFavoriteDialog = true },
+                                        onItineraryClick = { stopName -> startItinerary(stopName) },
+                                        onReportAlertClick = { stopName, lines ->
+                                            alertReportInitialStopName = stopName
+                                            alertReportInitialLines = lines
+                                            showAlertReport = true
+                                        },
+                                    )
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
-            }
+
             NavigationBar(containerColor = PrimaryColor) {
                 Destination.entries.forEach { destination ->
                     NavigationBarItem(
@@ -636,7 +680,6 @@ private fun RootScaffold(
             }
         }
 
-        // Itinerary header: two stop fields (departure / arrival) + swap, replacing the search bar.
         if (itineraryActive) {
             Box(
                 modifier = Modifier
@@ -683,7 +726,6 @@ private fun RootScaffold(
             }
         }
 
-        // Stop-search overlay shown when an itinerary field is being edited.
         itinerarySearchTarget?.let { target ->
             val isDeparture = target == ItineraryFieldTarget.DEPARTURE
             TransportSearchBar(
@@ -706,7 +748,6 @@ private fun RootScaffold(
             )
         }
 
-        // Lignes: a blocking modal sheet over the map (the one sheet meant to be blocking).
         if (showLinesSheet) {
             val linesSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val allLines = remember(linesUiState, stopsUiState) { viewModel.getAllAvailableLines() }
@@ -735,12 +776,12 @@ private fun RootScaffold(
         }
 
         if (showAlertReport) {
-            val userPos = userLocation // Capture stable reference
-            val nearestStopCandidate = planStops?.minByOrNull { stop ->
+            val userPos = userLocation
+            val nearestStopCandidate = filteredStopsCollection?.features?.minByOrNull { stop ->
                 val coords = stop.geometry.coordinates
                 if (userPos != null && coords.size >= 2) {
-                    val dx = coords[0] - userPos.longitude
-                    val dy = coords[1] - userPos.latitude
+                    val dx = coords[0].toDouble() - userPos.longitude
+                    val dy = coords[1].toDouble() - userPos.latitude
                     dx * dx + dy * dy
                 } else Double.MAX_VALUE
             }?.let { stop ->
@@ -768,10 +809,6 @@ private fun RootScaffold(
     }
 }
 
-/**
- * Presentational map screen: the MapCanvas + the search/favorites/map-style overlay. Taps bubble
- * up to [RootScaffold] (which owns the sheets). [showTopBar] hides the search bar in itinerary mode.
- */
 @Composable
 private fun PlanContent(
     viewModel: TransportViewModel,
@@ -785,6 +822,8 @@ private fun PlanContent(
     focusZoom: Double?,
     selectedLineName: String?,
     itineraryGeoJson: String?,
+    filteredStopsCollection: StopCollection?,
+    fabDrawableProvider: DrawableProvider,
     onStopSelected: (String, Int?, List<String>) -> Unit,
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
@@ -835,8 +874,6 @@ private fun PlanContent(
         }
     }
 
-    val fabDrawableProvider = DrawableProvider(LocalPlatformContext.current)
-
     Box(Modifier.fillMaxSize()) {
         BottomSheetScaffold(
             modifier = Modifier.fillMaxSize(),
@@ -846,6 +883,7 @@ private fun PlanContent(
                 sheetContent()
             }
         ) {
+            Log.i("PeloApp", "PlanContent: before MapCanvas")
             MapCanvas(
                 modifier = Modifier.fillMaxSize(),
                 styleUrl = selectedMapStyle.styleUrl,
@@ -855,7 +893,7 @@ private fun PlanContent(
                 centerOn = focusCenter,
                 focusZoom = focusZoom,
                 lines = mapLines?.let { FeatureCollection(features = it) },
-                stops = stops?.let { StopCollection(features = it) },
+                stops = filteredStopsCollection,
                 userLocation = userLocation,
                 vehiclesGeoJson = vehiclesGeoJson,
                 vehicleIconName = vehicleIconName,
@@ -879,7 +917,6 @@ private fun PlanContent(
                 contentAlignment = Alignment.Center
             ) {
                 if (isCenteredOnUser) {
-                    // Alert icon: yellow triangle with + (add_triangle_24px drawable)
                     Icon(
                         painter = fabDrawableProvider.getPainter("add_triangle_24px"),
                         contentDescription = "Signaler une alerte",
@@ -887,7 +924,6 @@ private fun PlanContent(
                         modifier = Modifier.size(30.dp)
                     )
                 } else {
-                    // Location icon: filled blue circle with white stroke ring
                     Canvas(modifier = Modifier.size(18.dp)) {
                         val radius = size.minDimension / 2f
                         drawCircle(
@@ -950,7 +986,6 @@ private fun PlanContent(
                             }
                             val isActiveNoVehicles = isLiveModeEnabled && !hasVehicles
 
-                            // Animation for the bouncing dot (goes up and down)
                             val infiniteTransition = rememberInfiniteTransition(label = "live_dot")
                             val dotOffset by infiniteTransition.animateFloat(
                                 initialValue = if (hasVehicles) -2f else 0f,
@@ -963,9 +998,9 @@ private fun PlanContent(
                             )
 
                             val buttonColor = when {
-                                hasVehicles -> Color(0xFFEF4444) // Red when active with vehicles
-                                isActiveNoVehicles -> Color(0xFF9CA3AF) // Gray when active but no vehicles
-                                else -> PrimaryColor // Black when inactive
+                                hasVehicles -> Color(0xFFEF4444)
+                                isActiveNoVehicles -> Color(0xFF9CA3AF)
+                                else -> PrimaryColor
                             }
 
                              Row(
@@ -993,12 +1028,8 @@ private fun PlanContent(
                                      .background(buttonColor)
                                      .clickable {
                                          if (isLiveModeEnabled) {
-                                             if (isLiveTrackingEnabled) {
-                                                 viewModel.stopLiveTracking()
-                                             }
-                                             if (isGlobalLiveEnabled) {
-                                                 viewModel.stopGlobalLive()
-                                             }
+                                             if (isLiveTrackingEnabled) viewModel.stopLiveTracking()
+                                             if (isGlobalLiveEnabled) viewModel.stopGlobalLive()
                                          } else {
                                              if (!selectedLineName.isNullOrBlank()) {
                                                  viewModel.startLiveTracking(selectedLineName)
@@ -1054,7 +1085,6 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
     val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf("root") }
     val backToRoot = { route = "root" }
-    // Full-screen (no inset padding) so settings covers the whole screen, behind the notch too.
     Box(modifier) {
         when (route) {
             "legal" -> LegalScreen(

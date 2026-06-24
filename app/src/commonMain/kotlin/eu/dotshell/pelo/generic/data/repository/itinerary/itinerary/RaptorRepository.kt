@@ -219,6 +219,14 @@ class RaptorRepository private constructor(private val context: PlatformContext)
                     )
                 }
 
+                // Pre-heat current period caches to avoid lazy file I/O on first
+                // getDesserteForStop call (which happens during stop enrichment at startup).
+                val currentPeriod = raptorLibrary?.getCurrentPeriod()
+                if (currentPeriod != null) {
+                    getRoutesForPeriod(currentPeriod)
+                    getStopsForPeriod(currentPeriod)
+                }
+
                 isInitialized = true
 
                 Log.i(
@@ -540,7 +548,7 @@ class RaptorRepository private constructor(private val context: PlatformContext)
         latitude: Double,
         longitude: Double,
         limit: Int = 5
-    ): List<RaptorStop> = withContext(Dispatchers.Default) {
+    ): List<RaptorStop> = withContext(ioDispatcher) {
         ensureInitialized()
         try {
             // Calculate distance for each stop and sort by distance

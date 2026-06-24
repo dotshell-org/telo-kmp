@@ -49,15 +49,21 @@ class OfflineDataManager(
         private const val WEIGHT_MAP_TILES = 0.73f
     }
 
-    private val offlineRepository = OfflineRepository(context)
-    private val offlineMapManager = createOfflineTileDownloader(context)
-    private val schedulesRepository =
-        SchedulesRepository.getInstance(context)
+    private val offlineRepository by lazy { OfflineRepository(context) }
+    private val offlineMapManager by lazy { createOfflineTileDownloader(context) }
+    private val schedulesRepository by lazy { SchedulesRepository.getInstance(context) }
 
     private val _downloadState = MutableStateFlow<OfflineDownloadState>(OfflineDownloadState.Idle)
     val downloadState: StateFlow<OfflineDownloadState> = _downloadState.asStateFlow()
 
-    private val _offlineDataInfo = MutableStateFlow(offlineRepository.getOfflineDataInfo())
+    private val _offlineDataInfo = MutableStateFlow(OfflineDataInfo())
+    val offlineDataInfo: StateFlow<OfflineDataInfo> = _offlineDataInfo.asStateFlow()
+
+    suspend fun refreshOfflineDataInfo() {
+        withContext(ioDispatcher) {
+            _offlineDataInfo.value = offlineRepository.getOfflineDataInfo()
+        }
+    }
 
     /**
      * Cancels an ongoing download.

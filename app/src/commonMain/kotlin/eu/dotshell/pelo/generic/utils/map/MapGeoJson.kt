@@ -137,7 +137,8 @@ class StopsRenderData(val geoJson: String, val iconNames: Set<String>, val maxIc
  */
 fun StopCollection.toStopsGeoJsonByPriority(
     selectedLineName: String? = null,
-    hasDrawable: (String) -> Boolean
+    hasDrawable: (String) -> Boolean,
+    currentZoom: Double = 20.0
 ): StopsRenderData {
     val lineRules = TransportServiceProvider.getTransportLineRules()
     val iconNames = LinkedHashSet<String>()
@@ -186,13 +187,16 @@ fun StopCollection.toStopsGeoJsonByPriority(
                         }
                     }
 
-                    // 2. Other weak lines/modes
-                    val uniqueModes = lines
-                        .filterNot { lineRules.isStrongLine(it.uppercase()) }
-                        .mapNotNull { lineRules.getModeIcon(it) }
-                        .distinct()
-                    for (mode in uniqueModes) {
-                        if (hasDrawable(mode)) icons.add(mode to 0)
+                    // 2. Other weak lines/modes — skip bus icons below zoom 17
+                    // (they're invisible anyway due to minZoom and just waste CPU/GPU)
+                    if (currentZoom >= 17.0) {
+                        val uniqueModes = lines
+                            .filterNot { lineRules.isStrongLine(it.uppercase()) }
+                            .mapNotNull { lineRules.getModeIcon(it) }
+                            .distinct()
+                        for (mode in uniqueModes) {
+                            if (hasDrawable(mode)) icons.add(mode to 0)
+                        }
                     }
                 }
                 if (icons.isEmpty()) continue

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -18,10 +19,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import eu.dotshell.pelo.generic.data.models.geojson.FeatureCollection
 import eu.dotshell.pelo.generic.data.models.geojson.StopCollection
+import eu.dotshell.pelo.generic.utils.map.StopsRenderData
 import eu.dotshell.pelo.generic.utils.map.toLinesGeoJson
 import eu.dotshell.pelo.generic.utils.map.toStopsGeoJsonByPriority
 import eu.dotshell.pelo.platform.DrawableProvider
 import eu.dotshell.pelo.platform.LocalPlatformContext
+import eu.dotshell.pelo.platform.Log
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraState
 import org.maplibre.compose.camera.rememberCameraState
@@ -48,8 +51,13 @@ import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
 import org.maplibre.spatialk.geojson.Position
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+
+private const val EMPTY_FEATURE_COLLECTION = """{"type":"FeatureCollection","features":[]}"""
+private const val STOP_RENDER_MIN_ZOOM = 12.5
 
 /**
  * Cross-platform map canvas built on maplibre-compose (declarative).
@@ -89,6 +97,8 @@ fun MapCanvas(
     centerOn: Position? = null,
     focusZoom: Double? = null,
 ) {
+    Log.i("MapCanvas", "compose entered, stops=${stops?.features?.size} shouldRenderStops=${!selectedLineName.isNullOrBlank() || initialZoom >= STOP_RENDER_MIN_ZOOM} lines=${lines?.features?.size}")
+
     val fallbackPainter = remember {
         object : Painter() {
             override val intrinsicSize: Size = Size(14f, 14f)
@@ -123,30 +133,51 @@ fun MapCanvas(
             }
     }
 
+    var shouldRenderStops by remember(selectedLineName) {
+        mutableStateOf(!selectedLineName.isNullOrBlank() || initialZoom >= STOP_RENDER_MIN_ZOOM)
+    }
+    LaunchedEffect(cameraState, selectedLineName) {
+        snapshotFlow {
+            !selectedLineName.isNullOrBlank() || cameraState.position.zoom >= STOP_RENDER_MIN_ZOOM
+        }.collect { shouldRenderStops = it }
+    }
+
+    val context = LocalPlatformContext.current
+    val drawableProvider = remember(context) { DrawableProvider(context) }
+    val linesGeoJson by produceState(EMPTY_FEATURE_COLLECTION, lines) {
+        value = EMPTY_FEATURE_COLLECTION
+        value = withContext(Dispatchers.Default) {
+            lines?.toLinesGeoJson() ?: EMPTY_FEATURE_COLLECTION
+        }
+    }
+    val stopsToRender = if (shouldRenderStops) stops else null
+    val shouldIncludeBus = cameraState.position.zoom >= 17.0
+    val renderZoom = cameraState.position.zoom
+    val render by produceState<StopsRenderData?>(null, stopsToRender, selectedLineName, drawableProvider, shouldIncludeBus) {
+        value = null
+        value = withContext(Dispatchers.Default) {
+            stopsToRender?.toStopsGeoJsonByPriority(selectedLineName, { drawableProvider.hasDrawable(it) }, renderZoom)
+        }
+    }
+
     MaplibreMap(
         modifier = modifier,
         baseStyle = BaseStyle.Uri(styleUrl),
         cameraState = cameraState,
         options = MapOptions(gestureOptions = mapGestureOptions(interactive)),
     ) {
+        Log.i("MapCanvas", "MaplibreMap content lambda compose start")
         // Unconditional sources to stabilize Compose slots and prevent MLNRedundantSourceException on iOS
-        val linesGeoJson = remember(lines) { lines?.toLinesGeoJson() ?: """{"type":"FeatureCollection","features":[]}""" }
         val lineSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(linesGeoJson))
-
-        val context = LocalPlatformContext.current
-        val drawableProvider = remember(context) { DrawableProvider(context) }
-        val render = remember(stops, selectedLineName) { stops?.toStopsGeoJsonByPriority(selectedLineName) { drawableProvider.hasDrawable(it) } }
-        val stopsSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(render?.geoJson ?: """{"type":"FeatureCollection","features":[]}"""))
-
-        val itinerarySource = rememberGeoJsonSource(data = GeoJsonData.JsonString(itineraryGeoJson ?: """{"type":"FeatureCollection","features":[]}"""))
-
-        val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson ?: """{"type":"FeatureCollection","features":[]}"""))
+        val stopsSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(render?.geoJson ?: EMPTY_FEATURE_COLLECTION))
+        val itinerarySource = rememberGeoJsonSource(data = GeoJsonData.JsonString(itineraryGeoJson ?: EMPTY_FEATURE_COLLECTION))
+        val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson ?: EMPTY_FEATURE_COLLECTION))
 
         val userLocationGeoJson = remember(userLocation) {
             if (userLocation != null) {
                 """{"type":"Feature","geometry":{"type":"Point","coordinates":[${userLocation.longitude},${userLocation.latitude}]},"properties":{}}"""
             } else {
-                """{"type":"FeatureCollection","features":[]}"""
+                EMPTY_FEATURE_COLLECTION
             }
         }
         val userSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(userLocationGeoJson))
@@ -190,14 +221,15 @@ fun MapCanvas(
             )
         }
 
-        if (stops != null && render != null) {
+        val currentRender = render
+        if (stopsToRender != null && currentRender != null) {
             // Stop GeoJSON: each feature carries a `stop_priority` (2 = metro/funicular/strong bus,
             // 1 = tram, 0 = bus) so stops reveal progressively by zoom, plus an `icon` (line glyph
             // drawable name) so each stop draws its line icon — matching the Android map.
             // Per-feature icon image: embed each line-glyph painter and select it by the feature's
             // `icon` name. image(painter) embeds the bitmap directly, so it works without named-image
             // registration (which maplibre-compose 0.13 can't do on iOS).
-            val iconNames = render.iconNames.toList()
+            val iconNames = currentRender.iconNames.toList()
             val iconImage: org.maplibre.compose.expressions.ast.Expression<ImageValue>? =
                 if (iconNames.isEmpty()) {
                     null
@@ -220,7 +252,7 @@ fun MapCanvas(
                 // One layer per (priority, slot): priority gates the zoom (metro/funicular always,
                 // tram from z13, bus from z16) via minZoom; slot stacks the icons of a multi-line
                 // stop vertically by offset — reproducing Android's stacked line icons.
-                val slots = (-(render.maxIcons - 1)..(render.maxIcons - 1)).toList()
+                val slots = (-(currentRender.maxIcons - 1)..(currentRender.maxIcons - 1)).toList()
                 // Android thresholds: metro/funicular from z12.5 (so they vanish when zoomed out
                 // too far), tram from z14, bus from z17.
                 val tiers = listOf(2 to 12.5f, 1 to 14f, 0 to 17f)

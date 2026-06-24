@@ -6,9 +6,11 @@ import eu.dotshell.pelo.generic.data.repository.api.SchedulesRepository as ApiSc
 import eu.dotshell.pelo.generic.data.repository.itinerary.itinerary.RaptorRepository
 import eu.dotshell.pelo.platform.Log
 import eu.dotshell.pelo.platform.PlatformContext
+import eu.dotshell.pelo.platform.ioDispatcher
 import kotlin.concurrent.Volatile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 class SchedulesRepository private constructor(context: PlatformContext) : ApiSchedulesRepository {
 
@@ -71,16 +73,16 @@ class SchedulesRepository private constructor(context: PlatformContext) : ApiSch
         val cacheKey = query.trim().lowercase()
         getCachedSearch(cacheKey)?.let { return it }
 
-        val assetsAvailable = raptorRepository.checkAssetsAvailable()
-        val rawResults = raptorRepository.searchStopsByName(query)
-            .map { stop ->
+        val (assetsAvailable, rawResults) = withContext(ioDispatcher) {
+            val assetsAvail = raptorRepository.checkAssetsAvailable()
+            val stops = raptorRepository.searchStopsByName(query)
+            val results = stops.map { stop ->
                 val desserte = raptorRepository.getDesserteForStop(stop.name).orEmpty()
                 val lines = if (desserte.isEmpty() || desserte.equals("UNKNOWN", ignoreCase = true)) {
-                    if (!assetsAvailable) {
+                    if (!assetsAvail) {
                         Log.w("SchedulesRepository", "Stop ${stop.name} has no desserte data - Raptor assets may be missing")
                         emptyList()
                     } else {
-                        // desserte already fetched above - reuse it (no second call needed)
                         emptyList()
                     }
                 } else {
@@ -98,6 +100,8 @@ class SchedulesRepository private constructor(context: PlatformContext) : ApiSch
                     stopId = stop.id
                 )
             }
+            assetsAvail to results
+        }
 
         // Group homonymous platforms/quays under one visual stop entry in search results.
         val results = rawResults
