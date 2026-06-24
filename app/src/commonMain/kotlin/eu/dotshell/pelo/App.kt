@@ -1072,7 +1072,6 @@ private fun PlanContent(
                 onStyleSelected = { style ->
                     selectedMapStyle = style
                     mapStyleRepo.saveSelectedStyle(style)
-                    showStyleSheet = false
                 },
             )
         }

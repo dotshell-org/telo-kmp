@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ import eu.dotshell.pelo.generic.utils.map.toStopsGeoJsonByPriority
 import eu.dotshell.pelo.platform.DrawableProvider
 import eu.dotshell.pelo.platform.LocalPlatformContext
 import eu.dotshell.pelo.platform.Log
+import eu.dotshell.pelo.platform.FileSystem
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraState
 import org.maplibre.compose.camera.rememberCameraState
@@ -160,214 +162,232 @@ fun MapCanvas(
         }
     }
 
+    val baseStyle = remember(styleUrl, context) {
+        if (styleUrl.startsWith("asset://")) {
+            val assetName = styleUrl.removePrefix("asset://")
+            val fileSystem = FileSystem(context)
+            runCatching {
+                val json = fileSystem.readAsset(assetName)
+                BaseStyle.Json(json)
+            }.getOrElse {
+                Log.e("MapCanvas", "Failed to load local asset style: $assetName", it)
+                BaseStyle.Uri(styleUrl)
+            }
+        } else {
+            BaseStyle.Uri(styleUrl)
+        }
+    }
+
     MaplibreMap(
         modifier = modifier,
-        baseStyle = BaseStyle.Uri(styleUrl),
+        baseStyle = baseStyle,
         cameraState = cameraState,
         options = MapOptions(gestureOptions = mapGestureOptions(interactive)),
     ) {
         Log.i("MapCanvas", "MaplibreMap content lambda compose start")
-        // Unconditional sources to stabilize Compose slots and prevent MLNRedundantSourceException on iOS
-        val lineSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(linesGeoJson))
-        val stopsSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(render?.geoJson ?: EMPTY_FEATURE_COLLECTION))
-        val itinerarySource = rememberGeoJsonSource(data = GeoJsonData.JsonString(itineraryGeoJson ?: EMPTY_FEATURE_COLLECTION))
-        val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson ?: EMPTY_FEATURE_COLLECTION))
+        key(styleUrl) {
+            // Unconditional sources to stabilize Compose slots and prevent MLNRedundantSourceException on iOS
+            val lineSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(linesGeoJson))
+            val stopsSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(render?.geoJson ?: EMPTY_FEATURE_COLLECTION))
+            val itinerarySource = rememberGeoJsonSource(data = GeoJsonData.JsonString(itineraryGeoJson ?: EMPTY_FEATURE_COLLECTION))
+            val vehicleSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(vehiclesGeoJson ?: EMPTY_FEATURE_COLLECTION))
 
-        val userLocationGeoJson = remember(userLocation) {
-            if (userLocation != null) {
-                """{"type":"Feature","geometry":{"type":"Point","coordinates":[${userLocation.longitude},${userLocation.latitude}]},"properties":{}}"""
-            } else {
-                EMPTY_FEATURE_COLLECTION
-            }
-        }
-        val userSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(userLocationGeoJson))
-
-        if (lines != null && itineraryGeoJson == null) {
-            // Thin visible lines
-            LineLayer(
-                id = "transport-lines",
-                source = lineSource,
-                color = feature["color"].convertToColor(),
-                width = switch(
-                    feature["isMetroOrFunicular"].convertToString(),
-                    case("yes", const(3.dp)),
-                    fallback = const(1.5.dp)
-                ),
-                onClick = { features ->
-                    val lineName = features.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                    if (lineName != null) {
-                        onLineClick(lineName)
-                        ClickResult.Consume
-                    } else {
-                        ClickResult.Pass
-                    }
-                },
-            )
-            // Thick invisible lines to make selecting them much easier on touch screens
-            LineLayer(
-                id = "transport-lines-tap",
-                source = lineSource,
-                color = const(Color(0x01000000)), // Tiny alpha to ensure MapLibre hit-tests it
-                width = const(24.dp),
-                onClick = { features ->
-                    val lineName = features.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                    if (lineName != null) {
-                        onLineClick(lineName)
-                        ClickResult.Consume
-                    } else {
-                        ClickResult.Pass
-                    }
-                },
-            )
-        }
-
-        val currentRender = render
-        if (stopsToRender != null && currentRender != null) {
-            // Stop GeoJSON: each feature carries a `stop_priority` (2 = metro/funicular/strong bus,
-            // 1 = tram, 0 = bus) so stops reveal progressively by zoom, plus an `icon` (line glyph
-            // drawable name) so each stop draws its line icon — matching the Android map.
-            // Per-feature icon image: embed each line-glyph painter and select it by the feature's
-            // `icon` name. image(painter) embeds the bitmap directly, so it works without named-image
-            // registration (which maplibre-compose 0.13 can't do on iOS).
-            val iconNames = currentRender.iconNames.toList()
-            val iconImage: org.maplibre.compose.expressions.ast.Expression<ImageValue>? =
-                if (iconNames.isEmpty()) {
-                    null
+            val userLocationGeoJson = remember(userLocation) {
+                if (userLocation != null) {
+                    """{"type":"Feature","geometry":{"type":"Point","coordinates":[${userLocation.longitude},${userLocation.latitude}]},"properties":{}}"""
                 } else {
-                    val cases = ArrayList<Case<StringValue, ImageValue>>(iconNames.size)
-                    for (name in iconNames) {
-                        val painter = drawableProvider.getPainter(name)
-                        cases.add(case(name, image(painter, glyphDpSize(painter, 17f))))
-                    }
-                    val firstPainter = drawableProvider.getPainter(iconNames.first())
-                    val fallback = image(firstPainter, glyphDpSize(firstPainter, 17f))
-                    switch(feature["icon"].convertToString(), *cases.toTypedArray(), fallback = fallback)
+                    EMPTY_FEATURE_COLLECTION
                 }
+            }
+            val userSource = rememberGeoJsonSource(data = GeoJsonData.JsonString(userLocationGeoJson))
 
-            val onStop: (String?) -> ClickResult = { nom ->
-                if (nom != null) { onStopClick(nom); ClickResult.Consume } else ClickResult.Pass
+            if (lines != null && itineraryGeoJson == null) {
+                // Thin visible lines
+                LineLayer(
+                    id = "transport-lines",
+                    source = lineSource,
+                    color = feature["color"].convertToColor(),
+                    width = switch(
+                        feature["isMetroOrFunicular"].convertToString(),
+                        case("yes", const(3.dp)),
+                        fallback = const(1.5.dp)
+                    ),
+                    onClick = { features ->
+                        val lineName = features.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                        if (lineName != null) {
+                            onLineClick(lineName)
+                            ClickResult.Consume
+                        } else {
+                            ClickResult.Pass
+                        }
+                    },
+                )
+                // Thick invisible lines to make selecting them much easier on touch screens
+                LineLayer(
+                    id = "transport-lines-tap",
+                    source = lineSource,
+                    color = const(Color(0x01000000)), // Tiny alpha to ensure MapLibre hit-tests it
+                    width = const(24.dp),
+                    onClick = { features ->
+                        val lineName = features.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                        if (lineName != null) {
+                            onLineClick(lineName)
+                            ClickResult.Consume
+                        } else {
+                            ClickResult.Pass
+                        }
+                    },
+                )
             }
 
-            if (iconImage != null) {
-                // One layer per (priority, slot): priority gates the zoom (metro/funicular always,
-                // tram from z13, bus from z16) via minZoom; slot stacks the icons of a multi-line
-                // stop vertically by offset — reproducing Android's stacked line icons.
-                val slots = (-(currentRender.maxIcons - 1)..(currentRender.maxIcons - 1)).toList()
-                // Android thresholds: metro/funicular from z12.5 (so they vanish when zoomed out
-                // too far), tram from z14, bus from z17.
-                val tiers = listOf(2 to 12.5f, 1 to 14f, 0 to 17f)
-                for ((priority, minZoom) in tiers) {
-                    for (slot in slots) {
-                        SymbolLayer(
-                            id = "transport-stops-$priority-$slot",
-                            source = stopsSource,
-                            minZoom = minZoom,
-                            filter = (feature["stop_priority"].convertToNumber() eq const(priority)) and
-                                (feature["slot"].convertToNumber() eq const(slot)),
-                            iconImage = iconImage,
-                            // slot step is 2, so the gap between adjacent icons is 2 * this value;
-                            // ~= the glyph height so stacked icons touch with no visible gap.
-                            iconOffset = const(DpOffset(0.dp, (slot * 8).dp)),
-                            iconAllowOverlap = const(true),
-                            onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
-                        )
+            val currentRender = render
+            if (stopsToRender != null && currentRender != null) {
+                // Stop GeoJSON: each feature carries a `stop_priority` (2 = metro/funicular/strong bus,
+                // 1 = tram, 0 = bus) so stops reveal progressively by zoom, plus an `icon` (line glyph
+                // drawable name) so each stop draws its line icon — matching the Android map.
+                // Per-feature icon image: embed each line-glyph painter and select it by the feature's
+                // `icon` name. image(painter) embeds the bitmap directly, so it works without named-image
+                // registration (which maplibre-compose 0.13 can't do on iOS).
+                val iconNames = currentRender.iconNames.toList()
+                val iconImage: org.maplibre.compose.expressions.ast.Expression<ImageValue>? =
+                    if (iconNames.isEmpty()) {
+                        null
+                    } else {
+                        val cases = ArrayList<Case<StringValue, ImageValue>>(iconNames.size)
+                        for (name in iconNames) {
+                            val painter = drawableProvider.getPainter(name)
+                            cases.add(case(name, image(painter, glyphDpSize(painter, 17f))))
+                        }
+                        val firstPainter = drawableProvider.getPainter(iconNames.first())
+                        val fallback = image(firstPainter, glyphDpSize(firstPainter, 17f))
+                        switch(feature["icon"].convertToString(), *cases.toTypedArray(), fallback = fallback)
                     }
+
+                val onStop: (String?) -> ClickResult = { nom ->
+                    if (nom != null) { onStopClick(nom); ClickResult.Consume } else ClickResult.Pass
                 }
-            } else {
-                // Fallback: plain dots when no line glyphs are available.
-                CircleLayer(
-                    id = "transport-stops-bus",
-                    source = stopsSource,
-                    minZoom = 16f,
-                    filter = feature["stop_priority"].convertToNumber() eq const(0),
-                    radius = const(3.dp),
-                    color = const(Color(0xFF6B7280)),
-                    onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
+
+                if (iconImage != null) {
+                    // One layer per (priority, slot): priority gates the zoom (metro/funicular always,
+                    // tram from z13, bus from z16) via minZoom; slot stacks the icons of a multi-line
+                    // stop vertically by offset — reproducing Android's stacked line icons.
+                    val slots = (-(currentRender.maxIcons - 1)..(currentRender.maxIcons - 1)).toList()
+                    // Android thresholds: metro/funicular from z12.5 (so they vanish when zoomed out
+                    // too far), tram from z14, bus from z17.
+                    val tiers = listOf(2 to 12.5f, 1 to 14f, 0 to 17f)
+                    for ((priority, minZoom) in tiers) {
+                        for (slot in slots) {
+                            SymbolLayer(
+                                id = "transport-stops-$priority-$slot",
+                                source = stopsSource,
+                                minZoom = minZoom,
+                                filter = (feature["stop_priority"].convertToNumber() eq const(priority)) and
+                                    (feature["slot"].convertToNumber() eq const(slot)),
+                                iconImage = iconImage,
+                                // slot step is 2, so the gap between adjacent icons is 2 * this value;
+                                // ~= the glyph height so stacked icons touch with no visible gap.
+                                iconOffset = const(DpOffset(0.dp, (slot * 8).dp)),
+                                iconAllowOverlap = const(true),
+                                onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
+                            )
+                        }
+                    }
+                } else {
+                    // Fallback: plain dots when no line glyphs are available.
+                    CircleLayer(
+                        id = "transport-stops-bus",
+                        source = stopsSource,
+                        minZoom = 16f,
+                        filter = feature["stop_priority"].convertToNumber() eq const(0),
+                        radius = const(3.dp),
+                        color = const(Color(0xFF6B7280)),
+                        onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
+                    )
+                    CircleLayer(
+                        id = "transport-stops-tram",
+                        source = stopsSource,
+                        minZoom = 13f,
+                        filter = feature["stop_priority"].convertToNumber() eq const(1),
+                        radius = const(4.dp),
+                        color = const(Color(0xFF1F2937)),
+                        onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
+                    )
+                    CircleLayer(
+                        id = "transport-stops-priority",
+                        source = stopsSource,
+                        filter = feature["stop_priority"].convertToNumber() eq const(2),
+                        radius = const(5.dp),
+                        color = const(Color(0xFF1F2937)),
+                        onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
+                    )
+                }
+            }
+
+            if (itineraryGeoJson != null) {
+                // Transit legs
+                LineLayer(
+                    id = "itinerary-transit",
+                    source = itinerarySource,
+                    filter = feature["isWalking"].convertToString() eq const("no"),
+                    color = feature["color"].convertToColor(),
+                    width = const(3.dp),
                 )
-                CircleLayer(
-                    id = "transport-stops-tram",
-                    source = stopsSource,
-                    minZoom = 13f,
-                    filter = feature["stop_priority"].convertToNumber() eq const(1),
-                    radius = const(4.dp),
-                    color = const(Color(0xFF1F2937)),
-                    onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
-                )
-                CircleLayer(
-                    id = "transport-stops-priority",
-                    source = stopsSource,
-                    filter = feature["stop_priority"].convertToNumber() eq const(2),
-                    radius = const(5.dp),
-                    color = const(Color(0xFF1F2937)),
-                    onClick = { f -> onStop(f.firstOrNull()?.properties?.get("nom")?.jsonPrimitive?.contentOrNull) },
+                // Walking legs (dashed)
+                LineLayer(
+                    id = "itinerary-walking",
+                    source = itinerarySource,
+                    filter = feature["isWalking"].convertToString() eq const("yes"),
+                    color = feature["color"].convertToColor(),
+                    width = const(3.dp),
+                    dasharray = const(listOf(2.0, 2.0)),
                 )
             }
-        }
 
-        if (itineraryGeoJson != null) {
-            // Transit legs
-            LineLayer(
-                id = "itinerary-transit",
-                source = itinerarySource,
-                filter = feature["isWalking"].convertToString() eq const("no"),
-                color = feature["color"].convertToColor(),
-                width = const(3.dp),
-            )
-            // Walking legs (dashed)
-            LineLayer(
-                id = "itinerary-walking",
-                source = itinerarySource,
-                filter = feature["isWalking"].convertToString() eq const("yes"),
-                color = feature["color"].convertToColor(),
-                width = const(3.dp),
-                dasharray = const(listOf(2.0, 2.0)),
-            )
-        }
+            if (vehiclesGeoJson != null) {
+                // Circle background for vehicles (color based on line color)
+                CircleLayer(
+                    id = "vehicles-bg",
+                    source = vehicleSource,
+                    radius = const(11.dp),
+                    color = feature["color"].convertToColor(),
+                    onClick = { f ->
+                        val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                        if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
+                    },
+                )
 
-        if (vehiclesGeoJson != null) {
-            // Circle background for vehicles (color based on line color)
-            CircleLayer(
-                id = "vehicles-bg",
-                source = vehicleSource,
-                radius = const(11.dp),
-                color = feature["color"].convertToColor(),
-                onClick = { f ->
-                    val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                    if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
-                },
-            )
+                // White pictogram icon (bus or tram) centered inside the colored circle
+                val vContext = LocalPlatformContext.current
+                val vDrawables = remember(vContext) { DrawableProvider(vContext) }
+                val busPainter = if (vDrawables.hasDrawable("ic_bus_vehicle")) vDrawables.getPainter("ic_bus_vehicle") else fallbackPainter
+                val tramPainter = if (vDrawables.hasDrawable("ic_tramway_vehicle")) vDrawables.getPainter("ic_tramway_vehicle") else fallbackPainter
 
-            // White pictogram icon (bus or tram) centered inside the colored circle
-            val vContext = LocalPlatformContext.current
-            val vDrawables = remember(vContext) { DrawableProvider(vContext) }
-            val busPainter = if (vDrawables.hasDrawable("ic_bus_vehicle")) vDrawables.getPainter("ic_bus_vehicle") else fallbackPainter
-            val tramPainter = if (vDrawables.hasDrawable("ic_tramway_vehicle")) vDrawables.getPainter("ic_tramway_vehicle") else fallbackPainter
+                val vehicleIconImage = switch(
+                    feature["markerType"].convertToString(),
+                    case("TRAM", image(tramPainter, glyphDpSize(tramPainter, 12f))),
+                    fallback = image(busPainter, glyphDpSize(busPainter, 12f))
+                )
 
-            val vehicleIconImage = switch(
-                feature["markerType"].convertToString(),
-                case("TRAM", image(tramPainter, glyphDpSize(tramPainter, 12f))),
-                fallback = image(busPainter, glyphDpSize(busPainter, 12f))
-            )
+                SymbolLayer(
+                    id = "vehicles-pictogram",
+                    source = vehicleSource,
+                    iconImage = vehicleIconImage,
+                    iconAllowOverlap = const(true),
+                    onClick = { f ->
+                        val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
+                        if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
+                    },
+                )
+            }
 
-            SymbolLayer(
-                id = "vehicles-pictogram",
-                source = vehicleSource,
-                iconImage = vehicleIconImage,
-                iconAllowOverlap = const(true),
-                onClick = { f ->
-                    val nom = f.firstOrNull()?.properties?.get("lineName")?.jsonPrimitive?.contentOrNull
-                    if (nom != null) { onVehicleClick(nom); ClickResult.Consume } else ClickResult.Pass
-                },
-            )
-        }
-
-        if (userLocation != null) {
-            CircleLayer(
-                id = "user-location",
-                source = userSource,
-                radius = const(8.dp),
-                color = const(Color(0xFF3B82F6)),
-            )
+            if (userLocation != null) {
+                CircleLayer(
+                    id = "user-location",
+                    source = userSource,
+                    radius = const(8.dp),
+                    color = const(Color(0xFF3B82F6)),
+                )
+            }
         }
     }
 }

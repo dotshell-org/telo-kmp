@@ -4,7 +4,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,6 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import eu.dotshell.pelo.generic.data.network.mapstyle.MapStyleData
 import eu.dotshell.pelo.platform.provideMapStyleConfig
@@ -40,8 +42,6 @@ fun MapStyleSelectionSheet(
     val standardStyles = remember { mapStyleConfig.getStandardMapStyles() }
     val satelliteStyle = remember { mapStyleConfig.getSatelliteMapStyle() }
     val allStyles = remember { standardStyles + satelliteStyle }
-    val firstRowStyles = remember { allStyles.take(4) }
-    val secondRowStyles = remember { allStyles.drop(4) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -59,12 +59,12 @@ fun MapStyleSelectionSheet(
             )
             Spacer(modifier = Modifier.size(16.dp))
 
-            Row(
+            JustifiedFlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalSpacing = 16.dp,
+                verticalSpacing = 12.dp
             ) {
-                firstRowStyles.forEach { style ->
+                allStyles.forEach { style ->
                     val enabled = !isOffline || style.key in downloadedMapStyles
                     val isSelected = style.key == selectedMapStyle.key
 
@@ -96,46 +96,90 @@ fun MapStyleSelectionSheet(
                     }
                 }
             }
+        }
+    }
+}
 
-            if (secondRowStyles.isNotEmpty()) {
-                Spacer(modifier = Modifier.size(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    secondRowStyles.forEach { style ->
-                        val enabled = !isOffline || style.key in downloadedMapStyles
-                        val isSelected = style.key == selectedMapStyle.key
+@Composable
+private fun JustifiedFlowRow(
+    modifier: Modifier = Modifier,
+    horizontalSpacing: Dp = 16.dp,
+    verticalSpacing: Dp = 12.dp,
+    content: @Composable () -> Unit
+) {
+    Layout(
+        content = content,
+        modifier = modifier
+    ) { measurables, constraints ->
+        val maxWidth = constraints.maxWidth
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
 
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .border(
-                                        2.dp,
-                                        if (isSelected) Color(0xFF3B82F6) else Color.Transparent,
-                                        RoundedCornerShape(14.dp)
-                                    )
-                                    .padding(2.dp)
-                            ) {
-                                MapStylePreviewTile(
-                                    style = style,
-                                    isEnabled = enabled,
-                                    onClick = { onStyleSelected(style) }
-                                )
-                            }
+        val rows = mutableListOf<List<Placeable>>()
+        var currentRow = mutableListOf<Placeable>()
+        var currentRowWidth = 0
+        val defaultSpacingPx = horizontalSpacing.roundToPx()
 
-                            Text(
-                                text = mapStyleLabel(style),
-                                color = if (enabled) PrimaryColor else Color(0xFF9CA3AF)
-                            )
+        for (placeable in placeables) {
+            val neededWidth = if (currentRow.isEmpty()) placeable.width else placeable.width + defaultSpacingPx
+            if (currentRowWidth + neededWidth <= maxWidth || currentRow.isEmpty()) {
+                currentRow.add(placeable)
+                currentRowWidth += neededWidth
+            } else {
+                rows.add(currentRow)
+                currentRow = mutableListOf(placeable)
+                currentRowWidth = placeable.width
+            }
+        }
+        if (currentRow.isNotEmpty()) {
+            rows.add(currentRow)
+        }
+
+        val rowHeights = rows.map { row -> row.maxOfOrNull { it.height } ?: 0 }
+        val verticalSpacingPx = verticalSpacing.roundToPx()
+        val totalHeight = rowHeights.sum() + (rows.size - 1).coerceAtLeast(0) * verticalSpacingPx
+
+        layout(maxWidth, totalHeight) {
+            var y = 0
+
+            var spacingForLastRow = defaultSpacingPx
+            if (rows.size > 1 && rows[0].size > 1) {
+                val firstRow = rows[0]
+                val firstRowItemsWidth = firstRow.sumOf { it.width }
+                val remainingWidth = maxWidth - firstRowItemsWidth
+                val numSpaces = firstRow.size - 1
+                spacingForLastRow = remainingWidth / numSpaces
+            }
+
+            for (i in rows.indices) {
+                val row = rows[i]
+                val rowHeight = rowHeights[i]
+                val isLastRow = i == rows.lastIndex
+
+                if (isLastRow) {
+                    var x = 0
+                    for (placeable in row) {
+                        placeable.place(x, y + (rowHeight - placeable.height) / 2)
+                        x += placeable.width + spacingForLastRow
+                    }
+                } else {
+                    if (row.size == 1) {
+                        row[0].place(0, y + (rowHeight - row[0].height) / 2)
+                    } else {
+                        val totalItemsWidth = row.sumOf { it.width }
+                        val remainingWidth = maxWidth - totalItemsWidth
+                        val numSpaces = row.size - 1
+                        var x = 0
+                        for (j in row.indices) {
+                            val placeable = row[j]
+                            placeable.place(x, y + (rowHeight - placeable.height) / 2)
+                            val spaceAfter = if (numSpaces > 0) {
+                                remainingWidth / numSpaces + (if (j < remainingWidth % numSpaces) 1 else 0)
+                            } else 0
+                            x += placeable.width + spaceAfter
                         }
                     }
                 }
+                y += rowHeight + verticalSpacingPx
             }
         }
     }

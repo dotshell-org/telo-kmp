@@ -33,3 +33,5 @@ iosApp/iosApp.xcodeproj/
 iosApp/Info.plist
 **/xcuserdata/
 .swiftpm/
+
+.claude
