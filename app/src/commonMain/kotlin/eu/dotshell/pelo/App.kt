@@ -219,6 +219,7 @@ private fun RootScaffold(
     var selectedStation by remember { mutableStateOf<StationInfo?>(null) }
     var allSchedules by remember { mutableStateOf<AllSchedulesInfo?>(null) }
     var showAddFavoriteDialog by remember { mutableStateOf(false) }
+    var addFavoriteInitialStopName by remember { mutableStateOf<String?>(null) }
 
     var showAlertReport by remember { mutableStateOf(false) }
     var alertReportInitialStopName by remember { mutableStateOf<String?>(null) }
@@ -555,7 +556,10 @@ private fun RootScaffold(
                         fabDrawableProvider = fabDrawableProvider,
                         onStopSelected = { nom, id, lns -> showStation(nom, id, lns) },
                         onLineSelected = { name -> showLine(name) },
-                        onAddFavoriteClick = { showAddFavoriteDialog = true },
+                        onAddFavoriteClick = {
+                            addFavoriteInitialStopName = null
+                            showAddFavoriteDialog = true
+                        },
                         onItinerarySelected = { name -> startItinerary(name) },
                         isCenteredOnUser = isCenteredOnUser,
                         onFabClick = {
@@ -634,9 +638,17 @@ private fun RootScaffold(
                                         isFavoriteStop = userFavorites.any { it.stopName.equals(st.nom, ignoreCase = true) },
                                         onToggleFavoriteStop = {
                                             val existing = userFavorites.firstOrNull { it.stopName.equals(st.nom, ignoreCase = true) }
-                                            if (existing != null) viewModel.removeUserFavorite(existing.id) else showAddFavoriteDialog = true
+                                            if (existing != null) {
+                                                viewModel.removeUserFavorite(existing.id)
+                                            } else {
+                                                addFavoriteInitialStopName = st.nom
+                                                showAddFavoriteDialog = true
+                                            }
                                         },
-                                        onAddFavoriteClick = { showAddFavoriteDialog = true },
+                                        onAddFavoriteClick = { stopName ->
+                                            addFavoriteInitialStopName = stopName
+                                            showAddFavoriteDialog = true
+                                        },
                                         onItineraryClick = { stopName -> startItinerary(stopName) },
                                         onReportAlertClick = { stopName, lines ->
                                             alertReportInitialStopName = stopName
@@ -772,6 +784,7 @@ private fun RootScaffold(
                     showAddFavoriteDialog = false
                 },
                 viewModel = viewModel,
+                initialStopName = addFavoriteInitialStopName,
             )
         }
 
