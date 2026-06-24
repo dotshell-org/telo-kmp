@@ -64,8 +64,6 @@ import eu.dotshell.pelo.generic.data.repository.offline.search.SearchHistoryItem
 import eu.dotshell.pelo.generic.data.repository.offline.search.SearchType
 import eu.dotshell.pelo.generic.data.repository.offline.mapstyle.MapStyleCompat
 import eu.dotshell.pelo.generic.ui.screens.onboarding.NotificationPermissionGate
-import eu.dotshell.pelo.generic.ui.screens.onboarding.TelemetryOptInGate
-import eu.dotshell.pelo.generic.ui.screens.onboarding.TermsConsentGate
 import eu.dotshell.pelo.generic.ui.screens.settings.about.AboutScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.about.ContactScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.about.CreditsScreen
@@ -74,8 +72,6 @@ import eu.dotshell.pelo.generic.ui.screens.settings.about.LegalScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.ItinerarySettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.OfflineSettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.SettingsScreen
-import eu.dotshell.pelo.generic.ui.screens.settings.TelemetryFaqScreen
-import eu.dotshell.pelo.generic.ui.screens.settings.TelemetryPreviewScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.TelemetrySettingsScreen
 import eu.dotshell.pelo.generic.ui.theme.PeloTheme
 import eu.dotshell.pelo.generic.ui.theme.AccentColor
@@ -145,33 +141,27 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CompositionLocalProvider(eu.dotshell.pelo.platform.LocalPlatformContext provides this@MainActivity) {
-            PeloTheme {
-                TermsConsentGate {
-                    NotificationPermissionGate {
-                        TelemetryOptInGate {
-                            App(
-                                onNavigationModeChanged = { active ->
-                                    if (!hasAppliedFirstNavigationCallback) {
-                                        hasAppliedFirstNavigationCallback = true
-                                        // Ignore initial Compose state restoration mismatch when service is still active.
-                                        if (isNavigationModeEnabled && !active) return@App
-                                    }
-                                    if (active == isNavigationModeEnabled) return@App
-                                    isNavigationModeEnabled = active
-                                    if (active) {
-                                        startNavigationForegroundService()
-                                    } else {
-                                        stopNavigationForegroundService()
-                                    }
-                                    setNavigationLockScreenBehavior(active)
-                                }
-                            )
+                NotificationPermissionGate {
+                    App(
+                        onNavigationModeChanged = { active ->
+                            if (!hasAppliedFirstNavigationCallback) {
+                                hasAppliedFirstNavigationCallback = true
+                                // Ignore initial Compose state restoration mismatch when service is still active.
+                                if (isNavigationModeEnabled && !active) return@App
+                            }
+                            if (active == isNavigationModeEnabled) return@App
+                            isNavigationModeEnabled = active
+                            if (active) {
+                                startNavigationForegroundService()
+                            } else {
+                                stopNavigationForegroundService()
+                            }
+                            setNavigationLockScreenBehavior(active)
                         }
-                    }
+                    )
                 }
             }
         }
-    }
 
         // Deferred initialization - run AFTER setContent to not block first frame
         // These are not needed for initial UI display

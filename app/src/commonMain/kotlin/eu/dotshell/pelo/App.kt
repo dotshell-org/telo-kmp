@@ -116,6 +116,8 @@ import eu.dotshell.pelo.generic.ui.screens.settings.ItinerarySettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.OfflineSettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.SettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.TelemetrySettingsScreen
+import eu.dotshell.pelo.generic.ui.screens.onboarding.TermsConsentGate
+import eu.dotshell.pelo.generic.ui.screens.onboarding.TelemetryOptInGate
 import eu.dotshell.pelo.generic.ui.screens.settings.about.ContactScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.about.CreditsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.about.LegalScreen
@@ -172,30 +174,34 @@ fun App(onNavigationModeChanged: (Boolean) -> Unit = {}) {
     }
 
     PeloTheme {
-        Box(Modifier.fillMaxSize()) {
-            val vm = viewModel
-            if (vm != null) {
-                RootScaffold(vm, onNavigationModeChanged)
-            } else {
-                Box(Modifier.fillMaxSize().background(Color.White))
-            }
+        TermsConsentGate {
+            TelemetryOptInGate {
+                Box(Modifier.fillMaxSize()) {
+                    val vm = viewModel
+                    if (vm != null) {
+                        RootScaffold(vm, onNavigationModeChanged)
+                    } else {
+                        Box(Modifier.fillMaxSize().background(Color.White))
+                    }
 
-            if (isInitializing) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .background(
-                            Color.White.copy(alpha = 0.85f),
-                            RoundedCornerShape(999.dp)
-                        )
-                        .padding(12.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = PrimaryColor
-                    )
+                    if (isInitializing) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                                .background(
+                                    Color.White.copy(alpha = 0.85f),
+                                    RoundedCornerShape(999.dp)
+                                )
+                                .padding(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = PrimaryColor
+                            )
+                        }
+                    }
                 }
             }
         }
