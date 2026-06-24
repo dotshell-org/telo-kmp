@@ -58,6 +58,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -675,7 +676,11 @@ private fun RootScaffold(
                             when (destination) {
                                 Destination.LINES -> { selectedTab = Destination.PLAN; showLinesSheet = true }
                                 Destination.PLAN -> { selectedTab = Destination.PLAN; showLinesSheet = false }
-                                Destination.SETTINGS -> { selectedTab = Destination.SETTINGS; showLinesSheet = false }
+                                Destination.SETTINGS -> {
+                                    selectedTab = Destination.SETTINGS
+                                    showLinesSheet = false
+                                    itinerarySearchTarget = null
+                                }
                             }
                         },
                         icon = { Icon(destination.icon, contentDescription = destination.contentDescription) },
@@ -692,7 +697,7 @@ private fun RootScaffold(
             }
         }
 
-        if (itineraryActive) {
+        if (itineraryActive && selectedTab != Destination.SETTINGS) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -1095,17 +1100,29 @@ private fun PlanContent(
 private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modifier, onBack: () -> Unit) {
     val context = LocalPlatformContext.current
     val scope = rememberCoroutineScope()
-    var route by remember { mutableStateOf("root") }
-    val backToRoot = { route = "root" }
+    val routesStack = remember { mutableStateListOf("root") }
+    val currentRoute = routesStack.lastOrNull() ?: "root"
+    val navigateTo = { newRoute: String ->
+        routesStack.add(newRoute)
+        Unit
+    }
+    val navigateBack = {
+        if (routesStack.size > 1) {
+            routesStack.removeAt(routesStack.lastIndex)
+        } else {
+            onBack()
+        }
+        Unit
+    }
     Box(modifier) {
-        when (route) {
+        when (currentRoute) {
             "legal" -> LegalScreen(
                 legalSections = remember { AppConfigLoader.getConfig().about.legalSections },
-                onBackClick = backToRoot,
+                onBackClick = navigateBack,
             )
-            "credits" -> CreditsScreen(onBackClick = backToRoot)
-            "contact" -> ContactScreen(onBackClick = backToRoot)
-            "offline" -> OfflineSettingsScreen(viewModel = viewModel, onBackClick = backToRoot)
+            "credits" -> CreditsScreen(onBackClick = navigateBack)
+            "contact" -> ContactScreen(onBackClick = navigateBack)
+            "offline" -> OfflineSettingsScreen(viewModel = viewModel, onBackClick = navigateBack)
             "itinerary" -> {
                 val cfg = remember { AppConfigLoader.getConfig().itinerarySettings }
                 val prefs = remember { ItineraryPreferencesRepository(context) }
@@ -1113,35 +1130,35 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                     screenTitle = cfg.screenTitle,
                     sectionTitle = cfg.sectionTitle,
                     options = cfg.options,
-                    onBackClick = backToRoot,
+                    onBackClick = navigateBack,
                     onOptionToggle = { key, enabled -> prefs.setOptionEnabled(key, enabled) },
                     getInitialOptionState = { opt -> prefs.isOptionEnabled(opt.key, opt.defaultEnabled) },
                 )
             }
             "telemetry" -> TelemetrySettingsScreen(
-                onBackClick = backToRoot,
-                onShowCollectedData = { route = "telemetry_preview" },
+                onBackClick = navigateBack,
+                onShowCollectedData = { navigateTo("telemetry_preview") },
                 onWipeHistory = { scope.launch(ioDispatcher) { runCatching { LocalHistoryStorage(context).wipeAll() } } },
-                onLegalClick = { route = "legal" },
-                onFaqClick = { route = "telemetry_faq" },
+                onLegalClick = { navigateTo("legal") },
+                onFaqClick = { navigateTo("telemetry_faq") },
             )
             "telemetry_preview" -> TelemetryPreviewScreen(
                 snapshot = TelemetryEmitter.repository()?.state?.value,
-                onBackClick = { route = "telemetry" },
+                onBackClick = navigateBack,
             )
             "telemetry_faq" -> TelemetryFaqScreen(
                 entries = TelemetryEmitter.config()?.disclosure?.faq.orEmpty(),
-                onBackClick = { route = "telemetry" },
+                onBackClick = navigateBack,
             )
             else -> SettingsScreen(
                 versionName = appVersionName(context),
-                onBackClick = onBack,
-                onItineraryClick = { route = "itinerary" },
-                onLegalClick = { route = "legal" },
-                onCreditsClick = { route = "credits" },
-                onContactClick = { route = "contact" },
-                onOfflineClick = { route = "offline" },
-                onTelemetryClick = { route = "telemetry" },
+                onBackClick = navigateBack,
+                onItineraryClick = { navigateTo("itinerary") },
+                onLegalClick = { navigateTo("legal") },
+                onCreditsClick = { navigateTo("credits") },
+                onContactClick = { navigateTo("contact") },
+                onOfflineClick = { navigateTo("offline") },
+                onTelemetryClick = { navigateTo("telemetry") },
             )
         }
     }
