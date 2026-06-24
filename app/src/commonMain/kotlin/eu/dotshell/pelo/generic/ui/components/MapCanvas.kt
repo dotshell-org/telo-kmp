@@ -2,7 +2,11 @@ package eu.dotshell.pelo.generic.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.Size
@@ -81,6 +85,7 @@ fun MapCanvas(
     onStopClick: (stopName: String) -> Unit = {},
     onLineClick: (lineName: String) -> Unit = {},
     onVehicleClick: (lineName: String) -> Unit = {},
+    onMapMoved: () -> Unit = {},
     centerOn: Position? = null,
     focusZoom: Double? = null,
 ) {
@@ -93,13 +98,29 @@ fun MapCanvas(
         }
     }
 
+    var isAnimating by remember { mutableStateOf(false) }
+
     LaunchedEffect(centerOn, focusZoom) {
         if (centerOn != null) {
-            val targetZoom = focusZoom ?: 13.0
+            isAnimating = true
+            val targetZoom = focusZoom ?: 16.0
             cameraState.animateTo(
                 CameraPosition(target = centerOn, zoom = targetZoom)
             )
+            isAnimating = false
         }
+    }
+
+    // Notify parent when the user pans the map (skip the very first emission).
+    LaunchedEffect(cameraState, onMapMoved) {
+        var isFirst = true
+        snapshotFlow { cameraState.position }
+            .collect {
+                if (isFirst) { isFirst = false; return@collect }
+                if (!isAnimating) {
+                    onMapMoved()
+                }
+            }
     }
 
     MaplibreMap(

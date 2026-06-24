@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -68,6 +67,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
@@ -104,6 +104,7 @@ import eu.dotshell.pelo.generic.ui.screens.plan.AllSchedulesSheetContent
 import eu.dotshell.pelo.generic.ui.screens.plan.LineDetailsBottomSheet
 import eu.dotshell.pelo.generic.ui.screens.plan.LineInfo
 import eu.dotshell.pelo.generic.ui.screens.plan.LinesBottomSheet
+import eu.dotshell.pelo.generic.ui.screens.plan.AlertReportBottomSheet
 import eu.dotshell.pelo.generic.ui.screens.plan.MapStyleSelectionSheet
 import eu.dotshell.pelo.generic.ui.screens.plan.StationSheetContent
 import eu.dotshell.pelo.generic.ui.screens.plan.itinerary.InlineItinerarySheetContent
@@ -127,6 +128,7 @@ import eu.dotshell.pelo.generic.ui.viewmodel.TransportLinesUiState
 import eu.dotshell.pelo.generic.ui.viewmodel.TransportStopsUiState
 import eu.dotshell.pelo.generic.ui.viewmodel.TransportViewModel
 import eu.dotshell.pelo.generic.utils.location.LocationProvider
+import eu.dotshell.pelo.platform.DrawableProvider
 import eu.dotshell.pelo.platform.LocalPlatformContext
 import eu.dotshell.pelo.platform.Log
 import eu.dotshell.pelo.platform.appVersionName
@@ -182,6 +184,17 @@ private fun RootScaffold(
     var selectedStation by remember { mutableStateOf<StationInfo?>(null) }
     var allSchedules by remember { mutableStateOf<AllSchedulesInfo?>(null) }
     var showAddFavoriteDialog by remember { mutableStateOf(false) }
+
+    // Alert report sheet
+    var showAlertReport by remember { mutableStateOf(false) }
+    var alertReportInitialStopName by remember { mutableStateOf<String?>(null) }
+    var alertReportInitialLines by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // FAB state: true = centered on user (show alert icon), false = not centered (show location icon)
+    var isCenteredOnUser by remember { mutableStateOf(false) }
+
+    // Manual recenter: when non-null, overrides the computed focusCenter for one frame.
+    var manualFocusCenter by remember { mutableStateOf<Position?>(null) }
 
     val availableDirections by viewModel.availableDirections.collectAsState(initial = emptyList())
     val headsigns by viewModel.headsigns.collectAsState(initial = emptyMap())
@@ -283,6 +296,10 @@ private fun RootScaffold(
     }
 
     val closeSheet = { selectedStation = null; selectedLine = null; allSchedules = null }
+    // Reset centered-on-user state when a station/line is selected (focus moves away from user)
+    LaunchedEffect(selectedStation?.nom, selectedLine?.lineName) {
+        if (selectedStation != null || selectedLine != null) isCenteredOnUser = false
+    }
     val closeItinerary = {
         itineraryActive = false
         itinerarySearchTarget = null
@@ -359,7 +376,10 @@ private fun RootScaffold(
             if (selectedTab == Destination.SETTINGS) {
                 SettingsTab(viewModel, Modifier.fillMaxSize()) { selectedTab = Destination.PLAN }
             } else {
-                val focusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney) {
+                // manualFocusCenter (set by the recenter FAB) takes precedence for one frame,
+                // then the normal selection-based logic kicks back in.
+                val computedFocusCenter: Position? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney, manualFocusCenter) {
+                    if (manualFocusCenter != null) return@remember manualFocusCenter
                     if (itineraryActive && activeJourneys.isNotEmpty()) {
                         val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
                         val lats = mutableListOf<Double>()
@@ -407,8 +427,10 @@ private fun RootScaffold(
                     }
                     null
                 }
+                val focusCenter: Position? = computedFocusCenter
 
-                val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney) {
+                val focusZoom: Double? = remember(selectedLine?.lineName, selectedLine?.currentStationName, selectedStation?.nom, stops, linesUiState, itineraryActive, activeJourneys, selectedJourney, manualFocusCenter) {
+                    if (manualFocusCenter != null) return@remember 18.0
                     if (itineraryActive && activeJourneys.isNotEmpty()) {
                         val journeysToDraw = selectedJourney?.let { listOf(it) } ?: activeJourneys
                         val lats = mutableListOf<Double>()
@@ -441,7 +463,7 @@ private fun RootScaffold(
                     }
                     val stName = selectedStation?.nom ?: selectedLine?.currentStationName
                     if (!stName.isNullOrBlank()) {
-                        return@remember 17.0
+                        return@remember 18.0
                     }
                     val ln = selectedLine?.lineName
                     if (ln != null) {
@@ -489,6 +511,29 @@ private fun RootScaffold(
                     onLineSelected = { name -> showLine(name) },
                     onAddFavoriteClick = { showAddFavoriteDialog = true },
                     onItinerarySelected = { name -> startItinerary(name) },
+                    isCenteredOnUser = isCenteredOnUser,
+                    onFabClick = {
+                        if (isCenteredOnUser) {
+                            // Already centered → open alert report
+                            alertReportInitialStopName = null
+                            alertReportInitialLines = emptyList()
+                            showAlertReport = true
+                        } else {
+                            // Not centered → recenter on user
+                            val loc = userLocation
+                            if (loc != null) {
+                                // Reset then set to force a change and trigger LaunchedEffect in MapCanvas
+                                manualFocusCenter = null
+                                scope.launch {
+                                    kotlinx.coroutines.delay(10)
+                                    manualFocusCenter = loc
+                                    isCenteredOnUser = true
+                                }
+                            }
+                        }
+                    },
+                    onFabReset = { isCenteredOnUser = false },
+                    showAlertReport = showAlertReport,
                     bsScaffoldState = bsScaffoldState,
                     sheetPeekHeight = if (hasSheet) 130.dp else 0.dp,
                     sheetContent = {
@@ -550,6 +595,11 @@ private fun RootScaffold(
                                     },
                                     onAddFavoriteClick = { showAddFavoriteDialog = true },
                                     onItineraryClick = { stopName -> startItinerary(stopName) },
+                                    onReportAlertClick = { stopName, lines ->
+                                        alertReportInitialStopName = stopName
+                                        alertReportInitialLines = lines
+                                        showAlertReport = true
+                                    },
                                 )
                             }
                         }
@@ -683,6 +733,38 @@ private fun RootScaffold(
                 viewModel = viewModel,
             )
         }
+
+        if (showAlertReport) {
+            val userPos = userLocation // Capture stable reference
+            val nearestStopCandidate = planStops?.minByOrNull { stop ->
+                val coords = stop.geometry.coordinates
+                if (userPos != null && coords.size >= 2) {
+                    val dx = coords[0] - userPos.longitude
+                    val dy = coords[1] - userPos.latitude
+                    dx * dx + dy * dy
+                } else Double.MAX_VALUE
+            }?.let { stop ->
+                eu.dotshell.pelo.generic.data.models.search.StationSearchResult(
+                    stopName = stop.properties.nom,
+                    stopId = stop.properties.id,
+                    lines = stop.properties.desserte.split(":")
+                )
+            }
+
+            val initialStop = alertReportInitialStopName?.let { name ->
+                eu.dotshell.pelo.generic.data.models.search.StationSearchResult(
+                    stopName = name,
+                    stopId = null,
+                    lines = alertReportInitialLines
+                )
+            }
+            AlertReportBottomSheet(
+                viewModel = viewModel,
+                onDismiss = { showAlertReport = false },
+                initialStop = initialStop,
+                nearestStopCandidate = nearestStopCandidate
+            )
+        }
     }
 }
 
@@ -707,6 +789,10 @@ private fun PlanContent(
     onLineSelected: (String) -> Unit,
     onAddFavoriteClick: () -> Unit,
     onItinerarySelected: (String) -> Unit,
+    isCenteredOnUser: Boolean,
+    onFabClick: () -> Unit,
+    onFabReset: () -> Unit,
+    showAlertReport: Boolean,
     bsScaffoldState: BottomSheetScaffoldState,
     sheetPeekHeight: Dp,
     sheetContent: @Composable () -> Unit,
@@ -749,6 +835,8 @@ private fun PlanContent(
         }
     }
 
+    val fabDrawableProvider = DrawableProvider(LocalPlatformContext.current)
+
     Box(Modifier.fillMaxSize()) {
         BottomSheetScaffold(
             modifier = Modifier.fillMaxSize(),
@@ -776,7 +864,44 @@ private fun PlanContent(
                 onStopClick = { nom -> onStopSelected(nom, null, emptyList()) },
                 onLineClick = { lineName -> onLineSelected(lineName) },
                 onVehicleClick = { lineName -> onLineSelected(lineName) },
+                onMapMoved = onFabReset,
             )
+        }
+
+        if (!showAlertReport) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .size(56.dp)
+                    .background(Color.Black, CircleShape)
+                    .clickable { onFabClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isCenteredOnUser) {
+                    // Alert icon: yellow triangle with + (add_triangle_24px drawable)
+                    Icon(
+                        painter = fabDrawableProvider.getPainter("add_triangle_24px"),
+                        contentDescription = "Signaler une alerte",
+                        tint = Color(0xFFFACC15),
+                        modifier = Modifier.size(30.dp)
+                    )
+                } else {
+                    // Location icon: filled blue circle with white stroke ring
+                    Canvas(modifier = Modifier.size(18.dp)) {
+                        val radius = size.minDimension / 2f
+                        drawCircle(
+                            color = Color(0xFF3B82F6),
+                            radius = radius
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = radius,
+                            style = Stroke(width = 3.dp.toPx())
+                        )
+                    }
+                }
+            }
         }
 
         if (showTopBar) {
@@ -906,20 +1031,20 @@ private fun PlanContent(
                 }
             }
         }
-    }
 
-    if (showStyleSheet) {
-        MapStyleSelectionSheet(
-            isOffline = isOffline,
-            downloadedMapStyles = offlineDataInfo.downloadedMapStyles,
-            selectedMapStyle = selectedMapStyle,
-            onDismiss = { showStyleSheet = false },
-            onStyleSelected = { style ->
-                selectedMapStyle = style
-                mapStyleRepo.saveSelectedStyle(style)
-                showStyleSheet = false
-            },
-        )
+        if (showStyleSheet) {
+            MapStyleSelectionSheet(
+                isOffline = isOffline,
+                downloadedMapStyles = offlineDataInfo.downloadedMapStyles,
+                selectedMapStyle = selectedMapStyle,
+                onDismiss = { showStyleSheet = false },
+                onStyleSelected = { style ->
+                    selectedMapStyle = style
+                    mapStyleRepo.saveSelectedStyle(style)
+                    showStyleSheet = false
+                },
+            )
+        }
     }
 }
 

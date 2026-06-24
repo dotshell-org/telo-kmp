@@ -6,7 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -266,47 +268,86 @@ fun AlertReportBottomSheet(
                     (selectedStop != null && alertType.isStop) || (selectedLine != null && alertType.isLine)
                 }
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+                val itemWidth = 88.dp
+                androidx.compose.foundation.layout.BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
                 ) {
-                    items(filteredAlertTypes) { alertType ->
-                        AlertButton(
-                            alertType = alertType,
-                            enabled = true,
-                            onClick = {
-                                Log.i("AlertReportBS", "Alert clicked: ${alertType.id}")
-                                scope.launch {
-                                    val result = submitUserAlert(
-                                        alertTypeId = alertType.id,
-                                        stopName = selectedStop?.stopName,
-                                        stopIdFallback = selectedStop?.stopId,
-                                        lineId = selectedLine?.lineName
-                                    )
-                                    if (result.isSuccess) {
-                                        // Telemetry: record only on success so we don't pollute
-                                        // the dataset with failed submissions.
-                                        eu.dotshell.pelo.generic.data.telemetry.TelemetryEmitter.emit(
-                                            eu.dotshell.pelo.generic.data.telemetry.TelemetryEvent.AlertSubmitted(
-                                                eventId = randomId(),
-                                                at = Clock.System.now().toString(),
-                                                kind = alertType.id,
-                                                stopId = selectedStop?.stopName,
-                                                lineId = selectedLine?.lineName
-                                            )
+                    val availableWidth = maxWidth
+                    
+                    // Nombre d'items par ligne (minimum 4)
+                    val itemsPerRow = (availableWidth / itemWidth).toInt().coerceAtLeast(4)
+                    
+                    // Si itemsPerRow est 4 mais que ça ne rentre pas avec itemWidth=88dp,
+                    // on réduit dynamiquement la taille de l'item pour que ça rentre.
+                    val actualItemWidth = if (availableWidth < itemWidth * itemsPerRow) {
+                        availableWidth / itemsPerRow
+                    } else {
+                        itemWidth
+                    }
+
+                    val gap = if (itemsPerRow > 1) {
+                        (availableWidth - (actualItemWidth * itemsPerRow)) / (itemsPerRow - 1)
+                    } else {
+                        0.dp
+                    }
+
+                    // On limite à 2 lignes maximum
+                    val maxItems = itemsPerRow * 2
+                    val displayedAlertTypes = filteredAlertTypes.take(maxItems)
+                    val rows = displayedAlertTypes.chunked(itemsPerRow)
+
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        rows.forEachIndexed { rowIndex, rowItems ->
+                            val isLastRow = rowIndex == rows.lastIndex
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = if (isLastRow || itemsPerRow == 1) {
+                                    Arrangement.spacedBy(gap)
+                                } else {
+                                    Arrangement.SpaceBetween
+                                }
+                            ) {
+                                rowItems.forEach { alertType ->
+                                    Box(modifier = Modifier.width(actualItemWidth)) {
+                                        AlertButton(
+                                            alertType = alertType,
+                                            enabled = true,
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                            onClick = {
+                                                Log.i("AlertReportBS", "Alert clicked: ${alertType.id}")
+                                                scope.launch {
+                                                    val result = submitUserAlert(
+                                                        alertTypeId = alertType.id,
+                                                        stopName = selectedStop?.stopName,
+                                                        stopIdFallback = selectedStop?.stopId,
+                                                        lineId = selectedLine?.lineName
+                                                    )
+                                                    if (result.isSuccess) {
+                                                        // Telemetry: record only on success so we don't pollute
+                                                        // the dataset with failed submissions.
+                                                        eu.dotshell.pelo.generic.data.telemetry.TelemetryEmitter.emit(
+                                                            eu.dotshell.pelo.generic.data.telemetry.TelemetryEvent.AlertSubmitted(
+                                                                eventId = randomId(),
+                                                                at = Clock.System.now().toString(),
+                                                                kind = alertType.id,
+                                                                stopId = selectedStop?.stopName,
+                                                                lineId = selectedLine?.lineName
+                                                            )
+                                                        )
+                                                        showToast(context, "Alerte envoyée avec succès")
+                                                        onDismiss()
+                                                    } else {
+                                                        errorMessage = result.errorMessage
+                                                            ?: "Une erreur est survenue. Veuillez réessayer."
+                                                        showErrorDialog = true
+                                                    }
+                                                }
+                                            }
                                         )
-                                        showToast(context, "Alerte envoyée avec succès")
-                                        onDismiss()
-                                    } else {
-                                        errorMessage = result.errorMessage
-                                            ?: "Une erreur est survenue. Veuillez réessayer."
-                                        showErrorDialog = true
                                     }
                                 }
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -382,11 +423,12 @@ fun AlertReportBottomSheet(
 fun AlertButton(
     alertType: AlertType,
     enabled: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .clickable(enabled = enabled, onClick = onClick)
     ) {
         Box(

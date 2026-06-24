@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -149,20 +152,15 @@ fun LinesBottomSheet(
         }
     }
 
-    // Flatten the structure for LazyColumn items
+    // Flatten: one header item + one flat "lines" item per category
     data class CategoryItem(val category: String)
-    data class LineRowItem(val category: String, val rowIndex: Int, val lines: List<String>)
+    data class CategoryLinesItem(val category: String, val lines: List<String>)
 
     val flattenedItems = remember(filteredCategories) {
         buildList {
             filteredCategories.forEach { (category, lines) ->
-                // Add category header
                 add(CategoryItem(category))
-
-                // Add line rows (chunked by 4)
-                lines.chunked(4).forEachIndexed { rowIndex, rowLines ->
-                    add(LineRowItem(category, rowIndex, rowLines))
-                }
+                add(CategoryLinesItem(category, lines))
             }
         }
     }
@@ -188,21 +186,20 @@ fun LinesBottomSheet(
                 key = { item ->
                     when (item) {
                         is CategoryItem -> "header_${item.category}"
-                        is LineRowItem -> "${item.category}_row_${item.rowIndex}"
+                        is CategoryLinesItem -> "lines_${item.category}"
                         else -> item.hashCode()
                     }
                 },
                 contentType = { item ->
                     when (item) {
                         is CategoryItem -> "header"
-                        is LineRowItem -> "linerow"
+                        is CategoryLinesItem -> "lines"
                         else -> null
                     }
                 }
             ) { item ->
                 when (item) {
                     is CategoryItem -> {
-                        // Category header
                         Column {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
@@ -217,28 +214,61 @@ fun LinesBottomSheet(
                         }
                     }
 
-                    is LineRowItem -> {
-                        // Row of line chips
-                        Row(
+                    is CategoryLinesItem -> {
+                        // On calcule l'espacement pour justifier à gauche et à droite,
+                        // et on applique le même espacement à la dernière ligne.
+                        val itemWidth = 80.dp
+                        androidx.compose.foundation.layout.BoxWithConstraints(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(horizontal = 0.dp)
+                                .padding(bottom = 8.dp)
                         ) {
-                            // Up to 4 chips per row
-                            item.lines.forEach { line ->
-                                val alertSeverity = lineAlerts[line.uppercase()]
-                                LineChip(
-                                    lineName = line,
-                                    onClick = { onLineClick(line) },
-                                    modifier = Modifier.weight(1f),
-                                    alertSeverity = alertSeverity,
-                                    drawableProvider = drawableProvider
-                                )
+                            val availableWidth = maxWidth
+                            
+                            // Nombre d'items par ligne (minimum 4)
+                            val itemsPerRow = (availableWidth / itemWidth).toInt().coerceAtLeast(4)
+                            
+                            // Si itemsPerRow est 4 mais que ça ne rentre pas avec itemWidth=80dp,
+                            // on réduit dynamiquement la taille de l'item pour que ça rentre.
+                            val actualItemWidth = if (availableWidth < itemWidth * itemsPerRow) {
+                                availableWidth / itemsPerRow
+                            } else {
+                                itemWidth
                             }
-                            // Fill remaining columns for alignment consistency
-                            repeat(4 - item.lines.size) {
-                                Spacer(modifier = Modifier.weight(1f))
+                            
+                            // Calcul de l'écart pour la justification (SpaceBetween)
+                            // gap = (TotalWidth - (itemsPerRow * actualItemWidth)) / (itemsPerRow - 1)
+                            val gap = if (itemsPerRow > 1) {
+                                (availableWidth - (actualItemWidth * itemsPerRow)) / (itemsPerRow - 1)
+                            } else {
+                                0.dp
+                            }
+
+                            val rows = item.lines.chunked(itemsPerRow)
+                            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                                rows.forEachIndexed { rowIndex, rowLines ->
+                                    val isLastRow = rowIndex == rows.lastIndex
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = if (isLastRow || itemsPerRow == 1) {
+                                            Arrangement.spacedBy(gap)
+                                        } else {
+                                            Arrangement.SpaceBetween
+                                        }
+                                    ) {
+                                        rowLines.forEach { line ->
+                                            val alertSeverity = lineAlerts[line.uppercase()]
+                                            LineChip(
+                                                lineName = line,
+                                                onClick = { onLineClick(line) },
+                                                alertSeverity = alertSeverity,
+                                                drawableProvider = drawableProvider,
+                                                modifier = Modifier.width(actualItemWidth)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -284,14 +314,13 @@ private fun LineChip(
 
     Box(
         modifier = modifier
-            .height(48.dp)
-            .padding(4.dp),
+            .height(80.dp),
         contentAlignment = Alignment.Center
     ) {
         // Content Box with clipping and click
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .size(72.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
@@ -301,7 +330,7 @@ private fun LineChip(
                 Icon(
                     painter = drawableProvider.getPainter(drawableName),
                     contentDescription = "Ligne $lineName",
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier.size(72.dp),
                     tint = Color.Unspecified
                 )
             } else {
