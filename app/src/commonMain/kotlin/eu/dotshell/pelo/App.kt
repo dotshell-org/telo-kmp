@@ -115,8 +115,6 @@ import eu.dotshell.pelo.generic.data.telemetry.TelemetryEmitter
 import eu.dotshell.pelo.generic.ui.screens.settings.ItinerarySettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.OfflineSettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.SettingsScreen
-import eu.dotshell.pelo.generic.ui.screens.settings.TelemetryFaqScreen
-import eu.dotshell.pelo.generic.ui.screens.settings.TelemetryPreviewScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.TelemetrySettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.about.ContactScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.about.CreditsScreen
@@ -1136,29 +1134,32 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                 )
             }
             "telemetry" -> TelemetrySettingsScreen(
-                onBackClick = navigateBack,
-                onShowCollectedData = { navigateTo("telemetry_preview") },
-                onWipeHistory = { scope.launch(ioDispatcher) { runCatching { LocalHistoryStorage(context).wipeAll() } } },
-                onLegalClick = { navigateTo("legal") },
-                onFaqClick = { navigateTo("telemetry_faq") },
-            )
-            "telemetry_preview" -> TelemetryPreviewScreen(
                 snapshot = TelemetryEmitter.repository()?.state?.value,
                 onBackClick = navigateBack,
+                onWipeHistory = { scope.launch(ioDispatcher) { runCatching { LocalHistoryStorage(context).wipeAll() } } },
             )
-            "telemetry_faq" -> TelemetryFaqScreen(
-                entries = TelemetryEmitter.config()?.disclosure?.faq.orEmpty(),
+            "about" -> SettingsScreen(
+                versionName = appVersionName(context),
                 onBackClick = navigateBack,
+                onItineraryClick = {},
+                onLegalClick = { navigateTo("legal") },
+                onCreditsClick = { navigateTo("credits") },
+                onContactClick = { navigateTo("contact") },
+                onOfflineClick = {},
+                onTelemetryClick = {},
+                isAboutMenu = true
             )
             else -> SettingsScreen(
                 versionName = appVersionName(context),
                 onBackClick = navigateBack,
                 onItineraryClick = { navigateTo("itinerary") },
-                onLegalClick = { navigateTo("legal") },
-                onCreditsClick = { navigateTo("credits") },
-                onContactClick = { navigateTo("contact") },
+                onLegalClick = {},
+                onCreditsClick = {},
+                onContactClick = {},
                 onOfflineClick = { navigateTo("offline") },
                 onTelemetryClick = { navigateTo("telemetry") },
+                onAboutClick = { navigateTo("about") },
+                isAboutMenu = false
             )
         }
     }

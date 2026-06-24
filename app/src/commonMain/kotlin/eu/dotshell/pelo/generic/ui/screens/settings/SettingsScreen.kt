@@ -63,11 +63,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOfflineClick: () -> Unit = {},
     onApiHealthClick: () -> Unit = {},
-    onTelemetryClick: () -> Unit = {}
+    onTelemetryClick: () -> Unit = {},
+    onAboutClick: () -> Unit = {},
+    isAboutMenu: Boolean = false
 ) {
     var clickCount by remember { mutableIntStateOf(0) }
     var isEasterEggActive by remember { mutableStateOf(false) }
-    var isAboutMenu by rememberSaveable { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     val drawableProvider = DrawableProvider(LocalPlatformContext.current)
 
@@ -164,7 +165,7 @@ fun SettingsScreen(
                 HorizontalDivider(color = Color(0xFF3A3A3C))
                 SettingsMenuRow(
                     title = "À propos",
-                    onClick = { isAboutMenu = true }
+                    onClick = onAboutClick
                 )
             }
 
@@ -172,13 +173,7 @@ fun SettingsScreen(
         }
 
         IconButton(
-            onClick = {
-                if (isAboutMenu) {
-                    isAboutMenu = false
-                } else {
-                    onBackClick()
-                }
-            },
+            onClick = onBackClick,
             modifier = Modifier
                 .statusBarsPadding()
                 .padding(start = 4.dp, top = 8.dp)
