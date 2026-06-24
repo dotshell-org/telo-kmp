@@ -69,6 +69,7 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
         val upperName = lineName.uppercase()
         val canonical = canonicalRouteName(lineName).uppercase()
         val uiName = normalizeLineNameForUi(lineName).uppercase()
+        if (upperName in excludedLinesSet || canonical in excludedLinesSet || uiName in excludedLinesSet) return false
         if (strongLineSet.contains(upperName) || strongLineSet.contains(canonical) || strongLineSet.contains(uiName)) return true
         return strongLinePatterns.any { it.matches(upperName) || it.matches(canonical) || it.matches(uiName) }
     }
@@ -77,6 +78,7 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
         val upperName = lineName.uppercase()
         val canonical = canonicalRouteName(lineName).uppercase()
         val uiName = normalizeLineNameForUi(lineName).uppercase()
+        if (upperName in excludedLinesSet || canonical in excludedLinesSet || uiName in excludedLinesSet) return "Bus"
         for ((type, regex) in transportTypePatterns) {
             if (regex.matches(upperName) || regex.matches(canonical) || regex.matches(uiName)) return type.name
         }
@@ -88,6 +90,7 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
         val upperName = lineName.uppercase()
         val canonical = canonicalRouteName(lineName).uppercase()
         val uiName = normalizeLineNameForUi(lineName).uppercase()
+        if (upperName in excludedLinesSet || canonical in excludedLinesSet || uiName in excludedLinesSet) return "mode_bus"
         for ((type, regex) in transportTypePatterns) {
             if (regex.matches(upperName) || regex.matches(canonical) || regex.matches(uiName)) return type.icon
         }
@@ -115,6 +118,7 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
         val upperName = lineName.uppercase()
         val canonical = canonicalRouteName(lineName).uppercase()
         val uiName = normalizeLineNameForUi(lineName).uppercase()
+        if (upperName in excludedLinesSet || canonical in excludedLinesSet || uiName in excludedLinesSet) return defaultVehicleMarker
         val matched = vehicleMarkerRules.firstOrNull { 
             upperName.startsWith(it.prefix.uppercase()) ||
             canonical.startsWith(it.prefix.uppercase()) ||
