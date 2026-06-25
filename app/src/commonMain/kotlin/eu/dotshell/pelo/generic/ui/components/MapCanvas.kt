@@ -36,6 +36,7 @@ import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraState
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.map.MapOptions
+import org.maplibre.compose.map.OrnamentOptions
 import org.maplibre.compose.expressions.dsl.Case
 import org.maplibre.compose.expressions.dsl.and
 import org.maplibre.compose.expressions.dsl.case
@@ -300,7 +301,12 @@ fun MapCanvas(
     }
 
     val mapOptions = remember(interactive) {
-        MapOptions(gestureOptions = mapGestureOptions(interactive))
+        MapOptions(
+            gestureOptions = mapGestureOptions(interactive),
+            ornamentOptions = OrnamentOptions(
+                isScaleBarEnabled = false
+            )
+        )
     }
 
     MaplibreMap(

@@ -261,11 +261,16 @@ private fun RootScaffold(
     LaunchedEffect(selectedLine?.lineName) {
         val ln = selectedLine?.lineName
         if (!ln.isNullOrBlank()) {
-            if (isLiveTrackingEnabled) {
-                viewModel.startLiveTracking(ln)
-            } else if (isGlobalLiveEnabled) {
-                viewModel.stopGlobalLive()
-                viewModel.startLiveTracking(ln)
+            if (!lineRules.isLiveTrackableLine(ln)) {
+                if (isLiveTrackingEnabled) viewModel.stopLiveTracking()
+                if (isGlobalLiveEnabled) viewModel.stopGlobalLive()
+            } else {
+                if (isLiveTrackingEnabled) {
+                    viewModel.startLiveTracking(ln)
+                } else if (isGlobalLiveEnabled) {
+                    viewModel.stopGlobalLive()
+                    viewModel.startLiveTracking(ln)
+                }
             }
         } else {
             if (isLiveTrackingEnabled) {
@@ -290,6 +295,8 @@ private fun RootScaffold(
             manualFocusZoom = null
         }
     }
+
+
 
     LaunchedEffect(isGlobalLiveEnabled, isLiveTrackingEnabled, activeVehiclePositions) {
         if ((isGlobalLiveEnabled || isLiveTrackingEnabled) && !hasFocusedOnLive && activeVehiclePositions.isNotEmpty()) {
@@ -327,6 +334,13 @@ private fun RootScaffold(
     var itineraryActive by remember { mutableStateOf(false) }
     var activeJourneys by remember { mutableStateOf<List<JourneyResult>>(emptyList()) }
     var selectedJourney by remember { mutableStateOf<JourneyResult?>(null) }
+
+    LaunchedEffect(itineraryActive) {
+        if (itineraryActive) {
+            if (isLiveTrackingEnabled) viewModel.stopLiveTracking()
+            if (isGlobalLiveEnabled) viewModel.stopGlobalLive()
+        }
+    }
     val itineraryGeoJson by produceState<String?>(
         initialValue = null,
         key1 = activeJourneys,
@@ -1122,42 +1136,44 @@ private fun PlanContent(
                                  )
                              }
 
-                             Row(
-                                 modifier = Modifier
-                                     .shadow(4.dp, RoundedCornerShape(20.dp))
-                                     .clip(RoundedCornerShape(20.dp))
-                                     .background(buttonColor)
-                                     .clickable {
-                                         if (isLiveModeEnabled) {
-                                             if (isLiveTrackingEnabled) viewModel.stopLiveTracking()
-                                             if (isGlobalLiveEnabled) viewModel.stopGlobalLive()
-                                         } else {
-                                             if (!selectedLineName.isNullOrBlank()) {
-                                                 viewModel.startLiveTracking(selectedLineName)
-                                             } else {
-                                                 viewModel.toggleGlobalLive()
-                                             }
-                                         }
-                                     }
-                                     .height(40.dp)
-                                     .padding(horizontal = 16.dp),
-                                 verticalAlignment = Alignment.CenterVertically
-                             ) {
-                                 Canvas(
-                                     modifier = Modifier
-                                         .size(8.dp)
-                                         .graphicsLayer { translationY = dotOffset }
-                                 ) {
-                                     drawCircle(color = SecondaryColor)
-                                 }
-                                 Spacer(modifier = Modifier.width(6.dp))
-                                 Text(
-                                     text = "LIVE",
-                                     fontWeight = FontWeight.Bold,
-                                     color = SecondaryColor,
-                                     fontSize = 14.sp
-                                 )
-                             }
+                              if (selectedLineName.isNullOrBlank() || lineRules.isLiveTrackableLine(selectedLineName)) {
+                                  Row(
+                                      modifier = Modifier
+                                          .shadow(4.dp, RoundedCornerShape(20.dp))
+                                          .clip(RoundedCornerShape(20.dp))
+                                          .background(buttonColor)
+                                          .clickable {
+                                              if (isLiveModeEnabled) {
+                                                  if (isLiveTrackingEnabled) viewModel.stopLiveTracking()
+                                                  if (isGlobalLiveEnabled) viewModel.stopGlobalLive()
+                                              } else {
+                                                  if (!selectedLineName.isNullOrBlank()) {
+                                                      viewModel.startLiveTracking(selectedLineName)
+                                                  } else {
+                                                      viewModel.toggleGlobalLive()
+                                                  }
+                                              }
+                                          }
+                                          .height(40.dp)
+                                          .padding(horizontal = 16.dp),
+                                      verticalAlignment = Alignment.CenterVertically
+                                  ) {
+                                      Canvas(
+                                          modifier = Modifier
+                                              .size(8.dp)
+                                              .graphicsLayer { translationY = dotOffset }
+                                      ) {
+                                          drawCircle(color = SecondaryColor)
+                                      }
+                                      Spacer(modifier = Modifier.width(6.dp))
+                                      Text(
+                                          text = "LIVE",
+                                          fontWeight = FontWeight.Bold,
+                                          color = SecondaryColor,
+                                          fontSize = 14.sp
+                                      )
+                                  }
+                              }
                         }
                     }
                 }
