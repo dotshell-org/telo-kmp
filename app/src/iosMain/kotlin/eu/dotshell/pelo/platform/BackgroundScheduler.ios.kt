@@ -3,6 +3,15 @@ package eu.dotshell.pelo.platform
 
 import platform.BackgroundTasks.*
 import platform.Foundation.*
+import platform.UIKit.UIApplication
+import platform.UIKit.UIBackgroundTaskIdentifier
+import platform.UIKit.UIBackgroundTaskInvalid
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import eu.dotshell.pelo.generic.data.telemetry.TelemetryUploader
 
 /**
  * iOS implementation using BGTaskScheduler.
@@ -18,6 +27,30 @@ actual class BackgroundScheduler actual constructor(context: PlatformContext) {
             Log.i(TAG, "scheduleTelemetryUpload($delaySeconds) submitted")
         } else {
             Log.e(TAG, "Failed to submit telemetry upload task")
+        }
+
+        // Trigger immediate background task assertion to upload before the OS suspends the app
+        val sharedApp = UIApplication.sharedApplication
+        var bgTaskId = UIBackgroundTaskInvalid
+        bgTaskId = sharedApp.beginBackgroundTaskWithExpirationHandler {
+            sharedApp.endBackgroundTask(bgTaskId)
+            bgTaskId = UIBackgroundTaskInvalid
+        }
+
+        if (bgTaskId != UIBackgroundTaskInvalid) {
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            scope.launch {
+                try {
+                    delay(delaySeconds * 1000L)
+                    Log.i(TAG, "Executing immediate background upload task assertion...")
+                    val outcome = TelemetryUploader.uploadOnce(0)
+                    Log.i(TAG, "Immediate background upload completed with outcome: $outcome")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Immediate background upload threw: ${e.message}")
+                } finally {
+                    sharedApp.endBackgroundTask(bgTaskId)
+                }
+            }
         }
     }
 

@@ -51,8 +51,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.dotshell.pelo.generic.data.telemetry.DailyReportState
 import eu.dotshell.pelo.generic.data.telemetry.TelemetryEvent
+import eu.dotshell.pelo.generic.data.telemetry.PlaceRef
 import eu.dotshell.pelo.generic.ui.theme.PrimaryColor
 import eu.dotshell.pelo.generic.ui.theme.SecondaryColor
+import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -219,12 +221,108 @@ fun TelemetrySettingsScreen(
 
                     Spacer(Modifier.height(12.dp))
                     EventBreakdownCard(events = snapshot.events)
-                    Spacer(Modifier.height(12.dp))
-                    RawJsonCard(text = prettyJson.encodeToString(DailyReportState.serializer(), snapshot))
+                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        text = "Journal des événements",
+                        color = SecondaryColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    val sortedEvents = remember(snapshot.events) { snapshot.events.reversed() }
+                    sortedEvents.forEach { event ->
+                        EventItem(event = event)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun EventItem(event: TelemetryEvent) {
+    val (icon, color) = eventIconAndColor(event::class.simpleName ?: "Unknown")
+    val title = eventDescriptionLabel(event)
+    val time = remember(event.at) {
+        try {
+            event.at.substringAfter('T').substringBefore('.')
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        color = SecondaryColor,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "Type : ${event::class.simpleName}",
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                }
+                Text(
+                    text = time,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            val details = getEventDetails(event)
+            if (details.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 32.dp)
+                ) {
+                    details.forEach { (key, value) ->
+                        Row(
+                            modifier = Modifier.padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "$key :",
+                                color = Color.Gray,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = value,
+                                color = SecondaryColor.copy(alpha = 0.8f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -248,7 +346,7 @@ private fun EventBreakdownCard(events: List<TelemetryEvent>) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Événements", color = SecondaryColor, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text("Résumé de la journée", color = SecondaryColor, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             Spacer(Modifier.height(8.dp))
             grouped.forEach { (label, icon, count) ->
                 Row(
@@ -261,33 +359,6 @@ private fun EventBreakdownCard(events: List<TelemetryEvent>) {
                     Text("$count", color = SecondaryColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun RawJsonCard(text: String) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0A0A0C)),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                "Payload brut (JSON)",
-                color = Color.Gray,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            Text(
-                text = text,
-                color = Color(0xFFD0D0D5),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                lineHeight = 14.sp
-            )
         }
     }
 }
@@ -325,4 +396,89 @@ private fun eventShortLabel(simpleName: String): String = when (simpleName) {
     "SearchItinerary", "ItineraryCalculated", "ItineraryChosen" -> "Itinéraires"
     "AlertSubmitted", "AlertRead" -> "Alertes"
     else -> simpleName
+}
+
+private fun eventDescriptionLabel(event: TelemetryEvent): String = when (event) {
+    is TelemetryEvent.SessionOpened -> "Session démarrée"
+    is TelemetryEvent.SessionClosed -> "Session terminée"
+    is TelemetryEvent.SearchStop -> "Recherche d'arrêt"
+    is TelemetryEvent.SearchLine -> "Recherche de ligne"
+    is TelemetryEvent.SearchItinerary -> "Recherche d'itinéraire"
+    is TelemetryEvent.ItineraryCalculated -> "Itinéraire calculé"
+    is TelemetryEvent.ItineraryChosen -> "Itinéraire sélectionné"
+    is TelemetryEvent.TripCompleted -> "Trajet complété"
+    is TelemetryEvent.LineClicked -> "Ligne consultée"
+    is TelemetryEvent.StopClicked -> "Arrêt consulté"
+    is TelemetryEvent.AlertSubmitted -> "Signalement envoyé"
+    is TelemetryEvent.AlertRead -> "Alerte lue"
+}
+
+private fun getEventDetails(event: TelemetryEvent): List<Pair<String, String>> = when (event) {
+    is TelemetryEvent.SessionOpened -> listOf("ID session" to event.sessionId.take(8) + "...")
+    is TelemetryEvent.SessionClosed -> listOf(
+        "ID session" to event.sessionId.take(8) + "...",
+        "Durée" to formatSessionDuration(event.openedAt, event.closedAt)
+    )
+    is TelemetryEvent.SearchStop -> listOf("ID Arrêt" to event.stopId)
+    is TelemetryEvent.SearchLine -> listOf("Ligne" to event.lineId)
+    is TelemetryEvent.SearchItinerary -> listOf(
+        "Départ" to formatPlaceRef(event.originRef),
+        "Arrivée" to formatPlaceRef(event.destRef)
+    )
+    is TelemetryEvent.ItineraryCalculated -> listOf(
+        "Départ" to formatPlaceRef(event.origin),
+        "Arrivée" to formatPlaceRef(event.dest),
+        "Options proposées" to "${event.options.size}"
+    )
+    is TelemetryEvent.ItineraryChosen -> listOf(
+        "Index option" to "${event.optionIndex + 1}"
+    )
+    is TelemetryEvent.TripCompleted -> listOf(
+        "Durée" to formatSessionDuration(event.startedAt, event.endedAt),
+        "Arrêts traversés" to "${event.stopsPassed.size}"
+    )
+    is TelemetryEvent.LineClicked -> listOf(
+        "Ligne" to event.lineId,
+        "Contexte" to translateContext(event.context)
+    )
+    is TelemetryEvent.StopClicked -> listOf(
+        "Arrêt" to event.stopId,
+        "Contexte" to translateContext(event.context)
+    )
+    is TelemetryEvent.AlertSubmitted -> buildList {
+        add("Type" to translateAlertKind(event.kind))
+        event.stopId?.let { add("Arrêt" to it) }
+        event.lineId?.let { add("Ligne" to it) }
+    }
+    is TelemetryEvent.AlertRead -> listOf("ID Alerte" to event.alertId)
+}
+
+private fun formatPlaceRef(ref: PlaceRef): String {
+    return ref.stopId ?: (ref.h3?.take(10) ?: "Inconnu")
+}
+
+private fun translateContext(ctx: String): String = when (ctx) {
+    "map" -> "Carte"
+    "search" -> "Recherche"
+    "itinerary" -> "Itinéraire"
+    "favorites" -> "Favoris"
+    else -> ctx
+}
+
+private fun translateAlertKind(kind: String): String = when (kind) {
+    "crowded" -> "Forte affluence"
+    "incident" -> "Incident/Perturbation"
+    "elevator" -> "Ascenseur en panne"
+    else -> kind
+}
+
+private fun formatSessionDuration(startStr: String, endStr: String): String {
+    return try {
+        val startInstant = Instant.parse(startStr)
+        val endInstant = Instant.parse(endStr)
+        val seconds = (endInstant.toEpochMilliseconds() - startInstant.toEpochMilliseconds()) / 1000
+        if (seconds < 60) "${seconds}s" else "${seconds / 60}m ${seconds % 60}s"
+    } catch (_: Exception) {
+        "N/A"
+    }
 }

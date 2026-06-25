@@ -39,6 +39,12 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - fetch
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - eu.dotshell.pelo.telemetryUpload
+          - eu.dotshell.pelo.trafficAlerts
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: eu.dotshell.pelo

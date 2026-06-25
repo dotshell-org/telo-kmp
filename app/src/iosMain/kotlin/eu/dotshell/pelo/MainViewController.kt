@@ -2,8 +2,12 @@ package eu.dotshell.pelo
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.window.ComposeUIViewController
+import eu.dotshell.pelo.generic.data.config.AppConfigLoader
+import eu.dotshell.pelo.generic.data.telemetry.TelemetryService
 import eu.dotshell.pelo.generic.service.TransportServiceProvider
+import eu.dotshell.pelo.platform.BackgroundScheduler
 import eu.dotshell.pelo.platform.LocalPlatformContext
+import eu.dotshell.pelo.platform.Log
 import eu.dotshell.pelo.platform.PlatformContext
 import platform.UIKit.UIViewController
 
@@ -22,6 +26,15 @@ object IosPlatformContext : PlatformContext()
  */
 fun MainViewController(): UIViewController {
     TransportServiceProvider.initialize(IosPlatformContext)
+    try {
+        val telemetryConfig = AppConfigLoader.getConfig().telemetry
+        if (telemetryConfig != null) {
+            TelemetryService.initialize(IosPlatformContext, telemetryConfig)
+        }
+        BackgroundScheduler(IosPlatformContext).ensureTrafficAlertsScheduled()
+    } catch (e: Exception) {
+        Log.w("MainViewController", "Failed to initialize Telemetry: ${e.message}")
+    }
     return ComposeUIViewController {
         CompositionLocalProvider(LocalPlatformContext provides IosPlatformContext) {
             App()

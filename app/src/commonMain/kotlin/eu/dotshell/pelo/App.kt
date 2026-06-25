@@ -113,6 +113,8 @@ import eu.dotshell.pelo.generic.ui.screens.plan.itinerary.InlineItinerarySheetCo
 import eu.dotshell.pelo.generic.ui.screens.plan.itinerary.ItinerarySearchBarField
 import eu.dotshell.pelo.generic.data.local_history.LocalHistoryStorage
 import eu.dotshell.pelo.generic.data.telemetry.TelemetryEmitter
+import eu.dotshell.pelo.platform.Settings
+import kotlinx.coroutines.flow.MutableStateFlow
 import eu.dotshell.pelo.generic.ui.screens.settings.ItinerarySettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.OfflineSettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.SettingsScreen
@@ -1228,11 +1230,26 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                     getInitialOptionState = { opt -> prefs.isOptionEnabled(opt.key, opt.defaultEnabled) },
                 )
             }
-            "telemetry" -> TelemetrySettingsScreen(
-                snapshot = TelemetryEmitter.repository()?.state?.value,
-                onBackClick = navigateBack,
-                onWipeHistory = { scope.launch(ioDispatcher) { runCatching { LocalHistoryStorage(context).wipeAll() } } },
-            )
+            "telemetry" -> {
+                val telemetryState = TelemetryEmitter.repository()?.state?.collectAsState(initial = null)?.value
+                TelemetrySettingsScreen(
+                    snapshot = telemetryState,
+                    onBackClick = navigateBack,
+                    onWipeHistory = {
+                        scope.launch(ioDispatcher) {
+                            runCatching {
+                                LocalHistoryStorage(context).wipeAll()
+                                Settings(context, "pelo_prefs").clear()
+                                Settings(context, "pelo_search_history").clear()
+                                TelemetryEmitter.wipePendingAndState()
+                                withContext(Dispatchers.Main) {
+                                    viewModel.loadFavorites()
+                                }
+                            }
+                        }
+                    },
+                )
+            }
             "about" -> SettingsScreen(
                 versionName = appVersionName(context),
                 onBackClick = navigateBack,
