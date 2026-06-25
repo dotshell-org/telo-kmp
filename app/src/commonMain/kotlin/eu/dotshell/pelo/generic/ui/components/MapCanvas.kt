@@ -304,7 +304,8 @@ fun MapCanvas(
         MapOptions(
             gestureOptions = mapGestureOptions(interactive),
             ornamentOptions = OrnamentOptions(
-                isScaleBarEnabled = false
+                isScaleBarEnabled = false,
+                isAttributionEnabled = false
             )
         )
     }
