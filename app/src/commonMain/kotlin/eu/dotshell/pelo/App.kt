@@ -247,10 +247,20 @@ private fun RootScaffold(
     val selectedLineName = selectedLine?.lineName
     
     var userLocation by remember { mutableStateOf<Position?>(null) }
+    var hasCenteredInitially by remember { mutableStateOf(false) }
     val locationProvider = remember { LocationProvider(context) }
     DisposableEffect(Unit) {
         locationProvider.startUpdates { p -> userLocation = Position(latitude = p.latitude, longitude = p.longitude) }
         onDispose { locationProvider.stopUpdates() }
+    }
+
+    LaunchedEffect(userLocation) {
+        val loc = userLocation
+        if (loc != null && !hasCenteredInitially) {
+            manualFocusCenter = loc
+            isCenteredOnUser = true
+            hasCenteredInitially = true
+        }
     }
 
     val vehiclePositions by viewModel.vehiclePositions.collectAsState(initial = emptyList())
@@ -300,26 +310,7 @@ private fun RootScaffold(
 
     LaunchedEffect(isGlobalLiveEnabled, isLiveTrackingEnabled, activeVehiclePositions) {
         if ((isGlobalLiveEnabled || isLiveTrackingEnabled) && !hasFocusedOnLive && activeVehiclePositions.isNotEmpty()) {
-            val lats = activeVehiclePositions.map { it.latitude }
-            val lons = activeVehiclePositions.map { it.longitude }
-            val center = Position(latitude = lats.average(), longitude = lons.average())
-
-            val latMin = lats.minOrNull() ?: 45.75
-            val latMax = lats.maxOrNull() ?: 45.75
-            val lonMin = lons.minOrNull() ?: 4.85
-            val lonMax = lons.maxOrNull() ?: 4.85
-            val latDiff = latMax - latMin
-            val lonDiff = lonMax - lonMin
-            val span = maxOf(latDiff, lonDiff)
-            val zoom = if (span > 0.0001) {
-                val log2Val = kotlin.math.log2(360.0 / span)
-                (log2Val - 1.5).coerceIn(9.5, 14.5)
-            } else {
-                13.5
-            }
-
-            manualFocusCenter = center
-            manualFocusZoom = zoom
+            manualFocusZoom = 13.0
             hasFocusedOnLive = true
         }
     }

@@ -124,11 +124,12 @@ fun MapCanvas(
     var isAnimating by remember { mutableStateOf(false) }
 
     LaunchedEffect(centerOn, focusZoom) {
-        if (centerOn != null) {
+        if (centerOn != null || focusZoom != null) {
             isAnimating = true
-            val targetZoom = focusZoom ?: 16.0
+            val targetCenter = centerOn ?: cameraState.position.target
+            val targetZoom = focusZoom ?: cameraState.position.zoom
             cameraState.animateTo(
-                CameraPosition(target = centerOn, zoom = targetZoom)
+                CameraPosition(target = targetCenter, zoom = targetZoom)
             )
             isAnimating = false
         }
