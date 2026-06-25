@@ -108,7 +108,7 @@ fun ContactScreen(
             )
 
             Button(
-                onClick = { uriHandler.openUri("https://www.dotshell.eu/contact") },
+                onClick = { uriHandler.openUri("https://dotshell.eu/contact") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF3B82F6)

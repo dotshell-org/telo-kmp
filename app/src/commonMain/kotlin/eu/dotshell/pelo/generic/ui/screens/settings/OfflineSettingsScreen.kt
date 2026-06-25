@@ -197,11 +197,6 @@ fun OfflineSettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            CategoryHeader(Icons.Default.Info, "Fonctionnalités hors ligne")
-            OfflineInfoCard()
-
             Spacer(modifier = Modifier.height(100.dp))
         }
 
@@ -412,28 +407,6 @@ private fun StatusRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color.Gray, fontSize = 14.sp)
         Text(value, color = SecondaryColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-    }
-}
-
-@Composable
-private fun OfflineInfoCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            listOf(
-                "Carte",
-                "Lignes et arrêts",
-                "Horaires",
-                "Recherche",
-                "Calcul d'itinéraire"
-            ).forEach {
-                FeatureRow(it, true)
-            }
-            FeatureRow("Suivi temps réel", false)
-        }
     }
 }
 
