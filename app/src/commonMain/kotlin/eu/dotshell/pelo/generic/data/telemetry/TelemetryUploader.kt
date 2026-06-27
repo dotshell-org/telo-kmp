@@ -101,23 +101,32 @@ object TelemetryUploader {
         PayloadGuardrail.assertNoSurprises(payload)
         val gzipped = gzip(payload)
 
-        return try {
-            val response = httpClient.post(config.endpointUrl) {
-                contentType(ContentType.Application.Json)
-                header(HttpHeaders.ContentEncoding, "gzip")
-                setBody(gzipped)
+        var lastException: Exception? = null
+        for (attempt in 1..3) {
+            try {
+                val response = httpClient.post(config.endpointUrl) {
+                    contentType(ContentType.Application.Json)
+                    header(HttpHeaders.ContentEncoding, "gzip")
+                    setBody(gzipped)
+                }
+                if (response.status.isSuccess()) {
+                    repo.markSent(snapshot.eventIds, snapshot.sessionIds)
+                    return Outcome.SUCCESS
+                } else {
+                    Log.w(TAG, "Upload failed HTTP ${response.status.value}")
+                    if (attemptCount >= MAX_ATTEMPTS) return Outcome.GIVE_UP else return Outcome.RETRY
+                }
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "Upload attempt $attempt failed: ${e.message}. Retrying in 2s...")
+                if (attempt < 3) {
+                    kotlinx.coroutines.delay(2000L)
+                }
             }
-            if (response.status.isSuccess()) {
-                repo.markSent(snapshot.eventIds, snapshot.sessionIds)
-                Outcome.SUCCESS
-            } else {
-                Log.w(TAG, "Upload failed HTTP ${response.status.value}")
-                if (attemptCount >= MAX_ATTEMPTS) Outcome.GIVE_UP else Outcome.RETRY
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Upload threw, will retry: ${e.message}")
-            if (attemptCount >= MAX_ATTEMPTS) Outcome.GIVE_UP else Outcome.RETRY
         }
+
+        Log.w(TAG, "All upload attempts failed. Last exception: ${lastException?.message}")
+        return if (attemptCount >= MAX_ATTEMPTS) Outcome.GIVE_UP else Outcome.RETRY
     }
 
     /** In-memory gzip of [text] via okio (replaces java.util.zip.GZIPOutputStream). */
