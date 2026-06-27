@@ -128,6 +128,8 @@ object TelemetryEmitter {
 
     fun localHistory(): LocalHistoryStorage? = components?.localHistory
 
+    fun scope(): CoroutineScope? = components?.scope
+
     /**
      * Emit a generic telemetry event. No-op if not initialized or user is not opted-in.
      */
