@@ -515,7 +515,7 @@ fun JourneyDetailsSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 16.dp)
                 .verticalScroll(
                     state = scrollState,
                     enabled = isExpanded
@@ -553,12 +553,13 @@ fun JourneyDetailsSheetContent(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            sheetBgColor.copy(alpha = 0.5f),
+                            sheetBgColor.copy(alpha = 0.85f),
+                            sheetBgColor,
                             sheetBgColor
                         )
                     )
                 )
-                .padding(horizontal = 8.dp, vertical = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
             Row(
                 modifier = Modifier

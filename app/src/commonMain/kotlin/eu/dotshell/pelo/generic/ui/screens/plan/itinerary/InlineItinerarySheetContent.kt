@@ -488,11 +488,13 @@ fun InlineItinerarySheetContent(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = maxHeight)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = if (selectedJourney == null) 16.dp else 0.dp)
     ) {
         // Header row with title and close button
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (selectedJourney != null) Modifier.padding(horizontal = 16.dp) else Modifier),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
