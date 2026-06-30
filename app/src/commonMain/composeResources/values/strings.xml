@@ -77,4 +77,6 @@
     <string name="tab_plan_cd">Onglet Plan</string>
     <string name="tab_lines_cd">Onglet Lignes</string>
     <string name="tab_settings_cd">Onglet Paramètres</string>
+    <string name="language_title">Langue</string>
+    <string name="language_system">Système</string>
 </resources>

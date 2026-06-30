@@ -77,4 +77,6 @@
     <string name="tab_plan_cd">Map tab</string>
     <string name="tab_lines_cd">Lines tab</string>
     <string name="tab_settings_cd">Settings tab</string>
+    <string name="language_title">Language</string>
+    <string name="language_system">System</string>
 </resources>

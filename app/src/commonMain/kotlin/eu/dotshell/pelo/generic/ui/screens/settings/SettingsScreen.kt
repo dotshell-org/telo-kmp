@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,9 +73,13 @@ fun SettingsScreen(
 ) {
     var clickCount by remember { mutableIntStateOf(0) }
     var isEasterEggActive by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     val drawableProvider = DrawableProvider(LocalPlatformContext.current)
     val strings = StringProvider(LocalPlatformContext.current)
+    val currentLanguageLabel = eu.dotshell.pelo.platform.LanguageManager.current.let {
+        if (it == eu.dotshell.pelo.platform.AppLanguage.SYSTEM) strings["language_system"] else it.nativeName
+    }
 
     // Reset click count after 2 seconds
     LaunchedEffect(clickCount) {
@@ -170,6 +177,12 @@ fun SettingsScreen(
                     title = strings["about_title"],
                     onClick = onAboutClick
                 )
+                HorizontalDivider(color = Color(0xFF3A3A3C))
+                SettingsMenuRow(
+                    title = strings["language_title"],
+                    subtitle = currentLanguageLabel,
+                    onClick = { showLanguageDialog = true }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -186,6 +199,45 @@ fun SettingsScreen(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = strings["back"],
                 tint = SecondaryColor
+            )
+        }
+
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                confirmButton = {},
+                title = { Text(strings["language_title"]) },
+                text = {
+                    Column {
+                        eu.dotshell.pelo.platform.AppLanguage.entries.forEach { lang ->
+                            val label = if (lang == eu.dotshell.pelo.platform.AppLanguage.SYSTEM) {
+                                strings["language_system"]
+                            } else {
+                                lang.nativeName
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        eu.dotshell.pelo.platform.LanguageManager.set(lang)
+                                        showLanguageDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = eu.dotshell.pelo.platform.LanguageManager.current == lang,
+                                    onClick = {
+                                        eu.dotshell.pelo.platform.LanguageManager.set(lang)
+                                        showLanguageDialog = false
+                                    }
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(label)
+                            }
+                        }
+                    }
+                }
             )
         }
     }
