@@ -124,6 +124,10 @@ fun InlineItinerarySheetContent(
     var errorText by remember { mutableStateOf<String?>(null) }
     var previousStopPairKey by remember { mutableStateOf<String?>(null) }
     var recalcVersion by remember { mutableStateOf(0) }
+    // When recalc() itself moves the search to "tomorrow" it writes selectedDate/selectedTimeSeconds,
+    // which are keys of the recalc LaunchedEffect. This flag swallows that one self-triggered
+    // re-run so the (already-computed) tomorrow journeys aren't recalculated a second time.
+    var suppressRecalcOnce by remember { mutableStateOf(false) }
     var avoidAlertsJob by remember { mutableStateOf<Job?>(null) }
     // Telemetry: the calc_id of the most recent itinerary calculation. Bound at the start of
     // recalc() and reused for itinerary.calculated + itinerary.chosen events to correlate them.
@@ -348,6 +352,7 @@ fun InlineItinerarySheetContent(
                         date = tomorrow,
                         blockedNames = blockedRouteNames
                     )
+                    suppressRecalcOnce = true
                     selectedDate = tomorrow
                     selectedTimeSeconds = 0
                 }
@@ -471,6 +476,10 @@ fun InlineItinerarySheetContent(
     }
 
     LaunchedEffect(departureStop, arrivalStop, timeMode, selectedTimeSeconds, selectedDate) {
+        if (suppressRecalcOnce) {
+            suppressRecalcOnce = false
+            return@LaunchedEffect
+        }
         recalc()
     }
 
@@ -635,7 +644,7 @@ fun InlineItinerarySheetContent(
                     }
 
                     if (journeysAvoidingAlerts.isNotEmpty()) {
-                        items(journeysAvoidingAlerts, key = { "${it.journey.departureTime}_${it.journey.arrivalTime}_${it.journey.legs.size}_${it.label}" }) { avoidedJourney ->
+                        items(journeysAvoidingAlerts, key = { "${journeySignature(it.journey)}_${it.label}" }) { avoidedJourney ->
                             CompactJourneyCard(
                                 journey = avoidedJourney.journey,
                                 onClick = { selectedJourney = avoidedJourney.journey },
@@ -653,7 +662,7 @@ fun InlineItinerarySheetContent(
                     }
 
                     if (regularJourneys.isNotEmpty()) {
-                        items(regularJourneys, key = { "${it.departureTime}_${it.arrivalTime}_${it.legs.size}" }) { journey ->
+                        items(regularJourneys, key = { journeySignature(it) }) { journey ->
                             CompactJourneyCard(
                                 journey = journey,
                                 onClick = { selectedJourney = journey },

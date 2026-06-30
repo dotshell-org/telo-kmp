@@ -15,7 +15,7 @@ data class JourneyResult(
     fun formatArrivalTime(): String = formatTime(arrivalTime)
 
     private fun formatTime(seconds: Int): String {
-        val hours = seconds / 3600
+        val hours = (seconds / 3600) % 24
         val minutes = (seconds % 3600) / 60
         return "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}"
     }

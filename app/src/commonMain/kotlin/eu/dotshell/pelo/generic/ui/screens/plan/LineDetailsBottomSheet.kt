@@ -524,7 +524,9 @@ private fun TrafficAlertsSection(
         }
 
         alerts.forEachIndexed { index, alert ->
-            var isExpanded by remember { mutableStateOf(false) }
+            // Key on alert identity (like hasEmittedRead) so expansion state follows the alert,
+            // not the slot index, when the list reorders or changes size.
+            var isExpanded by remember(alert.alertNumber) { mutableStateOf(false) }
             var hasEmittedRead by remember(alert.alertNumber) { mutableStateOf(false) }
             val severity = AlertSeverity.fromSeverityType(alert.severityType, alert.severityLevel)
             val severityColor = Color(severity.color)

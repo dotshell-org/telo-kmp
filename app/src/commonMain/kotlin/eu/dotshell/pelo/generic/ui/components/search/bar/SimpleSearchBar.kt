@@ -131,6 +131,9 @@ fun SimpleSearchBar(
         if (imeHeight > 0) {
             keyboardHiddenByScroll = false
         }
+        // Track the IME height so the "keyboard was open, now dismissed" transition above can
+        // actually be detected — without this it stayed 0 and the collapse branch was dead.
+        previousImeHeight = imeHeight
     }
 
     fun setExpandedState(next: Boolean) {

@@ -64,7 +64,11 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
     private val vehiclePositionsService = TransportServiceProvider.getVehiclePositionsService()
     private val lineRules = TransportServiceProvider.getTransportLineRules()
     internal val transportRepository: TransportRepository = TransportRepository(transportApi)
-    private val trafficAlertsRepository = TrafficAlertsRepository(transportApi, eu.dotshell.pelo.platform.Settings(context, "traffic_alerts_cache"))
+    private val trafficAlertsRepository = TrafficAlertsRepository(
+        transportApi,
+        eu.dotshell.pelo.platform.Settings(context, "traffic_alerts_cache"),
+        eu.dotshell.pelo.generic.data.offline.OfflineRepository(context)
+    )
     val userStopAlertsRepository by lazy {
         UserStopAlertsRepository(
             transportApi as eu.dotshell.pelo.specific.data.network.LyonKtorClient
@@ -892,12 +896,14 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
             val nowMinutes = now.hour * 60 + now.minute
             val ordered = allSchedulesForDay.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
-            val nextThree = (
-                ordered.filter { schedule ->
+            // Only upcoming departures: padding with the full day's list reintroduced
+            // duplicates and showed already-passed times as if they were next.
+            val nextThree = ordered
+                .filter { schedule ->
                     val minutes = parseTimeToMinutes(schedule) ?: return@filter false
                     minutes >= nowMinutes
-                } + ordered
-            ).take(3)
+                }
+                .take(3)
 
             _nextSchedules.value = nextThree
         }

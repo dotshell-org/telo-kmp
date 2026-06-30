@@ -67,7 +67,11 @@ fun LinesBottomSheet(
     modifier: Modifier = Modifier,
     viewModel: TransportViewModelInterface? = null
 ) {
-    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val platformContext = LocalPlatformContext.current
+    // Remembered: DrawableProvider has identity equality, so re-creating it every recomposition
+    // made the remember(allLines, drawableProvider) key below change each pass and re-ran the
+    // (filter + bucket + natural sort) categorizeLines() on every keystroke.
+    val drawableProvider = remember(platformContext) { DrawableProvider(platformContext) }
     var searchQuery by remember { mutableStateOf("") }
 
     // State pour gérer le scroll

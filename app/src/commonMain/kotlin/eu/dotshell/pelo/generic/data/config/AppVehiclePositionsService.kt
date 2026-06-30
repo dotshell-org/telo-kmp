@@ -58,12 +58,12 @@ class AppVehiclePositionsService(
     }
 
     override fun streamStrongLinesVehiclePositions(): Flow<Result<List<SimpleVehiclePosition>>> {
-        val strongLines = rules.strongLines.toSet()
+        val strongLines = rules.strongLines.mapTo(HashSet()) { it.uppercase() }
 
         return streamAllVehiclePositions().map { result ->
             result.map { positions ->
                 positions.filter { position ->
-                    strongLines.contains(position.lineName)
+                    strongLines.contains(position.lineName.uppercase())
                 }
             }
         }

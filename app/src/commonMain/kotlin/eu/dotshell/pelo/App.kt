@@ -930,7 +930,7 @@ private fun RootScaffold(
                 eu.dotshell.pelo.generic.data.models.search.StationSearchResult(
                     stopName = stop.properties.nom,
                     stopId = stop.properties.id,
-                    lines = stop.properties.desserte.split(":")
+                    lines = viewModel.parseLineCodesFromDesserte(stop.properties.desserte)
                 )
             }
 
@@ -976,7 +976,7 @@ private fun RootScaffold(
                         }
                         if (nearestStop != null) {
                             alertReportInitialStopName = nearestStop.properties.nom
-                            alertReportInitialLines = nearestStop.properties.desserte.split(":")
+                            alertReportInitialLines = viewModel.parseLineCodesFromDesserte(nearestStop.properties.desserte)
                             showAlertReport = true
                         }
                     },
