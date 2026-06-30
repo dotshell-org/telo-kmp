@@ -208,8 +208,24 @@ fun LinesBottomSheet(
                     is CategoryItem -> {
                         Column {
                             Spacer(modifier = Modifier.height(8.dp))
+                            val categoryText = when (item.category) {
+                                "Métro" -> strings["category_metro"]
+                                "Funiculaire" -> strings["category_funicular"]
+                                "Tramway" -> strings["category_tramway"]
+                                "Navigone" -> strings["category_navigone"]
+                                "Chrono" -> strings["category_chrono"]
+                                "Pleine Lune" -> strings["category_pleine_lune"]
+                                "Gare Express" -> strings["category_gare_express"]
+                                "Navette" -> strings["category_navette"]
+                                "Soyeuse" -> strings["category_soyeuse"]
+                                "Zone Industrielle" -> strings["category_zone_industrielle"]
+                                "Bus" -> strings["category_bus"]
+                                "Cars du Rhône TCL unifié" -> strings["category_cars_du_rhone"]
+                                "Junior Direct" -> strings["category_junior_direct"]
+                                else -> item.category
+                            }
                             Text(
-                                text = item.category,
+                                text = categoryText,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryColor,

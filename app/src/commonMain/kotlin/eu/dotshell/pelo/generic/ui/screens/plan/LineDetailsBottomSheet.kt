@@ -157,13 +157,16 @@ private fun getMinutesUntil(scheduleTime: String): Long? {
     }
 }
 
-private fun formatTimeUntilDeparture(minutes: Long): String {
-    if (minutes == 0L) return "< 1 min"
-    if (minutes < 60L) return "dans ${minutes}min"
+@Composable
+private fun formatTimeUntilDeparture(minutes: Long, strings: StringProvider): String {
+    if (minutes == 0L) return strings["time_less_than_minute"]
+    if (minutes < 60L) return strings["time_in_minutes"].replace("%s", minutes.toString())
 
     val hours = minutes / 60
     val remainingMinutes = minutes % 60
-    return "dans ${hours}h${remainingMinutes.toString().padStart(2, '0')}min"
+    return strings["time_in_hours_minutes"]
+        .replace("%1\$s", hours.toString())
+        .replace("%2\$s", remainingMinutes.toString().padStart(2, '0'))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -870,7 +873,7 @@ private fun NextSchedulesSection(
                         )
                         getMinutesUntil(schedule)?.let { minutes ->
                             Text(
-                                text = formatTimeUntilDeparture(minutes),
+                                text = formatTimeUntilDeparture(minutes, strings),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = getScheduleColorBasedOnTime(schedule)
                             )

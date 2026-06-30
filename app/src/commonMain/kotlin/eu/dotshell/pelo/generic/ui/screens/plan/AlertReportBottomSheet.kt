@@ -430,6 +430,20 @@ fun AlertButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val strings = StringProvider(LocalPlatformContext.current)
+    val localizedLabel = when (alertType.id) {
+        "closure" -> strings["alert_type_closure"]
+        "delay" -> strings["alert_type_delay"]
+        "elevator" -> strings["alert_type_elevator"]
+        "crowding" -> strings["alert_type_crowding"]
+        "works" -> strings["alert_type_works"]
+        "strike" -> strings["alert_type_strike"]
+        "fire" -> strings["alert_type_fire"]
+        "interruption" -> strings["alert_type_interruption"]
+        "congestion" -> strings["alert_type_congestion"]
+        else -> alertType.label
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
@@ -451,7 +465,7 @@ fun AlertButton(
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = alertType.label,
+            text = localizedLabel,
             style = MaterialTheme.typography.bodySmall,
             color = Color.Black,
             textAlign = TextAlign.Center,

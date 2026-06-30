@@ -73,15 +73,23 @@ fun AddFavoriteDialog(
     val strings = StringProvider(LocalPlatformContext.current)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val presets = remember {
+    val homePreset = strings["preset_home"]
+    val workPreset = strings["preset_work"]
+    val schoolPreset = strings["preset_school"]
+    val shoppingPreset = strings["preset_shopping"]
+    val busPreset = strings["preset_bus_station"]
+    val trainPreset = strings["preset_train_station"]
+    val otherPreset = strings["preset_other"]
+
+    val presets = remember(homePreset, workPreset, schoolPreset, shoppingPreset, busPreset, trainPreset, otherPreset) {
         listOf(
-            FavoritePreset("Maison", "home"),
-            FavoritePreset("Travail", "work"),
-            FavoritePreset("Ecole", "school"),
-            FavoritePreset("Courses", "shopping"),
-            FavoritePreset("Gare routière", "bus"),
-            FavoritePreset("Gare ferroviaire", "train"),
-            FavoritePreset("Autre", "star")
+            FavoritePreset(homePreset, "home"),
+            FavoritePreset(workPreset, "work"),
+            FavoritePreset(schoolPreset, "school"),
+            FavoritePreset(shoppingPreset, "shopping"),
+            FavoritePreset(busPreset, "bus"),
+            FavoritePreset(trainPreset, "train"),
+            FavoritePreset(otherPreset, "star")
         )
     }
 
@@ -104,7 +112,7 @@ fun AddFavoriteDialog(
         }
     }
 
-    val isOtherSelected = selectedPreset?.name == "Autre"
+    val isOtherSelected = selectedPreset?.name == strings["preset_other"]
     val finalFavoriteTitle =
         if (isOtherSelected) customOtherTitle.trim() else (selectedPreset?.name ?: "")
 
@@ -237,7 +245,7 @@ fun AddFavoriteDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = selectedStop?.stopName ?: "Rechercher un arrêt",
+                    text = selectedStop?.stopName ?: strings["search_stop_placeholder"],
                     style = MaterialTheme.typography.bodyMedium,
                     color = SecondaryColor
                 )
@@ -296,7 +304,7 @@ fun AddFavoriteDialog(
                     showHistory = false,
                     startExpanded = true,
                     showDarkOutline = false,
-                    searchPlaceholder = "Rechercher un arrêt",
+                    searchPlaceholder = strings["search_stop_placeholder"],
                     query = stopSearchOverlayQuery,
                     onQueryChange = { q ->
                         stopSearchOverlayQuery = q

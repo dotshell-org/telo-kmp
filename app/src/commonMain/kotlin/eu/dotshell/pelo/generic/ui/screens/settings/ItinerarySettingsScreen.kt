@@ -103,12 +103,17 @@ fun ItinerarySettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             ItineraryLineCategorySection(
-                sectionTitle = sectionTitle,
+                sectionTitle = if (sectionTitle == "Lignes à tarification spéciale") strings["special_fare_lines"] else sectionTitle,
                 lines = options.map { option ->
                     val isEnabled = optionStates[option.key] ?: option.defaultEnabled
+                    val resolvedSubtitle = when (option.subtitle) {
+                        "Lignes scolaires" -> strings["school_lines"]
+                        "Navette aéroport" -> strings["airport_shuttle"]
+                        else -> option.subtitle
+                    }
                     ItineraryLineOption(
                         title = option.title,
-                        subtitle = option.subtitle,
+                        subtitle = resolvedSubtitle,
                         isSelected = isEnabled,
                         onClick = {
                             val enabled = !isEnabled
