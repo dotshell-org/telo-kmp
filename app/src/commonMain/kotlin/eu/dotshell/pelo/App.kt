@@ -952,9 +952,10 @@ private fun RootScaffold(
         // Navigation mode overlay - displayed when navigation is active
         if (navigationState.isActive) {
             val loc = userLocation
-            if (loc != null) {
+            val activeJourney = navigationState.journey
+            if (loc != null && activeJourney != null) {
                 val overlayState = buildNavigationModeUiState(
-                    journey = navigationState.journey!!,
+                    journey = activeJourney,
                     nowSeconds = GeometryUtils.currentTimeInSeconds(),
                     userLocation = GeoPoint(latitude = loc.latitude, longitude = loc.longitude)
                 )

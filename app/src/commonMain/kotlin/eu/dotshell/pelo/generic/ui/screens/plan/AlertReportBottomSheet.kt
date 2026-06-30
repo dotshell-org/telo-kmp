@@ -221,8 +221,10 @@ fun AlertReportBottomSheet(
                     
                     Spacer(modifier = Modifier.width(12.dp))
                     
-                    if (selectedLine != null) {
-                        val lineName = selectedLine!!.lineName
+                    val selectedLineLocal = selectedLine
+                    val selectedStopLocal = selectedStop
+                    if (selectedLineLocal != null) {
+                        val lineName = selectedLineLocal.lineName
                         val drawableProvider = DrawableProvider(context)
                         val drawableName = remember(lineName) {
                             LineIconResolver.getDrawableNameForLineName(lineName)
@@ -254,9 +256,9 @@ fun AlertReportBottomSheet(
                                 )
                             }
                         }
-                    } else if (selectedStop != null) {
+                    } else if (selectedStopLocal != null) {
                         Text(
-                            text = selectedStop!!.stopName,
+                            text = selectedStopLocal.stopName,
                             style = MaterialTheme.typography.headlineSmall,
                             color = Color.Black,
                             fontWeight = FontWeight.Bold

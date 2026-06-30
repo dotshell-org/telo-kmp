@@ -2,10 +2,14 @@ package eu.dotshell.pelo.generic.utils
 
 import eu.dotshell.pelo.generic.data.models.geojson.Feature
 import eu.dotshell.pelo.platform.provideLineColors
+import kotlin.concurrent.Volatile
 
 object LineColorHelper {
 
-    private val colorIntCache = HashMap<String, Int>(20)
+    // Copy-on-write cache (see FrenchPublicHolidayStrategy): lock-free reads, no CME if accessed
+    // off the main thread. A racing double-compute just recomputes the same color once.
+    @Volatile
+    private var colorIntCache: Map<String, Int> = emptyMap()
 
     private fun resolveColorHex(lineName: String): String {
         val upper = lineName.trim().uppercase()
@@ -35,7 +39,7 @@ object LineColorHelper {
         val key = lineName.trim().uppercase()
         colorIntCache[key]?.let { return it }
         val color = hexToArgb(resolveColorHex(lineName))
-        colorIntCache[key] = color
+        colorIntCache = colorIntCache + (key to color)
         return color
     }
 

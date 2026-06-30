@@ -267,8 +267,9 @@ fun StationBottomSheet(
                             }
                         }
                         else -> {
+                            val deps = sortedDepartures.orEmpty()
                             itemsIndexed(
-                                sortedDepartures!!,
+                                deps,
                                 key = { _, dep -> "${dep.lineName}-${dep.directionId}-${dep.nextDeparture}" }
                             ) { index, departure ->
                                 DepartureListItem(
@@ -284,7 +285,7 @@ fun StationBottomSheet(
                                     }
                                 )
 
-                                if (index < sortedDepartures.size - 1) {
+                                if (index < deps.size - 1) {
                                     HorizontalDivider(
                                         modifier = Modifier.padding(vertical = 4.dp),
                                         color = Gray200

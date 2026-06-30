@@ -523,8 +523,8 @@ fun InlineItinerarySheetContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start
                 ) {
-                    val nonWalkingLegs = remember(selectedJourney!!.legs) {
-                        selectedJourney!!.legs.filterNot { it.isWalking }
+                    val nonWalkingLegs = remember(selectedJourney?.legs) {
+                        selectedJourney?.legs?.filterNot { it.isWalking }.orEmpty()
                     }
 
                     nonWalkingLegs.forEachIndexed { index, leg ->
@@ -608,7 +608,7 @@ fun InlineItinerarySheetContent(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = errorText!!, color = PrimaryColor)
+                    Text(text = errorText.orEmpty(), color = PrimaryColor)
                 }
             } else {
                 val avoidedSignatures = remember(journeysAvoidingAlerts) {
@@ -676,31 +676,33 @@ fun InlineItinerarySheetContent(
                 }
             }
         } else {
-            JourneyDetailsSheetContent(
-                journey = selectedJourney!!,
-                isExpanded = true,
-                onStartNavigation = {
-                    val chosen = selectedJourney!!
-                    val combined = journeysAvoidingAlerts.map { it.journey } + journeys
-                    val index = combined.indexOf(chosen).takeIf { it >= 0 } ?: -1
-                    lastCalcId?.let { calcId ->
-                        eu.dotshell.pelo.generic.data.telemetry.TelemetryEmitter.emit(
-                            eu.dotshell.pelo.generic.data.telemetry.TelemetryEvent.ItineraryChosen(
-                                eventId = randomId(),
-                    at = Clock.System.now().toString(),
-                                calcId = calcId,
-                                optionIndex = index
+            val chosenJourney = selectedJourney
+            if (chosenJourney != null) {
+                JourneyDetailsSheetContent(
+                    journey = chosenJourney,
+                    isExpanded = true,
+                    onStartNavigation = {
+                        val combined = journeysAvoidingAlerts.map { it.journey } + journeys
+                        val index = combined.indexOf(chosenJourney).takeIf { it >= 0 } ?: -1
+                        lastCalcId?.let { calcId ->
+                            eu.dotshell.pelo.generic.data.telemetry.TelemetryEmitter.emit(
+                                eu.dotshell.pelo.generic.data.telemetry.TelemetryEvent.ItineraryChosen(
+                                    eventId = randomId(),
+                                    at = Clock.System.now().toString(),
+                                    calcId = calcId,
+                                    optionIndex = index
+                                )
                             )
-                        )
-                    }
-                    onStartNavigation(chosen)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                useLightColors = true,
-                scrollAllContent = true
-            )
+                        }
+                        onStartNavigation(chosenJourney)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    useLightColors = true,
+                    scrollAllContent = true
+                )
+            }
         }
 
         if (showTimePicker) {
