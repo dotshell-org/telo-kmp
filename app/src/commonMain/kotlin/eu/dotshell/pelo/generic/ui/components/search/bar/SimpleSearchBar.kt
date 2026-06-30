@@ -91,7 +91,7 @@ fun SimpleSearchBar(
     content: TransportSearchContent = TransportSearchContent.STOPS_AND_LINES,
     showHistory: Boolean = true,
     startExpanded: Boolean = false,
-    searchPlaceholder: String = "Rechercher",
+    searchPlaceholder: String? = null,
     externalQuery: String? = null,
     externalOnQueryChange: ((String) -> Unit)? = null,
     focusNonce: Int = 0,
@@ -99,6 +99,7 @@ fun SimpleSearchBar(
     showDirections: Boolean = true
 ) {
     val strings = StringProvider(LocalPlatformContext.current)
+    val placeholder = searchPlaceholder ?: strings["search"]
     val isControlled = externalQuery != null && externalOnQueryChange != null
     var internalQuery by rememberSaveable { mutableStateOf("") }
     val queryText = if (isControlled) externalQuery else internalQuery
@@ -244,7 +245,7 @@ fun SimpleSearchBar(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { submitFirstResult() }),
-                        placeholder = { Text(searchPlaceholder, color = SecondaryColor) },
+                        placeholder = { Text(placeholder, color = SecondaryColor) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
@@ -284,7 +285,7 @@ fun SimpleSearchBar(
                                 setExpandedState(shouldExpand)
                             }
                         },
-                        placeholder = { Text(searchPlaceholder, color = SecondaryColor) },
+                        placeholder = { Text(placeholder, color = SecondaryColor) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,

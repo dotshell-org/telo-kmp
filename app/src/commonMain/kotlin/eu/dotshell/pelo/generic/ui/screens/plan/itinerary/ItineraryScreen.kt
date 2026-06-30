@@ -391,7 +391,7 @@ private fun JourneyLegItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = if (leg.isWalking) "Marche ${leg.durationMinutes} min" else "Direction ${leg.direction ?: leg.toStopName}",
+                text = if (leg.isWalking) strings["walking_duration"].replace("%s", leg.durationMinutes.toString()) else strings["direction_to"].replace("%s", leg.direction ?: leg.toStopName),
                 color = secondaryTextColor,
                 style = MaterialTheme.typography.bodySmall
             )

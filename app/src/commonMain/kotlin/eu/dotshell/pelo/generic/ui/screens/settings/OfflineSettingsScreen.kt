@@ -102,9 +102,9 @@ fun OfflineSettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (offlineDataInfo.isAvailable)
-                    "Les données hors ligne sont disponibles"
+                    strings["offline_available_message"]
                 else
-                    "Téléchargez les données pour utiliser l'appli sans connexion",
+                    strings["offline_download_message"],
                 color = Color.Gray,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center
@@ -118,7 +118,7 @@ fun OfflineSettingsScreen(
                 Spacer(modifier = Modifier.height(30.dp))
             }
 
-            CategoryHeader(Icons.Default.Map, "Fonds de carte")
+            CategoryHeader(Icons.Default.Map, strings["map_styles_category"])
 
             MapStyleSelectionCard(
                 selectedStyles = selectedMapStyles,
@@ -154,7 +154,7 @@ fun OfflineSettingsScreen(
                             tint = Color.Gray
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Annuler", color = Color.Gray, fontSize = 14.sp)
+                        Text(strings["cancel"], color = Color.Gray, fontSize = 14.sp)
                     }
                 }
 
@@ -179,7 +179,7 @@ fun OfflineSettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (offlineDataInfo.isAvailable) "Mettre à jour" else "Télécharger les données",
+                            text = if (offlineDataInfo.isAvailable) strings["update_button"] else strings["download_data"],
                             fontSize = 16.sp,
                             color = SecondaryColor,
                             modifier = Modifier.padding(vertical = 4.dp)
@@ -369,13 +369,13 @@ private fun OfflineStatusCard(info: OfflineDataInfo) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            StatusRow("Dernière mise à jour", formatTimestamp(info.lastDownloadTimestamp))
+            StatusRow(strings["last_update_label"], formatTimestamp(info.lastDownloadTimestamp))
             Spacer(modifier = Modifier.height(8.dp))
-            StatusRow("Espace utilisé", formatFileSize(info.totalSizeBytes))
+            StatusRow(strings["space_used_label"], formatFileSize(info.totalSizeBytes))
             Spacer(modifier = Modifier.height(8.dp))
             StatusRow(
-                "Lignes de bus",
-                if (info.busLinesCount > 0) "${info.busLinesCount} lignes" else "Aucune"
+                strings["bus_lines_label"],
+                if (info.busLinesCount > 0) strings["bus_lines_value"].replace("%s", info.busLinesCount.toString()) else strings["no_bus_lines_label"]
             )
 
             if (info.isStale) {
