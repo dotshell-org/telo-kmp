@@ -8,7 +8,8 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-class DepartureManager {
+// Stateless: an object so callers don't allocate one per list item / per sort comparison.
+object DepartureManager {
     fun parseDepartureToMinutes(rawTime: String): Int? {
         val clean = if (rawTime.count { it == ':' } >= 2) rawTime.substringBeforeLast(":") else rawTime
         val parts = clean.split(":")

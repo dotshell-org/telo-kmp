@@ -404,7 +404,7 @@ class TransportViewModel(private val context: PlatformContext) : ViewModel(), Tr
         val unknownCount = sampleStops.count { it.properties.desserte.equals("UNKNOWN", ignoreCase = true) }
         val arretCount = sampleStops.count { it.properties.nom.startsWith("Arret ") || it.properties.nom.contains("Arrondissement") }
 
-        val shouldEnrich = strongStopCount == 0 && ratioNonBlank < 0.1 ||
+        val shouldEnrich = (strongStopCount == 0 && ratioNonBlank < 0.1) ||
                          unknownCount > sampleSize * 0.3 ||
                          (strongStopCount < sampleSize * 0.2 && unknownCount > sampleSize * 0.2) ||
                          arretCount > sampleSize * 0.05

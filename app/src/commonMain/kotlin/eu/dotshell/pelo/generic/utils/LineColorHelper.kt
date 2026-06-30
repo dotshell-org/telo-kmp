@@ -11,20 +11,38 @@ object LineColorHelper {
     @Volatile
     private var colorIntCache: Map<String, Int> = emptyMap()
 
+    private class CompiledRule(
+        val type: String,
+        val match: String,
+        val color: String,
+        val regex: Regex?,
+    )
+
+    // Compile the colour rules (incl. regexes) once instead of on every resolveColorHex call.
+    // A malformed regex pattern compiles to null and is skipped rather than throwing at render.
+    private val compiledRules: List<CompiledRule> by lazy {
+        provideLineColors().rules.map { rule ->
+            val type = rule.type.lowercase()
+            CompiledRule(
+                type = type,
+                match = rule.match.trim().uppercase(),
+                color = rule.color,
+                regex = if (type == "regex") runCatching { Regex(rule.match) }.getOrNull() else null,
+            )
+        }
+    }
+    private val fallbackColor: String by lazy { provideLineColors().fallback }
+
     private fun resolveColorHex(lineName: String): String {
         val upper = lineName.trim().uppercase()
-        val rules = provideLineColors()
-
-        for (rule in rules.rules) {
-            val match = rule.match.trim().uppercase()
-            when (rule.type.lowercase()) {
-                "exact" -> if (upper == match) return rule.color
-                "prefix" -> if (upper.startsWith(match)) return rule.color
-                "regex" -> if (upper.matches(Regex(rule.match))) return rule.color
+        for (rule in compiledRules) {
+            when (rule.type) {
+                "exact" -> if (upper == rule.match) return rule.color
+                "prefix" -> if (upper.startsWith(rule.match)) return rule.color
+                "regex" -> if (rule.regex != null && upper.matches(rule.regex)) return rule.color
             }
         }
-
-        return rules.fallback
+        return fallbackColor
     }
 
     fun getColorForLine(feature: Feature): String {

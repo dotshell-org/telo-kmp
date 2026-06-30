@@ -230,11 +230,11 @@ fun StationBottomSheet(
                 val sortedDepartures = remember(departures, lineOrder) {
                     departures?.sortedWith(
                         compareBy<StopDeparturePreview> {
-                            DepartureManager().minutesUntilDeparture(it.nextDeparture)
+                            DepartureManager.minutesUntilDeparture(it.nextDeparture)
                         }
                             .thenBy { lineOrder[it.lineName.uppercase()] ?: Int.MAX_VALUE }
                             .thenBy { it.directionId }
-                            .thenBy { DepartureManager().parseDepartureToMinutes(it.nextDeparture) ?: Int.MAX_VALUE }
+                            .thenBy { DepartureManager.parseDepartureToMinutes(it.nextDeparture) ?: Int.MAX_VALUE }
                     )
                 }
 

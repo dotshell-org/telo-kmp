@@ -80,13 +80,13 @@ fun DepartureListItem(
                     text = departureTime,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = DepartureManager().getDepartureColor(departureTime)
+                    color = DepartureManager.getDepartureColor(departureTime)
                 )
-                DepartureManager().formatRelativeDeparture(departureTime)?.let { relativeText ->
+                DepartureManager.formatRelativeDeparture(departureTime)?.let { relativeText ->
                     Text(
                         text = relativeText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = DepartureManager().getDepartureColor(departureTime)
+                        color = DepartureManager.getDepartureColor(departureTime)
                     )
                 }
             }

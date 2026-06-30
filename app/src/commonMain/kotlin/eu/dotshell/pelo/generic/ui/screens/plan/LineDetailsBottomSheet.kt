@@ -181,7 +181,10 @@ fun LineDetailsBottomSheet(
     onToggleFavoriteStop: (String) -> Unit = {},
     onHeaderLineCountChanged: (Int) -> Unit = {}
 ) {
-    val drawableProvider = DrawableProvider(LocalPlatformContext.current)
+    val platformContext = LocalPlatformContext.current
+    // Remembered so it stays stable as a remember() key below (it's rebuilt on every
+    // recomposition otherwise, and this sheet recomposes as schedules/alerts load).
+    val drawableProvider = remember(platformContext) { DrawableProvider(platformContext) }
 
     // Key states on lineInfo to reset when switching lines - prevents stale data accumulation
     val lineKey = lineInfo?.lineName to lineInfo?.currentStationName

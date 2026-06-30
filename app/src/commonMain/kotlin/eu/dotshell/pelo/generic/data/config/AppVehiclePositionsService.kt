@@ -157,10 +157,15 @@ class AppVehiclePositionsService(
         return lastSegment
     }
 
+    // Precompiled once instead of recompiling every regex for every vehicle on every SSE event.
+    private val compiledLineNameRegexes: List<Regex> by lazy {
+        rules.lineNameRegexes.mapNotNull { runCatching { Regex(it) }.getOrNull() }
+    }
+
     private fun isValidLineName(lineName: String): Boolean {
         val upper = lineName.trim().uppercase()
         if (upper.isBlank()) return false
         if (rules.strongLines.any { it.equals(upper, ignoreCase = true) }) return true
-        return rules.lineNameRegexes.any { regex -> upper.matches(Regex(regex)) }
+        return compiledLineNameRegexes.any { upper.matches(it) }
     }
 }
