@@ -68,7 +68,6 @@ fun SettingsScreen(
     onApiHealthClick: () -> Unit = {},
     onTelemetryClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     isAboutMenu: Boolean = false
 ) {
     var clickCount by remember { mutableIntStateOf(0) }
@@ -76,9 +75,7 @@ fun SettingsScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val drawableProvider = DrawableProvider(LocalPlatformContext.current)
     val strings = StringProvider(LocalPlatformContext.current)
-    val currentLanguageLabel = eu.dotshell.pelo.platform.LanguageManager.current.let {
-        if (it == eu.dotshell.pelo.platform.AppLanguage.SYSTEM) strings["language_system"] else it.nativeName
-    }
+
 
     // Reset click count after 2 seconds
     LaunchedEffect(clickCount) {
@@ -177,12 +174,7 @@ fun SettingsScreen(
                     title = strings["about_title"],
                     onClick = onAboutClick
                 )
-                HorizontalDivider(color = Color(0xFF3A3A3C))
-                SettingsMenuRow(
-                    title = strings["language_title"],
-                    subtitle = currentLanguageLabel,
-                    onClick = onLanguageClick
-                )
+
             }
 
             Spacer(modifier = Modifier.height(24.dp))

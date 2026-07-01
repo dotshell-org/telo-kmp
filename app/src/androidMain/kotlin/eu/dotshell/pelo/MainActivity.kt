@@ -85,10 +85,8 @@ class MainActivity : ComponentActivity() {
             requestPermissions(missingPermissions.toTypedArray(), 1001)
         }
 
-        eu.dotshell.pelo.platform.LanguageManager.init(this)
         setContent {
             CompositionLocalProvider(eu.dotshell.pelo.platform.LocalPlatformContext provides this@MainActivity) {
-                eu.dotshell.pelo.platform.ProvideAppLocale(eu.dotshell.pelo.platform.LanguageManager.current.tag) {
                 NotificationPermissionGate {
                     App(
                         onNavigationModeChanged = { active ->
@@ -107,7 +105,6 @@ class MainActivity : ComponentActivity() {
                             setNavigationLockScreenBehavior(active)
                         }
                     )
-                }
                 }
             }
         }
