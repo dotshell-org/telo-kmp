@@ -1402,8 +1402,9 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
             "itinerary" -> {
                 val cfg = remember { AppConfigLoader.getConfig().itinerarySettings }
                 val prefs = remember { ItineraryPreferencesRepository(context) }
+                val strings = StringProvider(context)
                 ItinerarySettingsScreen(
-                    screenTitle = cfg.screenTitle,
+                    screenTitle = strings["itinerary"],
                     sectionTitle = cfg.sectionTitle,
                     options = cfg.options,
                     onBackClick = navigateBack,
