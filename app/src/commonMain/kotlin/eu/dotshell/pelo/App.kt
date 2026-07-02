@@ -67,6 +67,9 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
@@ -126,6 +129,7 @@ import eu.dotshell.pelo.generic.ui.screens.settings.ItinerarySettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.OfflineSettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.SettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.settings.TelemetrySettingsScreen
+import eu.dotshell.pelo.generic.ui.screens.settings.ThemeSettingsScreen
 import eu.dotshell.pelo.generic.ui.screens.onboarding.TermsConsentGate
 import eu.dotshell.pelo.generic.ui.screens.onboarding.TelemetryOptInGate
 import eu.dotshell.pelo.generic.ui.screens.settings.about.ContactScreen
@@ -134,6 +138,10 @@ import eu.dotshell.pelo.generic.ui.screens.settings.about.LegalScreen
 
 import eu.dotshell.pelo.generic.ui.theme.AccentColor
 import eu.dotshell.pelo.generic.ui.theme.PeloTheme
+import eu.dotshell.pelo.generic.ui.theme.ThemeController
+import eu.dotshell.pelo.generic.ui.theme.LocalThemeController
+import eu.dotshell.pelo.generic.data.repository.offline.theme.ThemeMode
+import eu.dotshell.pelo.generic.data.repository.offline.theme.ThemePreferenceRepository
 import eu.dotshell.pelo.generic.ui.theme.PrimaryColor
 import eu.dotshell.pelo.generic.ui.theme.SecondaryColor
 import eu.dotshell.pelo.generic.ui.viewmodel.TransportLinesUiState
@@ -193,33 +201,51 @@ fun App(onNavigationModeChanged: (Boolean) -> Unit = {}) {
         }
     }
 
-    PeloTheme {
-        TermsConsentGate {
-            TelemetryOptInGate {
-                Box(Modifier.fillMaxSize()) {
-                    val vm = viewModel
-                    if (vm != null) {
-                        RootScaffold(vm, onNavigationModeChanged)
-                    } else {
-                        Box(Modifier.fillMaxSize().background(Color.White))
-                    }
+    val themeRepo = remember(context) { ThemePreferenceRepository(context) }
+    var themeMode by remember { mutableStateOf(themeRepo.getThemeMode()) }
+    val darkTheme = when (themeMode) {
+        ThemeMode.AUTO -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
 
-                    if (isInitializing) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(16.dp)
-                                .background(
-                                    Color.White.copy(alpha = 0.85f),
-                                    RoundedCornerShape(999.dp)
+    CompositionLocalProvider(
+        LocalThemeController provides ThemeController(
+            themeMode = themeMode,
+            setThemeMode = { newMode ->
+                themeMode = newMode
+                themeRepo.saveThemeMode(newMode)
+            }
+        )
+    ) {
+        PeloTheme(darkTheme = darkTheme) {
+            TermsConsentGate {
+                TelemetryOptInGate {
+                    Box(Modifier.fillMaxSize()) {
+                        val vm = viewModel
+                        if (vm != null) {
+                            RootScaffold(vm, onNavigationModeChanged)
+                        } else {
+                            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+                        }
+
+                        if (isInitializing) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(16.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                        RoundedCornerShape(999.dp)
+                                    )
+                                    .padding(12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                                .padding(12.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = PrimaryColor
-                            )
+                            }
                         }
                     }
                 }
@@ -1432,6 +1458,7 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                     },
                 )
             }
+            "theme" -> ThemeSettingsScreen(onBackClick = navigateBack)
             "about" -> SettingsScreen(
                 versionName = appVersionName(context),
                 onBackClick = navigateBack,
@@ -1441,6 +1468,7 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                 onContactClick = { navigateTo("contact") },
                 onOfflineClick = {},
                 onTelemetryClick = {},
+                onThemeClick = {},
 
                 isAboutMenu = true
             )
@@ -1454,6 +1482,7 @@ private fun SettingsTab(viewModel: TransportViewModel, modifier: Modifier = Modi
                 onOfflineClick = { navigateTo("offline") },
                 onTelemetryClick = { navigateTo("telemetry") },
                 onAboutClick = { navigateTo("about") },
+                onThemeClick = { navigateTo("theme") },
 
                 isAboutMenu = false
             )

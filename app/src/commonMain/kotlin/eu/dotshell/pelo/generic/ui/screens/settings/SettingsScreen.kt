@@ -68,6 +68,7 @@ fun SettingsScreen(
     onApiHealthClick: () -> Unit = {},
     onTelemetryClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
+    onThemeClick: () -> Unit = {},
     isAboutMenu: Boolean = false
 ) {
     var clickCount by remember { mutableIntStateOf(0) }
@@ -163,6 +164,11 @@ fun SettingsScreen(
                 SettingsMenuRow(
                     title = strings["offline_mode"],
                     onClick = onOfflineClick
+                )
+                HorizontalDivider(color = Color(0xFF3A3A3C))
+                SettingsMenuRow(
+                    title = strings["theme_settings_title"],
+                    onClick = onThemeClick
                 )
                 HorizontalDivider(color = Color(0xFF3A3A3C))
                 SettingsMenuRow(
