@@ -14,7 +14,19 @@ data class AppConfig(
     @SerialName("cache") val cache: CacheConfigData,
     @SerialName("itinerarySettings") val itinerarySettings: ItinerarySettingsData,
     @SerialName("telemetry") val telemetry: TelemetryConfigData? = null,
-    @SerialName("consent") val consent: ConsentConfigData
+    @SerialName("consent") val consent: ConsentConfigData,
+    @SerialName("realtime") val realtime: RealtimeConfigData = RealtimeConfigData()
+)
+
+/**
+ * Feature flags for real-time capabilities. Networks without a real-time backend
+ * (e.g. RTM) disable them: services become no-ops and the related UI is hidden.
+ */
+@Serializable
+data class RealtimeConfigData(
+    val trafficAlertsEnabled: Boolean = true,
+    val vehiclePositionsEnabled: Boolean = true,
+    val userStopAlertsEnabled: Boolean = true
 )
 
 @Serializable

@@ -126,6 +126,11 @@
     "validityHours": 24,
     "cacheBusLines": false
   },
+  "realtime": {
+    "trafficAlertsEnabled": false,
+    "vehiclePositionsEnabled": false,
+    "userStopAlertsEnabled": false
+  },
   "itinerarySettings": {
     "screenTitle": "Itinéraire",
     "sectionTitle": "Lignes à tarification spéciale",
@@ -391,10 +396,10 @@
     "defaultVehicleMarker": "BUS"
   },
   "telemetry": {
-    "enabled": true,
+    "enabled": false,
     "endpointUrl": "https://api.dotshell.eu/pelo/v1/telemetry/daily",
     "schemaVersion": 1,
-    "networkCode": "lyon-tcl",
+    "networkCode": "marseille-rtm",
     "closeDebounceSeconds": 5,
     "tripSamplingSeconds": 30,
     "tripSnapRadiusMeters": 100,

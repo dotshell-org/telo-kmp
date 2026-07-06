@@ -269,6 +269,7 @@ private fun RootScaffold(
     val context = LocalPlatformContext.current
     val scope = rememberCoroutineScope()
     val lineRules = remember { TransportServiceProvider.getTransportLineRules() }
+    val realtimeConfig = remember { TransportServiceProvider.getRealtimeConfig() }
     var selectedTab by remember { mutableStateOf(Destination.PLAN) }
     var showLinesSheet by remember { mutableStateOf(false) }
 
@@ -715,7 +716,7 @@ private fun RootScaffold(
                         onItinerarySelected = { name -> startItinerary(name) },
                         isCenteredOnUser = isCenteredOnUser,
                         onFabClick = { isAtTarget ->
-                            if (isAtTarget) {
+                            if (isAtTarget && realtimeConfig.userStopAlertsEnabled) {
                                 alertReportInitialStopName = null
                                 alertReportInitialLines = emptyList()
                                 showAlertReport = true
@@ -956,7 +957,7 @@ private fun RootScaffold(
             )
         }
 
-        if (showAlertReport) {
+        if (showAlertReport && realtimeConfig.userStopAlertsEnabled) {
             val userPos = userLocation
             val nearestStopCandidate = filteredStopsCollection?.features?.minByOrNull { stop ->
                 val coords = stop.geometry.coordinates
@@ -1087,6 +1088,7 @@ private fun PlanContent(
     var searchHistory by remember { mutableStateOf(searchHistoryRepo.getSearchHistory()) }
     val linesState by viewModel.uiState.collectAsState()
     val lineRules = remember { TransportServiceProvider.getTransportLineRules() }
+    val realtimeConfig = remember { TransportServiceProvider.getRealtimeConfig() }
     val mapStyleConfig = remember { TransportServiceProvider.getMapStyleConfig() }
     val mapStyleRepo = remember { MapStyleRepository(context, mapStyleConfig) }
     var selectedMapStyle by remember { mutableStateOf(mapStyleRepo.getSelectedStyle()) }
@@ -1251,7 +1253,7 @@ private fun PlanContent(
                                 .clickable { onFabClick(isAtCenteringTarget) },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (isAtCenteringTarget) {
+                            if (isAtCenteringTarget && realtimeConfig.userStopAlertsEnabled) {
                                 Icon(
                                     painter = fabDrawableProvider.getPainter("add_triangle_24px"),
                                     contentDescription = "Signaler une alerte",
@@ -1365,7 +1367,9 @@ private fun PlanContent(
                                 )
                             }
 
-                            if (selectedLineName.isNullOrBlank() || lineRules.isLiveTrackableLine(selectedLineName)) {
+                            if (realtimeConfig.vehiclePositionsEnabled &&
+                                (selectedLineName.isNullOrBlank() || lineRules.isLiveTrackableLine(selectedLineName))
+                            ) {
                                 Row(
                                     modifier = Modifier
                                         .shadow(2.dp, RoundedCornerShape(20.dp))

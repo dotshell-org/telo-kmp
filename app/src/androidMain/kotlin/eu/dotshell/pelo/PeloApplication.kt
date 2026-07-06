@@ -42,9 +42,11 @@ class PeloApplication : Application(), Configuration.Provider {
             
             // Initialize transport service provider (contains Retrofit instance)
             TransportServiceProvider.initialize(this@PeloApplication)
-            
-            // Schedule traffic alerts in background
-            BackgroundScheduler(this@PeloApplication).ensureTrafficAlertsScheduled()
+
+            // Schedule traffic alerts in background (skipped when real-time is disabled)
+            if (TransportServiceProvider.getRealtimeConfig().trafficAlertsEnabled) {
+                BackgroundScheduler(this@PeloApplication).ensureTrafficAlertsScheduled()
+            }
             
             // Initialize telemetry in background
             initializeTelemetry()
