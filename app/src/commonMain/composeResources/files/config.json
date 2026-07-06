@@ -1,32 +1,32 @@
 {
   "transport": {
-    "baseUrl": "https://data.grandlyon.com/",
-    "networkName": "Réseau de transport",
-    "region": "Région métropolitaine",
-    "organizingAuthority": "Autorité organisatrice",
-    "dataSource": "Source de données",
-    "dataSourceUrl": "https://data.grandlyon.com",
-    "dataLicense": "Licence de données",
+    "baseUrl": "https://transport.data.gouv.fr/",
+    "networkName": "RTM",
+    "region": "Marseille et Métropole Aix-Marseille-Provence",
+    "organizingAuthority": "Régie des Transports Métropolitains (RTM)",
+    "dataSource": "transport.data.gouv.fr",
+    "dataSourceUrl": "https://transport.data.gouv.fr",
+    "dataLicense": "Licence ODbL",
     "regionBounds": [
-      45.55,
-      4.65,
-      45.95,
-      5.1
+      43.15,
+      5.2,
+      43.48,
+      5.6
     ],
     "offlineMapZoomRange": {
       "start": 8,
       "end": 16
     },
     "schoolHolidaysFile": "holidays.json",
-    "primaryColor": "#E60000",
+    "primaryColor": "#0069B4",
     "secondaryColor": "#000000",
     "trafficAlertsBaseUrl": "https://api.dotshell.eu/",
     "vehiclePositionsStreamUrl": "https://api.dotshell.eu/pelo/v1/vehicle-monitoring/positions/stream"
   },
   "theme": {
-    "metroLineColor": "#E60000",
-    "tramLineColor": "#007AC3",
-    "busLineColor": "#00A651",
+    "metroLineColor": "#009FE3",
+    "tramLineColor": "#F28C00",
+    "busLineColor": "#0069B4",
     "errorColor": "#D32F2F",
     "successColor": "#388E3C",
     "warningColor": "#F57C00",
@@ -63,62 +63,632 @@
     }
   },
   "lineColors": {
-    "fallback": "#EF4444",
+    "fallback": "#0069B4",
     "rules": [
       {
-        "match": "RX",
+        "match": "M1",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "M2",
         "type": "exact",
         "color": "#E30613"
       },
       {
-        "match": "TB12",
+        "match": "T1",
         "type": "exact",
-        "color": "#92400e"
+        "color": "#F28C00"
       },
       {
-        "match": "TB",
-        "type": "prefix",
-        "color": "#eab308"
-      },
-      {
-        "match": "T",
-        "type": "prefix",
-        "color": "#A855F7"
-      },
-      {
-        "match": "A",
+        "match": "T2",
         "type": "exact",
-        "color": "#EC4899"
+        "color": "#F4E718"
       },
       {
-        "match": "B",
+        "match": "T3",
         "type": "exact",
-        "color": "#3B82F6"
+        "color": "#95C11F"
       },
       {
-        "match": "C",
+        "match": "FERRY",
         "type": "exact",
-        "color": "#F59E0B"
-      },
-      {
-        "match": "D",
-        "type": "exact",
-        "color": "#22C55E"
-      },
-      {
-        "match": "F",
-        "type": "prefix",
-        "color": "#84CC16"
+        "color": "#009BBA"
       },
       {
         "match": "NAV1",
         "type": "exact",
-        "color": "#14b8a6"
+        "color": "#009BBA"
       },
       {
-        "match": "NAVI1",
+        "match": "NAV2",
         "type": "exact",
-        "color": "#14b8a6"
+        "color": "#009BBA"
+      },
+      {
+        "match": "NAV3",
+        "type": "exact",
+        "color": "#009BBA"
+      },
+      {
+        "match": "1",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "2",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "3",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "4",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "4B",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "5",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "6",
+        "type": "exact",
+        "color": "#F39200"
+      },
+      {
+        "match": "7",
+        "type": "exact",
+        "color": "#FBBA00"
+      },
+      {
+        "match": "7B",
+        "type": "exact",
+        "color": "#FBBA00"
+      },
+      {
+        "match": "9",
+        "type": "exact",
+        "color": "#189B52"
+      },
+      {
+        "match": "10",
+        "type": "exact",
+        "color": "#E94F35"
+      },
+      {
+        "match": "12",
+        "type": "exact",
+        "color": "#007BC4"
+      },
+      {
+        "match": "12B",
+        "type": "exact",
+        "color": "#007BC4"
+      },
+      {
+        "match": "12S",
+        "type": "exact",
+        "color": "#007BC4"
+      },
+      {
+        "match": "15",
+        "type": "exact",
+        "color": "#BD1D1D"
+      },
+      {
+        "match": "15S",
+        "type": "exact",
+        "color": "#BD1D1D"
+      },
+      {
+        "match": "16",
+        "type": "exact",
+        "color": "#CA4E39"
+      },
+      {
+        "match": "17",
+        "type": "exact",
+        "color": "#D77D63"
+      },
+      {
+        "match": "18",
+        "type": "exact",
+        "color": "#814997"
+      },
+      {
+        "match": "19",
+        "type": "exact",
+        "color": "#E4348B"
+      },
+      {
+        "match": "19B",
+        "type": "exact",
+        "color": "#E4348B"
+      },
+      {
+        "match": "20",
+        "type": "exact",
+        "color": "#5C2483"
+      },
+      {
+        "match": "22",
+        "type": "exact",
+        "color": "#E63323"
+      },
+      {
+        "match": "22S",
+        "type": "exact",
+        "color": "#E63323"
+      },
+      {
+        "match": "23",
+        "type": "exact",
+        "color": "#F39200"
+      },
+      {
+        "match": "24",
+        "type": "exact",
+        "color": "#E30613"
+      },
+      {
+        "match": "25",
+        "type": "exact",
+        "color": "#E63329"
+      },
+      {
+        "match": "27",
+        "type": "exact",
+        "color": "#6AAADE"
+      },
+      {
+        "match": "28",
+        "type": "exact",
+        "color": "#E63329"
+      },
+      {
+        "match": "28B",
+        "type": "exact",
+        "color": "#E63329"
+      },
+      {
+        "match": "29",
+        "type": "exact",
+        "color": "#F3953F"
+      },
+      {
+        "match": "30",
+        "type": "exact",
+        "color": "#E63329"
+      },
+      {
+        "match": "31",
+        "type": "exact",
+        "color": "#009640"
+      },
+      {
+        "match": "32",
+        "type": "exact",
+        "color": "#009640"
+      },
+      {
+        "match": "33",
+        "type": "exact",
+        "color": "#00B1B2"
+      },
+      {
+        "match": "34",
+        "type": "exact",
+        "color": "#00B1B2"
+      },
+      {
+        "match": "35",
+        "type": "exact",
+        "color": "#BD1D1D"
+      },
+      {
+        "match": "35T",
+        "type": "exact",
+        "color": "#009BBE"
+      },
+      {
+        "match": "36",
+        "type": "exact",
+        "color": "#BD1D1D"
+      },
+      {
+        "match": "36B",
+        "type": "exact",
+        "color": "#BD1D1D"
+      },
+      {
+        "match": "37",
+        "type": "exact",
+        "color": "#312783"
+      },
+      {
+        "match": "38",
+        "type": "exact",
+        "color": "#E63329"
+      },
+      {
+        "match": "39",
+        "type": "exact",
+        "color": "#312783"
+      },
+      {
+        "match": "40",
+        "type": "exact",
+        "color": "#6AAADE"
+      },
+      {
+        "match": "41",
+        "type": "exact",
+        "color": "#85C9B7"
+      },
+      {
+        "match": "42",
+        "type": "exact",
+        "color": "#636AAF"
+      },
+      {
+        "match": "42T",
+        "type": "exact",
+        "color": "#636AAF"
+      },
+      {
+        "match": "44",
+        "type": "exact",
+        "color": "#E63323"
+      },
+      {
+        "match": "45",
+        "type": "exact",
+        "color": "#F39200"
+      },
+      {
+        "match": "46",
+        "type": "exact",
+        "color": "#C2063B"
+      },
+      {
+        "match": "47",
+        "type": "exact",
+        "color": "#CD4849"
+      },
+      {
+        "match": "48",
+        "type": "exact",
+        "color": "#DB7A7C"
+      },
+      {
+        "match": "49",
+        "type": "exact",
+        "color": "#DA4F37"
+      },
+      {
+        "match": "50",
+        "type": "exact",
+        "color": "#E4348B"
+      },
+      {
+        "match": "51",
+        "type": "exact",
+        "color": "#AFCA0B"
+      },
+      {
+        "match": "52",
+        "type": "exact",
+        "color": "#0073BD"
+      },
+      {
+        "match": "53",
+        "type": "exact",
+        "color": "#005286"
+      },
+      {
+        "match": "54",
+        "type": "exact",
+        "color": "#007BC4"
+      },
+      {
+        "match": "55",
+        "type": "exact",
+        "color": "#F59C00"
+      },
+      {
+        "match": "56",
+        "type": "exact",
+        "color": "#F59C00"
+      },
+      {
+        "match": "59",
+        "type": "exact",
+        "color": "#9CC2E5"
+      },
+      {
+        "match": "60",
+        "type": "exact",
+        "color": "#FFDD00"
+      },
+      {
+        "match": "61",
+        "type": "exact",
+        "color": "#76B82A"
+      },
+      {
+        "match": "62",
+        "type": "exact",
+        "color": "#31B7BC"
+      },
+      {
+        "match": "63",
+        "type": "exact",
+        "color": "#F9DB33"
+      },
+      {
+        "match": "64",
+        "type": "exact",
+        "color": "#EF7D00"
+      },
+      {
+        "match": "67",
+        "type": "exact",
+        "color": "#5BC5F2"
+      },
+      {
+        "match": "70",
+        "type": "exact",
+        "color": "#40AB35"
+      },
+      {
+        "match": "72",
+        "type": "exact",
+        "color": "#E30613"
+      },
+      {
+        "match": "73",
+        "type": "exact",
+        "color": "#E4348B"
+      },
+      {
+        "match": "74",
+        "type": "exact",
+        "color": "#5C2483"
+      },
+      {
+        "match": "80",
+        "type": "exact",
+        "color": "#76B82A"
+      },
+      {
+        "match": "81",
+        "type": "exact",
+        "color": "#005286"
+      },
+      {
+        "match": "82S",
+        "type": "exact",
+        "color": "#AFCA0B"
+      },
+      {
+        "match": "83",
+        "type": "exact",
+        "color": "#BD1D1D"
+      },
+      {
+        "match": "84",
+        "type": "exact",
+        "color": "#EA591B"
+      },
+      {
+        "match": "86",
+        "type": "exact",
+        "color": "#FFDD00"
+      },
+      {
+        "match": "88",
+        "type": "exact",
+        "color": "#AFCA0B"
+      },
+      {
+        "match": "89",
+        "type": "exact",
+        "color": "#009640"
+      },
+      {
+        "match": "91",
+        "type": "exact",
+        "color": "#93D5F6"
+      },
+      {
+        "match": "95S",
+        "type": "exact",
+        "color": "#878787"
+      },
+      {
+        "match": "96",
+        "type": "exact",
+        "color": "#878787"
+      },
+      {
+        "match": "97",
+        "type": "exact",
+        "color": "#DCCD00"
+      },
+      {
+        "match": "97JET",
+        "type": "exact",
+        "color": "#DCCD00"
+      },
+      {
+        "match": "98",
+        "type": "exact",
+        "color": "#F49E00"
+      },
+      {
+        "match": "107",
+        "type": "exact",
+        "color": "#0080B2"
+      },
+      {
+        "match": "121",
+        "type": "exact",
+        "color": "#0BBBEF"
+      },
+      {
+        "match": "122",
+        "type": "exact",
+        "color": "#85C9B7"
+      },
+      {
+        "match": "142",
+        "type": "exact",
+        "color": "#C60E41"
+      },
+      {
+        "match": "144",
+        "type": "exact",
+        "color": "#9CB40D"
+      },
+      {
+        "match": "509",
+        "type": "exact",
+        "color": "#C7D530"
+      },
+      {
+        "match": "518",
+        "type": "exact",
+        "color": "#F9B122"
+      },
+      {
+        "match": "530",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "533",
+        "type": "exact",
+        "color": "#009640"
+      },
+      {
+        "match": "535",
+        "type": "exact",
+        "color": "#C9338B"
+      },
+      {
+        "match": "540",
+        "type": "exact",
+        "color": "#FFDD00"
+      },
+      {
+        "match": "582",
+        "type": "exact",
+        "color": "#EA5160"
+      },
+      {
+        "match": "1100",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "B1",
+        "type": "exact",
+        "color": "#E5006B"
+      },
+      {
+        "match": "B2",
+        "type": "exact",
+        "color": "#E5006B"
+      },
+      {
+        "match": "B3",
+        "type": "exact",
+        "color": "#F42B98"
+      },
+      {
+        "match": "B4",
+        "type": "exact",
+        "color": "#8A5EA4"
+      },
+      {
+        "match": "B5",
+        "type": "exact",
+        "color": "#BF8C73"
+      },
+      {
+        "match": "BM1A",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "BM1B",
+        "type": "exact",
+        "color": "#009FE3"
+      },
+      {
+        "match": "BM2",
+        "type": "exact",
+        "color": "#E30613"
+      },
+      {
+        "match": "N1",
+        "type": "exact",
+        "color": "#213965"
+      },
+      {
+        "match": "N2",
+        "type": "exact",
+        "color": "#005D86"
+      },
+      {
+        "match": "S1",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S2",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S3",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S4",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S5",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S6",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S7",
+        "type": "exact",
+        "color": "#951B81"
+      },
+      {
+        "match": "S8",
+        "type": "exact",
+        "color": "#951B81"
       }
     ]
   },
@@ -133,18 +703,18 @@
   },
   "itinerarySettings": {
     "screenTitle": "Itinéraire",
-    "sectionTitle": "Lignes à tarification spéciale",
+    "sectionTitle": "Lignes à usage spécifique",
     "options": [
       {
-        "key": "enable_jd_lines",
-        "title": "Junior Direct (JD)",
-        "subtitle": "Lignes scolaires",
+        "key": "enable_school_lines",
+        "title": "Lignes scolaires (S)",
+        "subtitle": "S1 à S8 — dessertes scolaires",
         "defaultEnabled": true
       },
       {
-        "key": "enable_rx_line",
-        "title": "Rhônexpress (RX)",
-        "subtitle": "Navette aéroport",
+        "key": "enable_night_lines",
+        "title": "Lignes de nuit (N)",
+        "subtitle": "N1 et N2",
         "defaultEnabled": true
       }
     ]
@@ -154,21 +724,21 @@
     "sections": [
       {
         "title": "Données de transport",
-        "content": "Les données de transport utilisées dans l’application proviennent exclusivement du site data.grandlyon.com et sont soumises à la Licence Mobilités.\n\nLes tracés géographiques des lignes de bus (incluant Chrono, Pleine Lune, Bus relais, Gare Express, Navette, Soyeuse, Zone Industrielle et Junior Direct), tramway, Rhônexpress, Trambus, métro, funiculaire et Navigone sont téléchargés directement depuis l’API publique délivrée par le SYTRAL sur le site data.grandlyon.com.\n\nLes positions géographiques ainsi que les noms des arrêts, les contenus des lignes et les horaires proviennent tous du fichier GTFS (General Transit Feed Specification) distribué par le SYTRAL sur le site data.grandlyon.com. Ces données sont manuellement mises à jour par les développeurs et subissent un prétraitement avant d’être utilisées. Aucune donnée n’est modifiée, uniquement leur organisation est transformée afin d’être traitée plus rapidement par l’application.\n\nLes pictogrammes des lignes proviennent également du site data.grandlyon.com et sont fournies par le SYTRAL au format SVG.\n\nLes alertes trafic et les positions de véhicules en temps réel sont fournies par le SYTRAL sur le site data.grandlyon.com via une API fermée requérant une authentification. En vertu de la Licence Mobilités, Dotshell met à disposition du public un miroir de ces données à l’adresse api.dotshell.eu/pelo/v1/. Le miroir fait des requêtes périodiquement à l’API du SYTRAL, enregistre en mémoire le résultat et redistribue au client une copie, accompagnée du timestamp de la dernière mise à jour. Les données sont purement copiées et redistribuées à l’exception des alertes trafic pour lesquelles les bus scolaires Junior Direct ont été fusionnés aux lignes classiques et les doublons ont été supprimés.\n",
+        "content": "Les données de transport utilisées dans l’application proviennent du jeu de données GTFS (General Transit Feed Specification) publié par la Régie des Transports Métropolitains (RTM) sur la plateforme transport.data.gouv.fr, sous Licence ODbL.\n\nLes positions géographiques et les noms des arrêts, le contenu des lignes, les horaires ainsi que les tracés géographiques des lignes de métro, tramway, bus, BHNS et navettes maritimes sont tous issus de ce fichier GTFS. Ces données sont mises à jour manuellement par les développeurs et subissent un prétraitement avant d’être embarquées dans l’application. Aucune donnée n’est modifiée : seule leur organisation est transformée afin d’être traitée plus rapidement par l’application, qui fonctionne ensuite entièrement hors connexion pour la recherche d’itinéraires et les horaires.\n\nLes pictogrammes des lignes proviennent de Wikimedia Commons (domaine public) et reproduisent les pictogrammes du plan officiel du réseau RTM.\n",
         "links": [
           {
-            "label": "data.grandlyon.com",
-            "url": "https://data.grandlyon.com"
+            "label": "transport.data.gouv.fr",
+            "url": "https://transport.data.gouv.fr"
           },
           {
-            "label": "api.dotshell.eu/pelo/v1/",
-            "url": "https://api.dotshell.eu/pelo/v1/"
+            "label": "rtm.fr",
+            "url": "https://www.rtm.fr"
           }
         ]
       },
       {
         "title": "Cartographie",
-        "content": "Les données de cartographie sont fournies par MapLibre et OpenStreetMaps.\n\nLes fonds de carte (dénommés Positron, Dark Matter, OSM Bright et Liberty) sont fournis par OpenMapTiles. L’application utilise par défaut le thème Positron (Light) de Map Tiler.\n\nLes tuiles de la vue satellite proviennent de la ESRI World Imagery.\n",
+        "content": "Les données de cartographie sont fournies par MapLibre et OpenStreetMap.\n\nLes fonds de carte (dénommés Positron, Dark Matter, OSM Bright et Liberty) sont fournis par OpenFreeMap / OpenMapTiles. L’application utilise par défaut le thème Positron (clair).\n\nLes tuiles de la vue satellite proviennent de la ESRI World Imagery.\n",
         "links": [
           {
             "label": "MapLibre",
@@ -186,20 +756,16 @@
       },
       {
         "title": "Technologies",
-        "content": "Cette application est développée avec les technologies suivantes :\n• Kotlin et Jetpack Compose pour l'interface utilisateur\n• Hilt pour l'injection de dépendances\n• Retrofit pour les appels réseau\n• MapLibre pour la cartographie\n• Room pour la base de données locale\n• Coroutines pour la programmation asynchrone\n",
+        "content": "Cette application est développée avec les technologies suivantes :\n• Kotlin Multiplatform et Compose Multiplatform pour l'interface utilisateur (Android et iOS)\n• raptor-kt pour le calcul d'itinéraires hors connexion\n• MapLibre pour la cartographie\n• Ktor pour les appels réseau\n• kotlinx.serialization et les coroutines pour le traitement des données\n",
         "links": []
       },
       {
         "title": "Licence",
-        "content": "Le code source de l’Application est distribué sous licence GPL‑3.0. Pelo n’est pas affilié aux TCL ou au SYTRAL.\n\nL’application utilise TCL-API-mirror pour le miroir des données en temps réel.\n",
+        "content": "Le code source de l’Application est distribué sous licence GPL‑3.0. Pelo Marseille n’est pas affilié à la RTM ni à la Métropole Aix-Marseille-Provence.\n",
         "links": [
           {
             "label": "Licence GPL-3.0",
             "url": "https://www.gnu.org/licenses/gpl-3.0.html"
-          },
-          {
-            "label": "TCL-API-mirror",
-            "url": "https://github.com/dotshell/tcl-api-mirror"
           }
         ]
       }
@@ -207,27 +773,27 @@
     "legalSections": [
       {
         "title": "Éditeur",
-        "content": "L’Application Pelo est éditée par Dotshell. Dotshell n’est pas affiliée aux TCL ni au SYTRAL. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.\n"
+        "content": "L’Application Pelo Marseille est éditée par Dotshell. Dotshell n’est pas affiliée à la RTM ni à la Métropole Aix-Marseille-Provence. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.\n"
       },
       {
         "title": "Objet",
-        "content": "Les présentes CGU définissent les conditions d’accès et d’utilisation de l’Application Pelo (ci‑après « l’Application »). L’utilisation de l’Application vaut acceptation de ces conditions.\n"
+        "content": "Les présentes CGU définissent les conditions d’accès et d’utilisation de l’Application Pelo Marseille (ci‑après « l’Application »). L’utilisation de l’Application vaut acceptation de ces conditions.\n"
       },
       {
         "title": "Description de l'application",
-        "content": "L’Application aide l’utilisateur à se déplacer dans le réseau TCL (Lyon et agglomération) via des outils de recherche et de planification. Les sources tierces sont listées dans la page « Crédits ».\n"
+        "content": "L’Application aide l’utilisateur à se déplacer sur le réseau RTM (Marseille et agglomération) via des outils de recherche et de planification. Les sources tierces sont listées dans la page « Crédits ».\n"
       },
       {
         "title": "Permissions",
-        "content": "L’Application peut solliciter les permissions suivantes selon les besoins techniques :\n• Localisation : Pour afficher les arrêts proches (traitée localement).\n• Réseau/Internet : Pour récupérer les horaires en temps réel.\n"
+        "content": "L’Application peut solliciter les permissions suivantes selon les besoins techniques :\n• Localisation : Pour afficher les arrêts proches et centrer la carte (traitée localement).\n• Réseau/Internet : Pour afficher les fonds de carte.\n"
       },
       {
         "title": "Traitement des données et confidentialité",
-        "content": "Pelo est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage Local Exclusif\nVos arrêts favoris et l'historique détaillé de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Cas particulier des Favoris (Connexion Socket)\nPour permettre la mise à jour en temps réel de vos lignes et arrêts favoris, une connexion technique temporaire (socket) est établie à l'ouverture de l'application et rompue dès sa fermeture.\n• Cet échange est strictement anonyme.\n• Aucune donnée permettant de vous identifier n'est transmise ou enregistrée sur un serveur externe.\n• Ce flux sert uniquement à la synchronisation technique des données de transport durant votre session de navigation.\n\n5.3. Partage de données pour améliorer le réseau\nL'Application transmet à Dotshell, à chaque fermeture, un message anonyme rattaché à un identifiant qui change toutes les 24 heures. Ce message contient :\n• Vos heures d'ouverture et de fermeture de l'app\n• Vos recherches d'arrêts et de lignes\n• Les itinéraires que vous calculez et choisissez\n• Les arrêts franchis pendant une navigation (jamais les coordonnées GPS brutes)\n• Vos clics sur les lignes et arrêts\n• Les alertes officielles que vous avez lues\n• Les alertes de trafic que vous avez signalées\n• Un profil d'usage anonyme calculé localement (occasionnel / régulier / intensif + jusqu'à 5 lignes habituelles)\n\nL'identifiant journalier est généré aléatoirement, ne contient aucun lien avec votre téléphone et est régénéré chaque jour : il est impossible de vous suivre dans la durée. Les données transmises ne peuvent pas être retrouvées individuellement et sont automatiquement purgées après 90 jours.\n\nVos arrêts favoris, l'historique détaillé de vos trajets, et le contenu textuel de vos saisies libres (adresses) ne sont **jamais** transmis. Les adresses utilisées dans un calcul d'itinéraire sont transformées localement en un identifiant de zone géographique d'environ 460 m avant tout envoi.\n\n5.4. Absence de revente à des annonceurs\nDotshell ne vend pas vos données à des annonceurs ou à des courtiers en données. Les données agrégées et anonymes peuvent être utilisées ou partagées avec des Autorités Organisatrices de la Mobilité dans une finalité d'amélioration du service de transport public.\n"
+        "content": "Pelo Marseille est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes seuls échanges réseau de l'Application concernent l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI). Ces requêtes ne contiennent aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
       },
       {
         "title": "Responsabilité",
-        "content": "Les informations (horaires, perturbations) sont fournies à titre indicatif. Dotshell décline toute responsabilité en cas d’inexactitude des données provenant de tiers ou d’indisponibilité du réseau de transport.\n"
+        "content": "Les informations (horaires, tracés) sont fournies à titre indicatif à partir des données publiées par la RTM. Dotshell décline toute responsabilité en cas d’inexactitude des données provenant de tiers ou d’indisponibilité du réseau de transport.\n"
       },
       {
         "title": "Propriété intellectuelle",
@@ -243,13 +809,8 @@
       "website": "https://pelo.app",
       "socialMedia": [
         {
-          "platform": "Twitter",
-          "url": "https://twitter.com/pelo_app",
-          "username": "pelo_app"
-        },
-        {
           "platform": "GitHub",
-          "url": "https://github.com/dotshell/pelo",
+          "url": "https://github.com/dotshell",
           "username": "dotshell"
         }
       ]
@@ -258,10 +819,10 @@
   "consent": {
     "version": 1,
     "title": "Conditions d'utilisation",
-    "intro": "Pour acceder a Pelo, vous devez accepter les conditions d'utilisation et la politique de confidentialite.\nVous pouvez consulter les details complets a tout moment.\n",
+    "intro": "Pour acceder a Pelo Marseille, vous devez accepter les conditions d'utilisation et la politique de confidentialite.\nVous pouvez consulter les details complets a tout moment.\n",
     "summary": [
       "Vous acceptez les conditions d'utilisation et la politique de confidentialite.",
-      "Vos donnees personnelles restent sur votre appareil, sauf pour le partage prevu par la politique de confidentialite.",
+      "Vos donnees personnelles restent sur votre appareil.",
       "Sans acceptation, l'application ne peut pas etre utilisee."
     ],
     "acceptLabel": "J'accepte",
@@ -278,115 +839,72 @@
   },
   "rules": {
     "strongLines": [
-      "A",
-      "B",
-      "C",
-      "D",
-      "F1",
-      "F2",
-      "RX",
-      "TB11",
-      "TB12"
+      "M1",
+      "M2",
+      "T1",
+      "T2",
+      "T3",
+      "B1",
+      "B2",
+      "B3",
+      "B4",
+      "B5",
+      "NAV1",
+      "NAV2",
+      "NAV3",
+      "FERRY"
     ],
-    "strongLineRegexes": [
-      "^T\\d{1,2}$",
-      "^NAVI\\d{1,2}$"
-    ],
+    "strongLineRegexes": [],
     "lineNameRegexes": [
-      "^TB\\d{1,2}[A-Z]?$",
-      "^T\\d{1,2}[A-Z]?$",
-      "^C\\d{1,2}[A-Z]?$",
-      "^NAVI\\d{1,2}$",
-      "^JD\\d{1,3}$",
-      "^GE\\d{1,2}$",
-      "^PL\\d{1,2}$",
-      "^ZI\\d{1,2}$",
+      "^M[12]$",
+      "^T[1-3]$",
+      "^B[1-5]$",
+      "^BM\\d{1,2}[A-Z]?$",
+      "^N[12]$",
       "^S\\d{1,2}$",
-      "^N\\d{1,2}$",
-      "^\\d{1,3}[A-Z]?$"
+      "^NAV[1-3]$",
+      "^FERRY$",
+      "^\\d{1,4}[A-Z]{0,3}$"
     ],
     "transportTypes": [
       {
         "name": "Métro",
-        "regex": "^[A-D]$"
-      },
-      {
-        "name": "Funiculaire",
-        "regex": "^F[1-2]$"
+        "regex": "^M[12]$"
       },
       {
         "name": "Tramway",
-        "regex": "^T\\d{1,2}$",
-        "icon": "mode_tram"
+        "regex": "^T[1-3]$"
       },
       {
-        "name": "Trambus",
-        "regex": "^TB\\d{1,2}$",
-        "icon": "mode_chrono"
+        "name": "BHNS",
+        "regex": "^B[1-5]$"
       },
       {
-        "name": "Chrono",
-        "regex": "^C\\d{1,2}$",
-        "icon": "mode_chrono"
+        "name": "Navette maritime",
+        "regex": "^(NAV[1-3]|FERRY)$"
       },
       {
-        "name": "Bus Scolaire",
-        "regex": "^JD\\d{1,3}$",
-        "icon": "mode_jd"
-      },
-      {
-        "name": "Navigone",
-        "regex": "^NAVI\\d{1,2}$"
-      },
-      {
-        "name": "Navette",
-        "regex": "^N\\d{1,2}$",
+        "name": "Bus de remplacement",
+        "regex": "^BM\\d{1,2}[A-Z]?$",
         "icon": "mode_bus"
       },
       {
-        "name": "Car",
-        "regex": "^\\d{3}$",
+        "name": "Bus de nuit",
+        "regex": "^N[12]$",
+        "icon": "mode_bus"
+      },
+      {
+        "name": "Scolaire",
+        "regex": "^S\\d{1,2}$",
         "icon": "mode_bus"
       }
     ],
-    "aliases": [
-      {
-        "from": "RHONEXPRESS",
-        "to": "RX",
-        "matchType": "contains"
-      },
-      {
-        "from": "NAVI1",
-        "to": "NAV1",
-        "matchType": "exact",
-        "equivalents": [
-          "NAVI1",
-          "NAV1"
-        ],
-        "displayAs": "NAVI1"
-      },
-      {
-        "from": "NAV1",
-        "to": "NAV1",
-        "matchType": "exact",
-        "equivalents": [
-          "NAVI1",
-          "NAV1"
-        ],
-        "displayAs": "NAVI1"
-      }
-    ],
-    "excludedLines": [
-      "T36"
-    ],
+    "aliases": [],
+    "excludedLines": [],
     "vehicleMarkers": [
       {
-        "prefix": "RX",
+        "prefix": "M",
         "marker": "TRAM"
-      },
-      {
-        "prefix": "TB",
-        "marker": "BUS"
       },
       {
         "prefix": "T",
@@ -412,42 +930,14 @@
         "Vos recherches d'arrêts et de lignes",
         "Les itinéraires que vous calculez et choisissez",
         "Les arrêts que vous franchissez pendant une navigation",
-        "Vos clics sur les lignes et arrêts",
-        "Les alertes officielles que vous lisez",
-        "Les alertes que vous signalez",
-        "Un profil d'usage anonyme (occasionnel / régulier / intensif + vos 5 lignes habituelles)"
+        "Vos clics sur les lignes et arrêts"
       ],
       "localOnly": [
         "Vos arrêts favoris (jamais envoyés)",
         "L'historique détaillé de vos trajets (jamais envoyé)"
       ],
       "privacyNote": "Aucune coordonnée GPS brute n'est envoyée — uniquement les arrêts franchis. L'identifiant change chaque jour, il n'est pas possible de vous suivre dans la durée. Vous pouvez désactiver ce partage à tout moment depuis les réglages.\n",
-      "faq": [
-        {
-          "question": "Qui reçoit les données ?",
-          "answer": "Les messages sont envoyés au serveur de Dotshell (api.dotshell.eu), opéré pour Pelo. Aucun annonceur ni courtier en données n'y a accès. Des agrégats anonymes peuvent être partagés avec des autorités organisatrices de la mobilité dans une finalité d'amélioration du transport public.\n"
-        },
-        {
-          "question": "Pouvez-vous me suivre dans la durée ?",
-          "answer": "Non. L'identifiant attaché à chaque message change toutes les 24 heures et n'est jamais relié à votre téléphone, à votre numéro ou à un compte. Une fois la journée passée, les messages ne peuvent plus être reconnectés à votre appareil.\n"
-        },
-        {
-          "question": "Pourquoi avez-vous besoin de ma position ?",
-          "answer": "Pendant une navigation, l'application utilise votre position pour trouver l'arrêt le plus proche dans un rayon d'environ 100 mètres. Seul l'identifiant de cet arrêt est conservé — votre position GPS exacte est immédiatement oubliée et ne quitte jamais votre téléphone.\n"
-        },
-        {
-          "question": "Et mes adresses (domicile, travail) ?",
-          "answer": "Vos arrêts favoris et l'historique détaillé de vos trajets restent uniquement sur votre téléphone. Vous pouvez les supprimer à tout moment depuis l'écran « Confidentialité ».\n"
-        },
-        {
-          "question": "Comment je vérifie ce qui est envoyé ?",
-          "answer": "L'écran « Voir les données collectées aujourd'hui » affiche l'intégralité du message en attente d'envoi, en clair. C'est exactement ce qui sera envoyé à la prochaine fermeture de l'app.\n"
-        },
-        {
-          "question": "Si je désactive le partage, qu'arrive-t-il aux données déjà envoyées ?",
-          "answer": "Les agrégats déjà reçus par le serveur ne peuvent pas être retrouvés, car ils ont été attachés à un identifiant journalier qui n'est plus lié à vous. Ils sont purgés automatiquement après 90 jours.\n"
-        }
-      ]
+      "faq": []
     }
   }
 }

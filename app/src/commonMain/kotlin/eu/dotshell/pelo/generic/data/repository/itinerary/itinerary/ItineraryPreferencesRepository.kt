@@ -5,36 +5,36 @@ import eu.dotshell.pelo.platform.Settings
 
 /**
  * Repository for managing itinerary routing preferences.
- * Stores user preferences for route filtering (JD lines, RX line).
+ * Stores user preferences for route filtering (school S lines, night N lines).
  * Multiplatform: uses [Settings] abstraction instead of SharedPreferences.
  */
 class ItineraryPreferencesRepository(context: PlatformContext) {
     private val settings = Settings(context, "pelo_itinerary_prefs")
 
-    private val keyEnableJDLines = "enable_jd_lines"
-    private val keyEnableRXLine = "enable_rx_line"
+    private val keyEnableSchoolLines = "enable_school_lines"
+    private val keyEnableNightLines = "enable_night_lines"
 
     /**
-     * Check if Junior Direct (JD) lines should be included in routing.
+     * Check if school (S) lines should be included in routing.
      * Default: true (enabled)
      */
-    fun isJdLinesEnabled(): Boolean = isOptionEnabled(keyEnableJDLines, true)
+    fun isSchoolLinesEnabled(): Boolean = isOptionEnabled(keyEnableSchoolLines, true)
 
     /**
-     * Enable or disable Junior Direct (JD) lines in routing.
+     * Enable or disable school (S) lines in routing.
      */
-    fun setJdLinesEnabled(enabled: Boolean) = setOptionEnabled(keyEnableJDLines, enabled)
+    fun setSchoolLinesEnabled(enabled: Boolean) = setOptionEnabled(keyEnableSchoolLines, enabled)
 
     /**
-     * Check if RhôneExpress (RX) line should be included in routing.
+     * Check if night (N) lines should be included in routing.
      * Default: true (enabled)
      */
-    fun isRxLineEnabled(): Boolean = isOptionEnabled(keyEnableRXLine, true)
+    fun isNightLinesEnabled(): Boolean = isOptionEnabled(keyEnableNightLines, true)
 
     /**
-     * Enable or disable RhôneExpress (RX) line in routing.
+     * Enable or disable night (N) lines in routing.
      */
-    fun setRxLineEnabled(enabled: Boolean) = setOptionEnabled(keyEnableRXLine, enabled)
+    fun setNightLinesEnabled(enabled: Boolean) = setOptionEnabled(keyEnableNightLines, enabled)
 
     /**
      * Generic getter for itinerary options.

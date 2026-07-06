@@ -110,9 +110,9 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
     override fun isNavigoneLine(lineName: String): Boolean {
         val canonical = canonicalRouteName(lineName)
         val uiName = normalizeLineNameForUi(lineName)
-        return getTransportType(lineName) == "Navigone" ||
-               getTransportType(canonical) == "Navigone" ||
-               getTransportType(uiName) == "Navigone"
+        return getTransportType(lineName) in WATER_TRANSPORT_TYPES ||
+               getTransportType(canonical) in WATER_TRANSPORT_TYPES ||
+               getTransportType(uiName) in WATER_TRANSPORT_TYPES
     }
 
     override fun isLiveTrackableLine(lineName: String): Boolean {
@@ -212,5 +212,8 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
 
     companion object {
         private val SORT_PREFIX_NUMBER_SUFFIX = Regex("^([A-Z]+)(\\d+)([A-Z]*)$")
+
+        /** transportType names that count as water/ferry lines (Lyon "Navigone", RTM "Navette maritime"). */
+        private val WATER_TRANSPORT_TYPES = setOf("Navigone", "Navette maritime")
     }
 }

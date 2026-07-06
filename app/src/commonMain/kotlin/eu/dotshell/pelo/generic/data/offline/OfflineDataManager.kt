@@ -130,21 +130,19 @@ class OfflineDataManager(
                             ) { transportApi.getTrafficAlerts() }
                         }.getOrNull()
 
-                        fun isMetroFunicular(upper: String): Boolean =
-                            upper in setOf("A", "B", "C", "D", "F1", "F2")
+                        // Bucket strong lines by their feature transportType (network-agnostic):
+                        // metro, tram and water lines have dedicated buckets; the remaining
+                        // strong bus-type lines (e.g. RTM BHNS B1-B5) go to the trambus bucket.
+                        fun typeOf(f: eu.dotshell.pelo.generic.data.models.geojson.Feature) =
+                            f.properties.transportType.uppercase()
 
-                        fun isTram(upper: String): Boolean =
-                            upper.startsWith("T") && !upper.startsWith("TB")
-
-                        fun isTrambus(upper: String): Boolean = upper.startsWith("TB")
-                        fun isNavigone(upper: String): Boolean = upper.startsWith("NAV")
-                        fun isRx(upper: String): Boolean = upper == "RX"
-
-                        val metroFeatures = strongLines.features.filter { isMetroFunicular(it.properties.lineName.uppercase()) }
-                        val tramFeatures = strongLines.features.filter { isTram(it.properties.lineName.uppercase()) }
-                        val navigoneFeatures = strongLines.features.filter { isNavigone(it.properties.lineName.uppercase()) }
-                        val trambusFeatures = strongLines.features.filter { isTrambus(it.properties.lineName.uppercase()) }
-                        val rxFeatures = strongLines.features.filter { isRx(it.properties.lineName.uppercase()) }
+                        val metroFeatures = strongLines.features.filter { typeOf(it) == "METRO" || typeOf(it) == "FUNICULAR" }
+                        val tramFeatures = strongLines.features.filter { typeOf(it) == "TRAM" }
+                        val navigoneFeatures = strongLines.features.filter { typeOf(it) == "NAVIGONE" }
+                        val trambusFeatures = strongLines.features.filter {
+                            typeOf(it) !in setOf("METRO", "FUNICULAR", "TRAM", "NAVIGONE")
+                        }
+                        val rxFeatures = emptyList<eu.dotshell.pelo.generic.data.models.geojson.Feature>()
 
                         BatchResults(
                             metroFeatures = metroFeatures,
