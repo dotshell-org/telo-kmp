@@ -136,7 +136,12 @@ class RtmSmokeTest {
         assertEquals(125, config.lineColors.rules.size)
         assertTrue("M1 is a strong line", "M1" in config.rules.strongLines)
         assertFalse(config.realtime.trafficAlertsEnabled)
-        assertFalse(config.realtime.vehiclePositionsEnabled)
+        // Live vehicle positions are back through the SIRI VM service of La Métropole Mobilité
+        assertTrue(config.realtime.vehiclePositionsEnabled)
+        assertTrue(
+            "the stream URL must point at the SIRI endpoint",
+            config.transport.vehiclePositionsStreamUrl.startsWith("https://siri.lametropolemobilite.fr/")
+        )
         assertFalse(config.realtime.userStopAlertsEnabled)
         assertEquals(false, config.telemetry?.enabled)
         assertEquals("marseille-rtm", config.telemetry?.networkCode)

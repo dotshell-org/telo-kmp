@@ -13,13 +13,13 @@ import eu.dotshell.massilia.generic.data.config.AppConfigLoader
 import eu.dotshell.massilia.generic.data.config.AppTransportConfig
 import eu.dotshell.massilia.generic.data.config.AppTransportLineRules
 import eu.dotshell.massilia.generic.data.config.AppTrafficAlertsService
-import eu.dotshell.massilia.generic.data.config.AppVehiclePositionsService
 import eu.dotshell.massilia.generic.data.config.NoopTrafficAlertsService
 import eu.dotshell.massilia.generic.data.config.NoopVehiclePositionsService
 import eu.dotshell.massilia.generic.data.config.RealtimeConfigData
 import eu.dotshell.massilia.generic.ui.screens.about.GenericAboutScreen
 import eu.dotshell.massilia.generic.ui.theme.GenericTransportTheme
 import eu.dotshell.massilia.specific.data.network.RtmLocalClient
+import eu.dotshell.massilia.specific.data.network.RtmSiriVehiclePositionsService
 import eu.dotshell.massilia.generic.data.config.AppMapStyleConfig
 import eu.dotshell.massilia.platform.FileSystem
 import eu.dotshell.massilia.platform.PlatformContext
@@ -75,9 +75,9 @@ object TransportServiceProvider {
             NoopTrafficAlertsService()
         }
 
-        // Vehicle positions service
+        // Vehicle positions service (SIRI VehicleMonitoring of La Métropole Mobilité)
         vehiclePositionsService = if (realtimeConfig.vehiclePositionsEnabled) {
-            AppVehiclePositionsService(appConfig.transport, appConfig.rules)
+            RtmSiriVehiclePositionsService(appConfig.transport, appConfig.rules)
         } else {
             NoopVehiclePositionsService()
         }

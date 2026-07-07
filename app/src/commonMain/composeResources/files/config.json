@@ -21,7 +21,7 @@
     "primaryColor": "#0069B4",
     "secondaryColor": "#000000",
     "trafficAlertsBaseUrl": "https://api.dotshell.eu/",
-    "vehiclePositionsStreamUrl": "https://api.dotshell.eu/massilia/v1/vehicle-monitoring/positions/stream"
+    "vehiclePositionsStreamUrl": "https://siri.lametropolemobilite.fr/RTM"
   },
   "theme": {
     "metroLineColor": "#009FE3",
@@ -698,7 +698,7 @@
   },
   "realtime": {
     "trafficAlertsEnabled": false,
-    "vehiclePositionsEnabled": false,
+    "vehiclePositionsEnabled": true,
     "userStopAlertsEnabled": false
   },
   "itinerarySettings": {
@@ -724,7 +724,7 @@
     "sections": [
       {
         "title": "Données de transport",
-        "content": "Les données de transport utilisées dans l’application proviennent du jeu de données GTFS (General Transit Feed Specification) publié par la Régie des Transports Métropolitains (RTM) sur la plateforme transport.data.gouv.fr, sous Licence ODbL.\n\nLes positions géographiques et les noms des arrêts, le contenu des lignes, les horaires ainsi que les tracés géographiques des lignes de métro, tramway, bus, BHNS et navettes maritimes sont tous issus de ce fichier GTFS. Ces données sont mises à jour manuellement par les développeurs et subissent un prétraitement avant d’être embarquées dans l’application. Aucune donnée n’est modifiée : seule leur organisation est transformée afin d’être traitée plus rapidement par l’application, qui fonctionne ensuite entièrement hors connexion pour la recherche d’itinéraires et les horaires.\n\nLes pictogrammes des lignes proviennent de Wikimedia Commons (domaine public) et reproduisent les pictogrammes du plan officiel du réseau RTM.\n",
+        "content": "Les données de transport utilisées dans l’application proviennent du jeu de données GTFS (General Transit Feed Specification) publié par la Régie des Transports Métropolitains (RTM) sur la plateforme transport.data.gouv.fr, sous Licence ODbL.\n\nLes positions géographiques et les noms des arrêts, le contenu des lignes, les horaires ainsi que les tracés géographiques des lignes de métro, tramway, bus, BHNS et navettes maritimes sont tous issus de ce fichier GTFS. Ces données sont mises à jour manuellement par les développeurs et subissent un prétraitement avant d’être embarquées dans l’application. Aucune donnée n’est modifiée : seule leur organisation est transformée afin d’être traitée plus rapidement par l’application, qui fonctionne ensuite entièrement hors connexion pour la recherche d’itinéraires et les horaires.\n\nLes positions des véhicules en temps réel (mode Live) proviennent du service SIRI de La Métropole Mobilité (Métropole Aix-Marseille-Provence), également référencé sur transport.data.gouv.fr.\n\nLes pictogrammes des lignes proviennent de Wikimedia Commons (domaine public) et reproduisent les pictogrammes du plan officiel du réseau RTM.\n",
         "links": [
           {
             "label": "transport.data.gouv.fr",
@@ -785,11 +785,11 @@
       },
       {
         "title": "Permissions",
-        "content": "L’Application peut solliciter les permissions suivantes selon les besoins techniques :\n• Localisation : Pour afficher les arrêts proches et centrer la carte (traitée localement).\n• Réseau/Internet : Pour afficher les fonds de carte.\n"
+        "content": "L’Application peut solliciter les permissions suivantes selon les besoins techniques :\n• Localisation : Pour afficher les arrêts proches et centrer la carte (traitée localement).\n• Réseau/Internet : Pour afficher les fonds de carte et les positions des véhicules en temps réel (mode Live).\n"
       },
       {
         "title": "Traitement des données et confidentialité",
-        "content": "Massilia est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes seuls échanges réseau de l'Application concernent l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI). Ces requêtes ne contiennent aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
+        "content": "Massilia est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes échanges réseau de l'Application se limitent à l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI) et, lorsque le mode Live est activé, à l'interrogation du service SIRI de La Métropole Mobilité pour obtenir les positions des véhicules. Ces requêtes ne contiennent que des identifiants de lignes de transport et aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
       },
       {
         "title": "Responsabilité",
