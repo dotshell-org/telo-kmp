@@ -262,7 +262,7 @@ fun LinesBottomSheet(
                             }
 
                             val rows = item.lines.chunked(itemsPerRow)
-                            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 rows.forEachIndexed { rowIndex, rowLines ->
                                     val isLastRow = rowIndex == rows.lastIndex
                                     Row(
@@ -329,9 +329,11 @@ private fun LineChip(
         drawableProvider.hasDrawable(drawableName)
     }
 
+    // The chip must be at least as tall as the 64dp square RTM pictogram —
+    // the old 50dp height (sized for the flat TCL flags) made rows overlap.
     Box(
         modifier = modifier
-            .height(50.dp),
+            .height(64.dp),
         contentAlignment = Alignment.Center
     ) {
         // Content Box with clipping and click

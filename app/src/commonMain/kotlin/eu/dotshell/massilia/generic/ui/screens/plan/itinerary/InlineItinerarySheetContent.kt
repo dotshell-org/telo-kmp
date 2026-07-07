@@ -7,7 +7,7 @@ import eu.dotshell.massilia.platform.ioDispatcher
 import eu.dotshell.massilia.platform.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import eu.dotshell.massilia.generic.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -501,10 +501,11 @@ fun InlineItinerarySheetContent(
         onSelectedJourneyChanged(selectedJourney)
     }
 
-    // Drive the itinerary result palette from the app theme: light palette in light
+    // Drive the itinerary result palette from the APP theme (not the system theme —
+    // the in-app Clair/Sombre/Auto setting can override it): light palette in light
     // mode (dark text on the light sheet), dark palette in dark mode (light text on
     // the dark sheet). The BottomSheetScaffold container is MaterialTheme surface.
-    val useLightColors = !isSystemInDarkTheme()
+    val useLightColors = !isAppInDarkTheme()
     val showSearchBars = selectedJourney == null
 
     Column(
