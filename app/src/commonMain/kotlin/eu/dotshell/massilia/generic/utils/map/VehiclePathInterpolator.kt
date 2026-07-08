@@ -1,5 +1,6 @@
 package eu.dotshell.massilia.generic.utils.map
 
+import eu.dotshell.massilia.generic.data.config.LineSpeedBaselineData
 import eu.dotshell.massilia.generic.data.models.realtime.vehiclepositions.SimpleVehiclePosition
 import kotlin.math.PI
 import kotlin.math.abs
@@ -20,8 +21,15 @@ import kotlin.math.sqrt
  *
  * @param traces line name (uppercase) -> list of paths, each path being a
  *   list of `[lon, lat]` coordinates (GeoJSON order).
+ * @param speedBaseline measured per-line speeds and per-direction progression
+ *   signs (tools/build_vehicle_speed_baseline.py): vehicles seen for the
+ *   first time dead-reckon along their trace at the line's commercial speed
+ *   instead of standing still until the second tick.
  */
-class VehiclePathInterpolator(traces: Map<String, List<List<List<Double>>>>) {
+class VehiclePathInterpolator(
+    traces: Map<String, List<List<List<Double>>>>,
+    private val speedBaseline: Map<String, LineSpeedBaselineData> = emptyMap()
+) {
 
     private val polylinesByLine: Map<String, List<Polyline>> =
         traces.entries.associate { (name, paths) ->
@@ -57,7 +65,8 @@ class VehiclePathInterpolator(traces: Map<String, List<List<List<Double>>>>) {
     }
 
     fun plan(from: SimpleVehiclePosition?, to: SimpleVehiclePosition): Plan {
-        if (from == null || (from.latitude == to.latitude && from.longitude == to.longitude)) {
+        if (from == null) return firstAppearancePlan(to)
+        if (from.latitude == to.latitude && from.longitude == to.longitude) {
             return Static(to.latitude, to.longitude)
         }
         val linear = Linear(from.latitude, from.longitude, to.latitude, to.longitude)
@@ -96,6 +105,39 @@ class VehiclePathInterpolator(traces: Map<String, List<List<List<Double>>>>) {
         if (bestGlide > MAX_GLIDE_METERS || bestGlide > max(4.0 * straightMeters, 400.0)) return linear
         if (bestS0 == bestS1) return Static(to.latitude, to.longitude)
         return AlongPath(polyline, bestS0, bestS1)
+    }
+
+    /**
+     * A vehicle seen for the first time (live just enabled, or pulling out)
+     * has no previous position: dead-reckon it forward along its trace at
+     * the line's measured commercial speed until the next tick corrects it.
+     * Requires a measured progression sign for (direction, path) — otherwise
+     * the marker stays put rather than risking a backwards glide.
+     */
+    private fun firstAppearancePlan(to: SimpleVehiclePosition): Plan {
+        val static = Static(to.latitude, to.longitude)
+        val line = to.lineName.trim().uppercase()
+        val baseline = speedBaseline[line] ?: return static
+        val direction = to.direction?.trim().takeUnless { it.isNullOrEmpty() } ?: return static
+        val polylines = polylinesByLine[line] ?: return static
+
+        var bestIndex = -1
+        var bestAbscissa = 0.0
+        var bestDistance = Double.MAX_VALUE
+        polylines.forEachIndexed { index, polyline ->
+            val projection = polyline.project(to.longitude, to.latitude)
+            if (projection.distanceMeters < bestDistance) {
+                bestDistance = projection.distanceMeters
+                bestIndex = index
+                bestAbscissa = projection.abscissa
+            }
+        }
+        if (bestIndex < 0 || bestDistance > MAX_SNAP_METERS) return static
+        val sign = baseline.signs[direction]?.get(bestIndex.toString()) ?: return static
+        if (sign == 0) return static
+        // pointAt clamps: a vehicle reaching the terminus simply stops there
+        val target = bestAbscissa + sign * baseline.speedMps * DEAD_RECKON_SECONDS
+        return AlongPath(polylines[bestIndex], bestAbscissa, target)
     }
 
     private fun straightDistanceMeters(from: SimpleVehiclePosition, to: SimpleVehiclePosition): Double {
@@ -211,5 +253,8 @@ class VehiclePathInterpolator(traces: Map<String, List<List<List<Double>>>>) {
         // No vehicle covers more than ~2 km between two feed ticks (1 min);
         // a longer along-path glide means a mis-projection.
         private const val MAX_GLIDE_METERS = 2_000.0
+
+        // Matches the glide duration in App.kt: fraction 1.0 = 55 s of travel.
+        private const val DEAD_RECKON_SECONDS = 55.0
     }
 }

@@ -431,7 +431,7 @@ private fun RootScaffold(
                 traces.getOrPut(name) { mutableListOf() }.addAll(feat.multiLineStringGeometry.coordinates)
             }
         }
-        VehiclePathInterpolator(traces)
+        VehiclePathInterpolator(traces, TransportServiceProvider.getVehicleSpeedBaseline())
     }
     var displayedVehiclePositions by remember { mutableStateOf<List<SimpleVehiclePosition>>(emptyList()) }
     LaunchedEffect(activeVehiclePositions, vehicleInterpolator) {

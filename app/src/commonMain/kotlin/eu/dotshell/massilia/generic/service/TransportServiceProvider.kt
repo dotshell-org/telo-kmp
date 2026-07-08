@@ -15,6 +15,7 @@ import eu.dotshell.massilia.generic.data.config.AppTransportLineRules
 import eu.dotshell.massilia.generic.data.config.AppTrafficAlertsService
 import eu.dotshell.massilia.generic.data.config.NoopTrafficAlertsService
 import eu.dotshell.massilia.generic.data.config.NoopVehiclePositionsService
+import eu.dotshell.massilia.generic.data.config.LineSpeedBaselineData
 import eu.dotshell.massilia.generic.data.config.RealtimeConfigData
 import eu.dotshell.massilia.generic.ui.screens.about.GenericAboutScreen
 import eu.dotshell.massilia.generic.ui.theme.GenericTransportTheme
@@ -42,6 +43,7 @@ object TransportServiceProvider {
     private lateinit var trafficAlertsService: TrafficAlertsService
     private lateinit var transportLineRules: TransportLineRules
     private lateinit var realtimeConfig: RealtimeConfigData
+    private var vehicleSpeedBaseline: Map<String, LineSpeedBaselineData> = emptyMap()
 
     /**
      * Initializes the provider with the Marseille RTM configuration
@@ -67,6 +69,9 @@ object TransportServiceProvider {
 
         // Real-time feature flags (no-op services + hidden UI when disabled)
         realtimeConfig = appConfig.realtime
+
+        // Measured per-line speeds for first-tick dead reckoning in live mode
+        vehicleSpeedBaseline = appConfig.transport.vehicleSpeedBaseline
 
         // Traffic alerts service
         trafficAlertsService = if (realtimeConfig.trafficAlertsEnabled) {
@@ -148,6 +153,11 @@ object TransportServiceProvider {
         }
         return vehiclePositionsService
     }
+
+    /**
+     * Gets the measured per-line vehicle speed baseline (may be empty)
+     */
+    fun getVehicleSpeedBaseline(): Map<String, LineSpeedBaselineData> = vehicleSpeedBaseline
 
     /**
      * Gets the real-time feature flags (used to hide Live/alert-report UI when disabled)

@@ -47,7 +47,18 @@ data class TransportConfigData(
     val vehiclePositionsStreamUrl: String,
     // Commercial line name -> operator internal line id (e.g. "B1" -> "139",
     // giving "RTM:LNE:139") used by the real-time vehicle positions service.
-    val realtimeLineIds: Map<String, String> = emptyMap()
+    val realtimeLineIds: Map<String, String> = emptyMap(),
+    // Measured per-line commercial speeds (tools/build_vehicle_speed_baseline.py):
+    // lets the live mode dead-reckon vehicles from the very first feed tick.
+    val vehicleSpeedBaseline: Map<String, LineSpeedBaselineData> = emptyMap()
+)
+
+@Serializable
+data class LineSpeedBaselineData(
+    val speedMps: Double,
+    // Feed Direction ("1"/"2") -> trace path index (as string) -> abscissa
+    // progression sign (+1/-1) along that path.
+    val signs: Map<String, Map<String, Int>> = emptyMap()
 )
 
 @Serializable

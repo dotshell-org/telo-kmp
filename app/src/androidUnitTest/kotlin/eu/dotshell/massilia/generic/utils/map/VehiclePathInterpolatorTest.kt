@@ -116,4 +116,34 @@ class VehiclePathInterpolatorTest {
         assertEquals(43.305, endLat, 1e-9)
         assertEquals(5.395, endLon, 1e-9)
     }
+
+    @Test
+    fun `first appearance dead-reckons along the trace at the baseline speed`() {
+        val baseline = mapOf(
+            "B1" to eu.dotshell.massilia.generic.data.config.LineSpeedBaselineData(
+                speedMps = 5.0,
+                signs = mapOf("1" to mapOf("0" to 1))
+            )
+        )
+        val withBaseline = VehiclePathInterpolator(mapOf("B1" to listOf(lShape)), baseline)
+
+        // On the horizontal leg heading east, direction "1", no previous position
+        val target = vehicle(43.300, 5.3805).copy(direction = "1")
+        val plan = withBaseline.plan(null, target)
+
+        val (startLat, startLon) = plan.at(0.0)
+        assertEquals(43.300, startLat, 1e-4)
+        assertEquals(5.3805, startLon, 1e-4)
+
+        // 5 m/s x 55 s = 275 m further east along the leg
+        val (endLat, endLon) = plan.at(1.0)
+        assertEquals(43.300, endLat, 1e-4)
+        assertTrue("expected ~275 m east, got lon=$endLon", endLon in 5.3830..5.3848)
+
+        // Unknown direction or unmeasured sign: no risky guess, stay put
+        val noDirection = withBaseline.plan(null, vehicle(43.300, 5.3805))
+        assertEquals(43.300 to 5.3805, noDirection.at(1.0))
+        val unmeasured = withBaseline.plan(null, target.copy(direction = "2"))
+        assertEquals(43.300 to 5.3805, unmeasured.at(1.0))
+    }
 }

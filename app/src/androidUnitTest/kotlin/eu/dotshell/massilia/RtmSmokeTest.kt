@@ -145,6 +145,11 @@ class RtmSmokeTest {
         assertEquals(125, config.transport.realtimeLineIds.size)
         assertEquals("116", config.transport.realtimeLineIds["M1"])
         assertEquals("139", config.transport.realtimeLineIds["B1"])
+        // Measured speed baseline for first-tick dead reckoning
+        assertTrue(config.transport.vehicleSpeedBaseline.size > 50)
+        val t1Baseline = config.transport.vehicleSpeedBaseline["T1"]!!
+        assertTrue("T1 commercial speed sane", t1Baseline.speedMps in 0.5..15.0)
+        assertTrue("T1 has measured direction signs", t1Baseline.signs.isNotEmpty())
         // Every strong line must be pollable in global live mode
         config.rules.strongLines.forEach { line ->
             assertTrue("strong line $line needs a realtime id", line in config.transport.realtimeLineIds)
