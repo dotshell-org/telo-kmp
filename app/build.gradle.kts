@@ -103,8 +103,8 @@ kotlin {
         }
 
         androidMain {
-            kotlin.exclude("eu/dotshell/massilia/generic/data/models/**")
-            kotlin.exclude("eu/dotshell/massilia/specific/data/model/**")
+            kotlin.exclude("eu/dotshell/telo/generic/data/models/**")
+            kotlin.exclude("eu/dotshell/telo/specific/data/model/**")
         }
 
         iosMain.dependencies {
@@ -120,24 +120,24 @@ kotlin {
 
 compose.resources {
     publicResClass = true
-    packageOfResClass = "eu.dotshell.massilia.resources"
+    packageOfResClass = "eu.dotshell.telo.resources"
     generateResClass = always
 }
 
 android {
     signingConfigs {
         create("release") {
-            storeFile = rootProject.file("massilia.jks")
+            storeFile = rootProject.file("telo.jks")
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD") ?: ""
             keyAlias = "key0"
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD") ?: ""
         }
     }
-    namespace = "eu.dotshell.massilia"
+    namespace = "eu.dotshell.telo"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "eu.dotshell.massilia"
+        applicationId = "eu.dotshell.telo"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

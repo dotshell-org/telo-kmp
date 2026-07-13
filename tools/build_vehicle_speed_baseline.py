@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure a per-line vehicle speed baseline for Massilia's live mode.
+"""Measure a per-line vehicle speed baseline for Telo's live mode.
 
 Replays the app's behaviour against the RTM interactive-map webservice for N
 minutes: polls /Vehicles/LastUpdate, fetches all lines on each feed tick,

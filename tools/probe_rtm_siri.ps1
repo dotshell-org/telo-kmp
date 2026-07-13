@@ -1,5 +1,5 @@
 # Probe the RTM live vehicle positions webservice (the one backing the
-# official interactive map, carte-interactive.rtm.fr — used by Massilia's
+# official interactive map, carte-interactive.rtm.fr — used by Telo's
 # Live mode). Compatible Windows PowerShell 5.1 et PowerShell 7+.
 #
 # Usage:  .\tools\probe_rtm_siri.ps1                 # default line set

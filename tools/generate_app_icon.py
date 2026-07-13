@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Generate every Massilia app icon asset from one vector definition.
+"""Generate every Telo app icon asset from one vector definition.
 
-Design (approved): white silhouette of Notre-Dame de la Garde on a black
-square — dome and lantern on the left, bell tower with its dark window,
-tapered crown, pedestal and statue on the right, all sitting on the hill.
+Design (approved): white silhouette of Mont Faron on a black square —
+the broad limestone massif overlooking Toulon, flat undulating summit
+plateau, steep flanks, three dark strata bands suggesting the cliff
+faces, sitting on a gentle ground swell.
 
 Outputs:
-- massilia-icon.png (1024, repo root, README)
+- telo-icon.png (1024, repo root, README)
 - app/src/commonMain/composeResources/drawable/ic_launcher_foreground.png (1536)
 - app/src/androidMain/res/drawable-{mdpi,hdpi,xhdpi,xxhdpi}/ic_launcher_foreground.png
 - app/src/androidMain/res/mipmap-*/ic_launcher.png (rounded square) and
@@ -43,15 +44,6 @@ def quad_points(p0, c, p1, steps=48):
     ]
 
 
-def ellipse_arc_points(cx, cy, rx, ry, deg0, deg1, steps=64):
-    import math
-
-    return [
-        (cx + rx * math.cos(math.radians(a)), cy + ry * math.sin(math.radians(a)))
-        for a in (deg0 + (deg1 - deg0) * i / steps for i in range(steps + 1))
-    ]
-
-
 class Painter:
     """Draws the design-space shapes onto a PIL canvas of size `px`."""
 
@@ -79,46 +71,32 @@ class Painter:
         )
 
 
+MASSIF = [
+    (48, 856),
+    (168, 646),
+    (246, 506),
+    (296, 408),
+    (330, 352),
+    (420, 330),
+    (560, 324),
+    (668, 336),
+    (716, 366),
+    (762, 442),
+    (826, 566),
+    (976, 856),
+]
+
+
 def draw_silhouette(p: Painter):
-    """The Notre-Dame de la Garde silhouette (white), then the dark window."""
-    # Hill: lens between a quadratic curve and its chord
-    p.polygon(quad_points((175, 865), (512, 730), (849, 865)), WHITE)
+    """The Mont Faron silhouette (white), then the dark strata bands."""
+    # The massif: faceted profile with the wide summit plateau
+    p.polygon(MASSIF, WHITE)
 
-    # Left block: nave, drum, dome, lantern
-    p.rect(285, 640, 190, 170, WHITE)
-    p.rect(310, 585, 140, 70, WHITE)
-    p.polygon(
-        ellipse_arc_points(380, 598, 82, 98, 180, 360) + [(462, 606), (298, 606)],
-        WHITE,
-    )
-    p.rect(366, 465, 28, 50, WHITE)
-    p.ellipse(380, 455, 11, 11, WHITE)
-
-    # Tower: shaft, belfry, cornice, tapered crown and its cap
-    p.rect(520, 425, 160, 385, WHITE)
-    p.rect(502, 295, 196, 145, WHITE, radius=10)
-    p.rect(494, 280, 212, 24, WHITE, radius=8)
-    p.polygon([(548, 282), (652, 282), (636, 200), (564, 200)], WHITE)
-    p.ellipse(600, 201, 37, 13, WHITE)
-
-    # Pedestal and statue (Vierge à l'Enfant, simplified)
-    p.rect(576, 172, 48, 32, WHITE, radius=6)
-    p.polygon(
-        quad_points((581, 178), (577, 140), (594, 112))
-        + quad_points((594, 112), (600, 103), (606, 112))
-        + quad_points((606, 112), (623, 140), (619, 178)),
-        WHITE,
-    )
-    p.ellipse(600, 93, 17, 17, WHITE)
-
-    # Belfry window (dark cutout)
-    p.polygon(
-        [(572, 425), (572, 352)]
-        + quad_points((572, 352), (572, 323), (600, 323))
-        + quad_points((600, 323), (628, 323), (628, 352))
-        + [(628, 425)],
-        BLACK,
-    )
+    # Limestone strata: bands slicing in from the left ridge (the parts
+    # overflowing the silhouette are black on black, hence invisible)
+    p.rect(140, 394, 550, 20, BLACK, radius=10)
+    p.rect(140, 446, 400, 17, BLACK, radius=8)
+    p.rect(140, 496, 470, 15, BLACK, radius=7)
 
 
 def render_square(px: int) -> Image.Image:
@@ -156,28 +134,16 @@ MONOCHROME_XML = """<?xml version="1.0" encoding="utf-8"?>
     <group
         android:pivotX="512"
         android:pivotY="512"
-        android:scaleX="0.72"
-        android:scaleY="0.72"
-        android:translateY="30">
+        android:scaleX="0.66"
+        android:scaleY="0.66"
+        android:translateY="-55">
         <path
             android:fillColor="#FFFFFFFF"
-            android:pathData="M175,865 Q512,730 849,865 Z
-                M285,640 h190 v170 h-190 Z
-                M310,585 h140 v70 h-140 Z
-                M298,606 v-8 A82,98 0 0 1 462,598 v8 Z
-                M366,465 h28 v50 h-28 Z
-                M380,444 a11,11 0 1 1 -0.1,0 Z
-                M520,425 h160 v385 h-160 Z
-                M502,295 h196 v145 h-196 Z
-                M494,280 h212 v24 h-212 Z
-                M548,282 L652,282 L636,200 L564,200 Z
-                M563,201 a37,13 0 1 1 74,0 a37,13 0 1 1 -74,0 Z
-                M576,172 h48 v32 h-48 Z
-                M581,178 Q577,140 594,112 Q600,103 606,112 Q623,140 619,178 Z
-                M583,93 a17,17 0 1 1 34,0 a17,17 0 1 1 -34,0 Z" />
-        <path
-            android:fillColor="#FF000000"
-            android:pathData="M572,425 L572,352 Q572,323 600,323 Q628,323 628,352 L628,425 Z" />
+            android:fillType="evenOdd"
+            android:pathData="M48,856 L168,646 L246,506 L296,408 L330,352 L420,330 L560,324 L668,336 L716,366 L762,442 L826,566 L976,856 Z
+                M312,394 h378 v20 h-378 Z
+                M285,446 h255 v17 h-255 Z
+                M259,496 h351 v15 h-351 Z" />
     </group>
 </vector>
 """
@@ -187,7 +153,7 @@ def main() -> None:
     res = ROOT / "app/src/androidMain/res"
 
     # README / repo icon
-    render_square(1024).convert("RGB").save(ROOT / "massilia-icon.png")
+    render_square(1024).convert("RGB").save(ROOT / "telo-icon.png")
 
     # Compose resources foreground (used in-app: settings & consent screens)
     render_square(1536).save(

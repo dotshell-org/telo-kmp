@@ -976,7 +976,7 @@
       },
       {
         "title": "Licence",
-        "content": "Le code source de l’Application est distribué sous licence GPL‑3.0. Massilia n’est pas affilié à la RTM ni à la Métropole Aix-Marseille-Provence.\n",
+        "content": "Le code source de l’Application est distribué sous licence GPL‑3.0. Telo n’est pas affilié à la RTM ni à la Métropole Aix-Marseille-Provence.\n",
         "links": [
           {
             "label": "Licence GPL-3.0",
@@ -988,11 +988,11 @@
     "legalSections": [
       {
         "title": "Éditeur",
-        "content": "L’Application Massilia est éditée par Dotshell. Dotshell n’est pas affiliée à la RTM ni à la Métropole Aix-Marseille-Provence. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.\n"
+        "content": "L’Application Telo est éditée par Dotshell. Dotshell n’est pas affiliée à la RTM ni à la Métropole Aix-Marseille-Provence. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.\n"
       },
       {
         "title": "Objet",
-        "content": "Les présentes CGU définissent les conditions d’accès et d’utilisation de l’Application Massilia (ci‑après « l’Application »). L’utilisation de l’Application vaut acceptation de ces conditions.\n"
+        "content": "Les présentes CGU définissent les conditions d’accès et d’utilisation de l’Application Telo (ci‑après « l’Application »). L’utilisation de l’Application vaut acceptation de ces conditions.\n"
       },
       {
         "title": "Description de l'application",
@@ -1004,7 +1004,7 @@
       },
       {
         "title": "Traitement des données et confidentialité",
-        "content": "Massilia est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes échanges réseau de l'Application se limitent à l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI) et, lorsque le mode Live est activé, à l'interrogation du service de données temps réel de la RTM pour obtenir les positions des véhicules. Ces requêtes ne contiennent que des identifiants de lignes de transport et aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
+        "content": "Telo est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes échanges réseau de l'Application se limitent à l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI) et, lorsque le mode Live est activé, à l'interrogation du service de données temps réel de la RTM pour obtenir les positions des véhicules. Ces requêtes ne contiennent que des identifiants de lignes de transport et aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
       },
       {
         "title": "Responsabilité",
@@ -1034,7 +1034,7 @@
   "consent": {
     "version": 1,
     "title": "Conditions d'utilisation",
-    "intro": "Pour acceder a Massilia, vous devez accepter les conditions d'utilisation et la politique de confidentialite.\nVous pouvez consulter les details complets a tout moment.\n",
+    "intro": "Pour acceder a Telo, vous devez accepter les conditions d'utilisation et la politique de confidentialite.\nVous pouvez consulter les details complets a tout moment.\n",
     "summary": [
       "Vous acceptez les conditions d'utilisation et la politique de confidentialite.",
       "Vos donnees personnelles restent sur votre appareil.",
@@ -1130,7 +1130,7 @@
   },
   "telemetry": {
     "enabled": false,
-    "endpointUrl": "https://api.dotshell.eu/massilia/v1/telemetry/daily",
+    "endpointUrl": "https://api.dotshell.eu/telo/v1/telemetry/daily",
     "schemaVersion": 1,
     "networkCode": "marseille-rtm",
     "closeDebounceSeconds": 5,
