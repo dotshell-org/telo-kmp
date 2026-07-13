@@ -414,7 +414,7 @@ private fun RootScaffold(
         }
     }
 
-    // The RTM feed only ticks once per minute, so raw positions teleport.
+    // The GTFS-RT feed ticks every ~10 s, so raw positions jump between polls.
     // Between two ticks, vehicles glide along their line's trace (projection
     // of both endpoints on the trace, then interpolation of the curvilinear
     // abscissa) — a straight-line glide would cut through buildings.
@@ -439,9 +439,9 @@ private fun RootScaffold(
             displayedVehiclePositions = emptyList()
             return@LaunchedEffect
         }
-        // Feed ticks every ~60 s: glide almost until the next tick, then rest.
-        val glideDurationMs = 55_000L
-        val frameMs = 600L
+        // Feed ticks every ~10 s: glide almost until the next tick, then rest.
+        val glideDurationMs = 9_000L
+        val frameMs = 300L
         val previousById = displayedVehiclePositions.associateBy { it.vehicleId }
         val plans = activeVehiclePositions.map { target ->
             target to vehicleInterpolator.plan(previousById[target.vehicleId], target)

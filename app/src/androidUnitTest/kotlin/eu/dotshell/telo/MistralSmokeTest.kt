@@ -129,8 +129,8 @@ class MistralSmokeTest {
         assertTrue("U is a strong line", "U" in config.rules.strongLines)
         assertTrue("T (cable car) is a strong line", "T" in config.rules.strongLines)
         assertFalse(config.realtime.trafficAlertsEnabled)
-        // Live vehicle positions stay disabled until the GTFS-RT service lands
-        assertFalse(config.realtime.vehiclePositionsEnabled)
+        // Live vehicle positions come from the official Mistral GTFS-RT feed
+        assertTrue(config.realtime.vehiclePositionsEnabled)
         assertTrue(
             "the stream URL must point at the official Mistral GTFS-RT feed",
             config.transport.vehiclePositionsStreamUrl.startsWith("https://feed-rdtpm-toulon.ratpdev.com/")

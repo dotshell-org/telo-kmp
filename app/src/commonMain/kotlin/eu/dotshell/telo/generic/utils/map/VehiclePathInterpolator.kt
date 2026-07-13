@@ -10,7 +10,7 @@ import kotlin.math.sqrt
 
 /**
  * Glides live vehicle markers along their line's trace between two feed ticks
- * (the RTM feed only refreshes once per minute, so raw updates teleport).
+ * (the GTFS-RT feed refreshes every ~10 s, so raw updates jump).
  *
  * A straight-line interpolation cuts corners — vehicles crossing buildings —
  * and orthogonally projecting each *intermediate* point can snap to the wrong

@@ -381,7 +381,7 @@
   },
   "realtime": {
     "trafficAlertsEnabled": false,
-    "vehiclePositionsEnabled": false,
+    "vehiclePositionsEnabled": true,
     "userStopAlertsEnabled": false
   },
   "itinerarySettings": {

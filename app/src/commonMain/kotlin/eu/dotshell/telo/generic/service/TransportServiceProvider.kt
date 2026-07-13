@@ -20,7 +20,7 @@ import eu.dotshell.telo.generic.data.config.RealtimeConfigData
 import eu.dotshell.telo.generic.ui.screens.about.GenericAboutScreen
 import eu.dotshell.telo.generic.ui.theme.GenericTransportTheme
 import eu.dotshell.telo.specific.data.network.MistralLocalClient
-import eu.dotshell.telo.specific.data.network.RtmVehiclesService
+import eu.dotshell.telo.specific.data.network.MistralVehiclesService
 import eu.dotshell.telo.generic.data.config.AppMapStyleConfig
 import eu.dotshell.telo.platform.FileSystem
 import eu.dotshell.telo.platform.PlatformContext
@@ -82,7 +82,7 @@ object TransportServiceProvider {
 
         // Vehicle positions service (official Mistral GTFS-RT feed)
         vehiclePositionsService = if (realtimeConfig.vehiclePositionsEnabled) {
-            RtmVehiclesService(appConfig.transport, appConfig.rules)
+            MistralVehiclesService(appConfig.transport)
         } else {
             NoopVehiclePositionsService()
         }
