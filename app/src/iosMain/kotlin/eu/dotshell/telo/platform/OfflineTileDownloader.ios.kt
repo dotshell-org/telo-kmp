@@ -30,5 +30,5 @@ private class IosOfflineTileDownloader : OfflineTileDownloader {
         _downloadState.value = MapTilesDownloadState.Idle
     }
 
-    override fun regionNameForStyle(styleKey: String): String = "telo_rtm_$styleKey"
+    override fun regionNameForStyle(styleKey: String): String = "telo_mistral_$styleKey"
 }

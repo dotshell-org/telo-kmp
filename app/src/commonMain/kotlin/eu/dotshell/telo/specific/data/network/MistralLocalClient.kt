@@ -16,26 +16,26 @@ import eu.dotshell.telo.platform.FileSystem
 import eu.dotshell.telo.platform.Log
 import eu.dotshell.telo.platform.PlatformContext
 import eu.dotshell.telo.platform.ioDispatcher
-import eu.dotshell.telo.specific.data.local.RtmLine
-import eu.dotshell.telo.specific.data.local.RtmLinesParser
+import eu.dotshell.telo.specific.data.local.MistralLine
+import eu.dotshell.telo.specific.data.local.MistralLinesParser
 import io.raptor.data.NetworkLoader
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-private const val TAG = "RtmLocalClient"
+private const val TAG = "MistralLocalClient"
 
 /**
- * Marseille RTM implementation of [TransportApi], fully backed by bundled assets —
- * no network calls.
+ * Toulon Réseau Mistral implementation of [TransportApi], fully backed by bundled
+ * assets — no network calls.
  *
- * - Line geometries and colors come from `raptor/lines.bin` (RLN2, from the RTM GTFS shapes).
+ * - Line geometries and colors come from `raptor/lines.bin` (RLN2, from the Mistral GTFS shapes).
  * - Stops come from the weekday raptor bins; the "desserte" string is synthesized in the
  *   same `"<line>:A,<line>:R"` format that [eu.dotshell.telo.generic.data.repository.itinerary.itinerary.RaptorRepository.getDesserteForStop]
  *   produces, so [eu.dotshell.telo.generic.utils.graphics.LineIconResolver.parseDesserte] works unchanged.
- * - Traffic alerts have no RTM backend: the response is always empty.
+ * - Traffic alerts have no Mistral backend: the response is always empty.
  */
-class RtmLocalClient(context: PlatformContext) : TransportApi {
+class MistralLocalClient(context: PlatformContext) : TransportApi {
 
     private val fileSystem = FileSystem(context)
     private val mutex = Mutex()
@@ -92,7 +92,7 @@ class RtmLocalClient(context: PlatformContext) : TransportApi {
     }
 
     override suspend fun getTrafficAlerts(): TrafficAlertsResponse {
-        // No RTM real-time backend: always empty.
+        // No Mistral traffic-alerts backend: always empty.
         return TrafficAlertsResponse(
             success = true,
             alerts = emptyList(),
@@ -110,16 +110,16 @@ class RtmLocalClient(context: PlatformContext) : TransportApi {
     }
 
     private suspend fun buildLineFeatures(): List<Feature> = withContext(ioDispatcher) {
-        val lines = RtmLinesParser.parse(fileSystem.readAssetBytes(LINES_ASSET))
+        val lines = MistralLinesParser.parse(fileSystem.readAssetBytes(LINES_ASSET))
         Log.i(TAG, "Parsed ${lines.size} lines from $LINES_ASSET")
         lines.flatMap { line -> line.paths.mapIndexed { index, path -> line.toFeature(index, path.points, path.directionId) } }
     }
 
-    private fun RtmLine.toFeature(pathIndex: Int, points: List<List<Double>>, directionId: Int): Feature {
+    private fun MistralLine.toFeature(pathIndex: Int, points: List<List<Double>>, directionId: Int): Feature {
         val type = transportTypeOf(gtfsRouteType)
         return Feature(
             type = "Feature",
-            id = "rtm_${name}_$pathIndex",
+            id = "mistral_${name}_$pathIndex",
             multiLineStringGeometry = MultiLineStringGeometry(
                 type = "MultiLineString",
                 coordinates = listOf(points)
@@ -164,7 +164,7 @@ class RtmLocalClient(context: PlatformContext) : TransportApi {
 
             StopFeature(
                 type = "Feature",
-                id = "rtm_stop_${stop.id}",
+                id = "mistral_stop_${stop.id}",
                 geometry = StopGeometry(
                     type = "Point",
                     coordinates = listOf(stop.lon, stop.lat)
@@ -197,6 +197,7 @@ class RtmLocalClient(context: PlatformContext) : TransportApi {
         private const val TYPE_METRO = "METRO"
         private const val TYPE_TRAM = "TRAM"
         private const val TYPE_NAVIGONE = "NAVIGONE"
+        private const val TYPE_FUNICULAR = "FUNICULAR"
         private const val TYPE_BUS = "BUS"
 
         /** Maps a raw GTFS route_type to the transportType strings the generic layer filters on. */
@@ -204,13 +205,15 @@ class RtmLocalClient(context: PlatformContext) : TransportApi {
             1 -> TYPE_METRO
             0 -> TYPE_TRAM
             4 -> TYPE_NAVIGONE
+            6 -> TYPE_FUNICULAR // Mont Faron cable car (aerial lift)
             else -> TYPE_BUS
         }
 
         private fun lineTypeNameOf(type: String): String = when (type) {
             TYPE_METRO -> "Métro"
             TYPE_TRAM -> "Tramway"
-            TYPE_NAVIGONE -> "Navette maritime"
+            TYPE_NAVIGONE -> "Bateau-bus"
+            TYPE_FUNICULAR -> "Téléphérique"
             else -> "Bus"
         }
     }

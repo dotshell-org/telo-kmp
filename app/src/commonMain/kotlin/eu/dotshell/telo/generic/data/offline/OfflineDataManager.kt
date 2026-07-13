@@ -132,7 +132,7 @@ class OfflineDataManager(
 
                         // Bucket strong lines by their feature transportType (network-agnostic):
                         // metro, tram and water lines have dedicated buckets; the remaining
-                        // strong bus-type lines (e.g. RTM BHNS B1-B5) go to the trambus bucket.
+                        // strong bus-type lines (e.g. the Mistral U line) go to the trambus bucket.
                         fun typeOf(f: eu.dotshell.telo.generic.data.models.geojson.Feature) =
                             f.properties.transportType.uppercase()
 

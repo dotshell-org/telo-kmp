@@ -22,7 +22,7 @@ interface TransportConfig {
     val region: String
 
     /**
-     * Organizing authority (e.g., RTM for Marseille)
+     * Organizing authority (e.g., Métropole TPM for Toulon)
      */
     val organizingAuthority: String
 

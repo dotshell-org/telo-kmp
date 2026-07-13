@@ -1,247 +1,85 @@
 {
   "transport": {
     "baseUrl": "https://transport.data.gouv.fr/",
-    "networkName": "RTM",
-    "region": "Marseille et Métropole Aix-Marseille-Provence",
-    "organizingAuthority": "Régie des Transports Métropolitains (RTM)",
+    "networkName": "Réseau Mistral",
+    "region": "Toulon et Métropole Toulon Provence Méditerranée",
+    "organizingAuthority": "Métropole Toulon Provence Méditerranée",
     "dataSource": "transport.data.gouv.fr",
     "dataSourceUrl": "https://transport.data.gouv.fr",
-    "dataLicense": "Licence ODbL",
+    "dataLicense": "Licence Ouverte v2.0",
     "regionBounds": [
-      43.15,
-      5.2,
-      43.48,
-      5.6
+      42.95,
+      5.7,
+      43.25,
+      6.3
     ],
     "offlineMapZoomRange": {
       "start": 8,
       "end": 16
     },
     "schoolHolidaysFile": "holidays.json",
-    "primaryColor": "#0069B4",
+    "primaryColor": "#003893",
     "secondaryColor": "#000000",
     "trafficAlertsBaseUrl": "https://api.dotshell.eu/",
-    "vehiclePositionsStreamUrl": "https://carte-interactive.rtm.fr/WS",
+    "vehiclePositionsStreamUrl": "https://feed-rdtpm-toulon.ratpdev.com/VehiclePosition/GTFS-RT",
     "realtimeLineIds": {
-      "51": "1",
-      "T1": "2",
-      "2": "3",
-      "25": "4",
-      "4": "5",
-      "4B": "6",
-      "1": "7",
-      "5": "9",
-      "3": "10",
-      "7": "12",
-      "9": "13",
-      "6": "14",
-      "10": "15",
-      "27": "17",
-      "7B": "18",
-      "31": "20",
-      "32": "21",
-      "33": "22",
-      "34": "23",
-      "37": "25",
-      "39": "27",
-      "41": "28",
-      "53": "29",
-      "89": "30",
-      "42": "31",
-      "42T": "33",
-      "28": "35",
-      "30": "36",
-      "35": "37",
-      "38": "38",
-      "36": "40",
-      "36B": "41",
-      "70": "42",
-      "72": "44",
-      "82S": "46",
-      "T2": "47",
-      "T3": "48",
-      "97": "49",
-      "88": "50",
-      "95S": "52",
-      "B2": "53",
-      "96": "54",
-      "50": "56",
-      "12B": "57",
-      "12": "58",
-      "12S": "59",
-      "15": "60",
-      "15S": "61",
-      "18": "62",
-      "40": "63",
-      "49": "64",
-      "52": "65",
-      "54": "66",
-      "55": "67",
-      "60": "69",
-      "61": "70",
-      "67": "71",
-      "80": "72",
-      "73": "73",
-      "74": "74",
-      "83": "76",
-      "91": "77",
-      "16": "78",
-      "17": "79",
-      "19": "80",
-      "19B": "81",
-      "509": "86",
-      "23": "87",
-      "22": "88",
-      "22S": "89",
-      "45": "90",
-      "44": "91",
-      "24": "92",
-      "47": "96",
-      "48": "98",
-      "46": "99",
-      "518": "102",
-      "B3": "103",
-      "84": "104",
-      "86": "105",
-      "530": "107",
-      "533": "108",
-      "540": "109",
-      "582": "110",
-      "535": "111",
-      "20": "114",
-      "142": "115",
-      "M1": "116",
-      "144": "121",
-      "M2": "125",
-      "FERRY": "126",
-      "121": "127",
-      "122": "128",
-      "35T": "131",
-      "98": "132",
-      "28B": "133",
-      "NAV1": "136",
-      "NAV2": "137",
-      "NAV3": "138",
-      "B1": "139",
-      "56": "143",
-      "S2": "178",
-      "S3": "179",
-      "S4": "180",
-      "S5": "181",
-      "S6": "182",
-      "S7": "183",
-      "S8": "184",
-      "S1": "187",
-      "81": "188",
-      "97JET": "191",
-      "BM2": "192",
-      "BM1A": "193",
-      "BM1B": "194",
-      "59": "10216",
-      "N1": "10217",
-      "N2": "10218",
-      "62": "10242",
-      "64": "10243",
-      "63": "10244",
-      "107": "10245",
-      "B5": "10246",
-      "1100": "10247",
-      "B4": "10259",
-      "29": "10286"
-    },
-    "vehicleSpeedBaseline": {
-      "1": { "speedMps": 4.02, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "10": { "speedMps": 3.29, "signs": { "1": { "0": 1 }, "2": { "1": 1 } } },
-      "107": { "speedMps": 2.86, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "12": { "speedMps": 3.77, "signs": { "1": { "1": -1 }, "2": { "1": 1 } } },
-      "12B": { "speedMps": 1.92, "signs": { "1": { "1": -1 }, "2": { "1": 1 } } },
-      "12S": { "speedMps": 4.98, "signs": { "2": { "0": -1, "1": 1 } } },
-      "142": { "speedMps": 0.15 },
-      "144": { "speedMps": 4.06, "signs": { "2": { "0": -1 } } },
-      "15": { "speedMps": 2.2, "signs": { "1": { "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "15S": { "speedMps": 1.14, "signs": { "2": { "1": 1 } } },
-      "16": { "speedMps": 2.42, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "17": { "speedMps": 1.94, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "18": { "speedMps": 1.92, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "19": { "speedMps": 2.15, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "19B": { "speedMps": 1.66, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1 } } },
-      "2": { "speedMps": 2.29, "signs": { "1": { "0": 1, "1": -1 } } },
-      "22": { "speedMps": 2.89, "signs": { "1": { "0": 1 } } },
-      "22S": { "speedMps": 1.55, "signs": { "1": { "0": 1 }, "2": { "0": -1 } } },
-      "23": { "speedMps": 2.75, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "24": { "speedMps": 2, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "25": { "speedMps": 2.3, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "27": { "speedMps": 1.71, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "28": { "speedMps": 1.96, "signs": { "1": { "1": -1 }, "2": { "0": -1 } } },
-      "29": { "speedMps": 1.62, "signs": { "2": { "1": 1 } } },
-      "3": { "speedMps": 2.9, "signs": { "1": { "1": -1 }, "2": { "1": 1 } } },
-      "30": { "speedMps": 3.25, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "31": { "speedMps": 2.07, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "32": { "speedMps": 1.71, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "33": { "speedMps": 1.56, "signs": { "1": { "0": 1, "1": -1 } } },
-      "34": { "speedMps": 3.18, "signs": { "1": { "1": -1 } } },
-      "35": { "speedMps": 3.9, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "36": { "speedMps": 4.79 },
-      "36B": { "speedMps": 0.24 },
-      "37": { "speedMps": 0.94, "signs": { "1": { "1": -1 } } },
-      "38": { "speedMps": 2.45, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "4": { "speedMps": 4.68, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1 } } },
-      "40": { "speedMps": 3.85, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "41": { "speedMps": 1.23, "signs": { "2": { "0": -1, "1": 1 } } },
-      "42": { "speedMps": 0.83, "signs": { "1": { "0": 1, "1": -1 } } },
-      "44": { "speedMps": 2.58, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1 } } },
-      "45": { "speedMps": 1.76, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "46": { "speedMps": 2.71, "signs": { "2": { "0": -1, "1": 1 } } },
-      "47": { "speedMps": 1.69 },
-      "48": { "speedMps": 2.29, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "49": { "speedMps": 1.57, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "5": { "speedMps": 1.03, "signs": { "2": { "1": 1 } } },
-      "50": { "speedMps": 4.15, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1 } } },
-      "51": { "speedMps": 4.26, "signs": { "2": { "0": -1, "1": 1 } } },
-      "52": { "speedMps": 2.4, "signs": { "1": { "0": 1 }, "2": { "0": -1 } } },
-      "53": { "speedMps": 1.62, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "54": { "speedMps": 1.19, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "55": { "speedMps": 0.77, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "56": { "speedMps": 1.67 },
-      "6": { "speedMps": 2.29, "signs": { "2": { "1": 1 } } },
-      "60": { "speedMps": 0.91, "signs": { "1": { "0": 1 }, "2": { "1": 1 } } },
-      "61": { "speedMps": 0.38 },
-      "62": { "speedMps": 2.21, "signs": { "1": { "1": -1 }, "2": { "1": 1 } } },
-      "63": { "speedMps": 3.68, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "64": { "speedMps": 0 },
-      "67": { "speedMps": 2.21, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "7": { "speedMps": 2.2, "signs": { "1": { "0": 1, "1": -1 } } },
-      "70": { "speedMps": 2.36, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "72": { "speedMps": 2.16, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "73": { "speedMps": 2.05, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "74": { "speedMps": 1.39, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "7B": { "speedMps": 1.14, "signs": { "1": { "1": -1 } } },
-      "80": { "speedMps": 0.88, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "81": { "speedMps": 1.36, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "82S": { "speedMps": 0.67, "signs": { "1": { "0": 1 } } },
-      "83": { "speedMps": 1.75, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "88": { "speedMps": 1.87, "signs": { "1": { "0": 1 } } },
-      "89": { "speedMps": 1.6, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "9": { "speedMps": 2.71, "signs": { "1": { "0": 1 }, "2": { "0": -1, "1": 1 } } },
-      "91": { "speedMps": 1.76, "signs": { "1": { "1": -1 }, "2": { "1": 1 } } },
-      "96": { "speedMps": 3.1, "signs": { "1": { "0": 1 }, "2": { "1": 1 } } },
-      "97": { "speedMps": 3.33, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "97JET": { "speedMps": 3.94, "signs": { "1": { "1": 1 }, "2": { "0": -1, "1": 1 } } },
-      "98": { "speedMps": 2.43, "signs": { "2": { "1": 1 } } },
-      "B1": { "speedMps": 3.29, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "B2": { "speedMps": 1.66, "signs": { "1": { "0": 1, "1": -1 }, "2": { "1": 1 } } },
-      "B3": { "speedMps": 3.39, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "B4": { "speedMps": 2.91, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "B5": { "speedMps": 2.18, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1 } } },
-      "T1": { "speedMps": 2.53, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "T2": { "speedMps": 1.91, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } },
-      "T3": { "speedMps": 2.64, "signs": { "1": { "0": 1, "1": -1 }, "2": { "0": -1, "1": 1 } } }
+      "U": "U",
+      "1": "0001",
+      "2": "0002",
+      "3": "0003",
+      "6": "0006",
+      "9": "0009",
+      "10": "0010",
+      "11": "0011",
+      "11B": "011B",
+      "12": "0012",
+      "15": "0015",
+      "16": "0016",
+      "17": "0017",
+      "18": "0018",
+      "20": "0020",
+      "23": "0023",
+      "28": "0028",
+      "29": "0029",
+      "31": "0031",
+      "33": "0033",
+      "36": "0036",
+      "39": "0039",
+      "40": "0040",
+      "65": "0065",
+      "55": "0055",
+      "68": "0068",
+      "63": "0063",
+      "67": "0067",
+      "70": "0070",
+      "72": "0072",
+      "81": "0081",
+      "82": "0082",
+      "83": "0083",
+      "84": "0084",
+      "87": "0087",
+      "91": "0091",
+      "92": "0092",
+      "98": "0098",
+      "101": "0101",
+      "102": "0102",
+      "103": "0103",
+      "111": "0111",
+      "120": "0120",
+      "129": "0129",
+      "191": "0191",
+      "8M": "8M",
+      "18M": "18M",
+      "28M": "28M",
+      "BN1": "BN1",
+      "BN3": "BN3",
+      "T": "T"
     }
   },
   "theme": {
-    "metroLineColor": "#009FE3",
+    "metroLineColor": "#DB0000",
     "tramLineColor": "#F28C00",
-    "busLineColor": "#0069B4",
+    "busLineColor": "#003893",
     "errorColor": "#D32F2F",
     "successColor": "#388E3C",
     "warningColor": "#F57C00",
@@ -278,632 +116,262 @@
     }
   },
   "lineColors": {
-    "fallback": "#0069B4",
+    "fallback": "#003893",
     "rules": [
       {
-        "match": "M1",
+        "match": "U",
         "type": "exact",
-        "color": "#009FE3"
-      },
-      {
-        "match": "M2",
-        "type": "exact",
-        "color": "#E30613"
-      },
-      {
-        "match": "T1",
-        "type": "exact",
-        "color": "#F28C00"
-      },
-      {
-        "match": "T2",
-        "type": "exact",
-        "color": "#F4E718"
-      },
-      {
-        "match": "T3",
-        "type": "exact",
-        "color": "#95C11F"
-      },
-      {
-        "match": "FERRY",
-        "type": "exact",
-        "color": "#009BBA"
-      },
-      {
-        "match": "NAV1",
-        "type": "exact",
-        "color": "#009BBA"
-      },
-      {
-        "match": "NAV2",
-        "type": "exact",
-        "color": "#009BBA"
-      },
-      {
-        "match": "NAV3",
-        "type": "exact",
-        "color": "#009BBA"
+        "color": "#FC9D44"
       },
       {
         "match": "1",
         "type": "exact",
-        "color": "#009FE3"
+        "color": "#003893"
       },
       {
         "match": "2",
         "type": "exact",
-        "color": "#009FE3"
+        "color": "#00C7B2"
       },
       {
         "match": "3",
         "type": "exact",
-        "color": "#009FE3"
-      },
-      {
-        "match": "4",
-        "type": "exact",
-        "color": "#009FE3"
-      },
-      {
-        "match": "4B",
-        "type": "exact",
-        "color": "#009FE3"
-      },
-      {
-        "match": "5",
-        "type": "exact",
-        "color": "#009FE3"
+        "color": "#D81E05"
       },
       {
         "match": "6",
         "type": "exact",
-        "color": "#F39200"
-      },
-      {
-        "match": "7",
-        "type": "exact",
-        "color": "#FBBA00"
-      },
-      {
-        "match": "7B",
-        "type": "exact",
-        "color": "#FBBA00"
+        "color": "#06A7DC"
       },
       {
         "match": "9",
         "type": "exact",
-        "color": "#189B52"
+        "color": "#5BBF21"
       },
       {
         "match": "10",
         "type": "exact",
-        "color": "#E94F35"
+        "color": "#444746"
+      },
+      {
+        "match": "11",
+        "type": "exact",
+        "color": "#9C4E96"
+      },
+      {
+        "match": "11B",
+        "type": "exact",
+        "color": "#9C4E96"
       },
       {
         "match": "12",
         "type": "exact",
-        "color": "#007BC4"
-      },
-      {
-        "match": "12B",
-        "type": "exact",
-        "color": "#007BC4"
-      },
-      {
-        "match": "12S",
-        "type": "exact",
-        "color": "#007BC4"
+        "color": "#D81E05"
       },
       {
         "match": "15",
         "type": "exact",
-        "color": "#BD1D1D"
-      },
-      {
-        "match": "15S",
-        "type": "exact",
-        "color": "#BD1D1D"
+        "color": "#000000"
       },
       {
         "match": "16",
         "type": "exact",
-        "color": "#CA4E39"
+        "color": "#9C4E96"
       },
       {
         "match": "17",
         "type": "exact",
-        "color": "#D77D63"
+        "color": "#D81E04"
       },
       {
         "match": "18",
         "type": "exact",
-        "color": "#814997"
-      },
-      {
-        "match": "19",
-        "type": "exact",
-        "color": "#E4348B"
-      },
-      {
-        "match": "19B",
-        "type": "exact",
-        "color": "#E4348B"
+        "color": "#AB9ECB"
       },
       {
         "match": "20",
         "type": "exact",
-        "color": "#5C2483"
-      },
-      {
-        "match": "22",
-        "type": "exact",
-        "color": "#E63323"
-      },
-      {
-        "match": "22S",
-        "type": "exact",
-        "color": "#E63323"
+        "color": "#F77F00"
       },
       {
         "match": "23",
         "type": "exact",
-        "color": "#F39200"
-      },
-      {
-        "match": "24",
-        "type": "exact",
-        "color": "#E30613"
-      },
-      {
-        "match": "25",
-        "type": "exact",
-        "color": "#E63329"
-      },
-      {
-        "match": "27",
-        "type": "exact",
-        "color": "#6AAADE"
+        "color": "#7B2035"
       },
       {
         "match": "28",
         "type": "exact",
-        "color": "#E63329"
-      },
-      {
-        "match": "28B",
-        "type": "exact",
-        "color": "#E63329"
+        "color": "#5BBF21"
       },
       {
         "match": "29",
         "type": "exact",
-        "color": "#F3953F"
-      },
-      {
-        "match": "30",
-        "type": "exact",
-        "color": "#E63329"
+        "color": "#00B760"
       },
       {
         "match": "31",
         "type": "exact",
-        "color": "#009640"
-      },
-      {
-        "match": "32",
-        "type": "exact",
-        "color": "#009640"
+        "color": "#F77F00"
       },
       {
         "match": "33",
         "type": "exact",
-        "color": "#00B1B2"
-      },
-      {
-        "match": "34",
-        "type": "exact",
-        "color": "#00B1B2"
-      },
-      {
-        "match": "35",
-        "type": "exact",
-        "color": "#BD1D1D"
-      },
-      {
-        "match": "35T",
-        "type": "exact",
-        "color": "#009BBE"
+        "color": "#FCE016"
       },
       {
         "match": "36",
         "type": "exact",
-        "color": "#BD1D1D"
-      },
-      {
-        "match": "36B",
-        "type": "exact",
-        "color": "#BD1D1D"
-      },
-      {
-        "match": "37",
-        "type": "exact",
-        "color": "#312783"
-      },
-      {
-        "match": "38",
-        "type": "exact",
-        "color": "#E63329"
+        "color": "#69227B"
       },
       {
         "match": "39",
         "type": "exact",
-        "color": "#312783"
+        "color": "#007B3E"
       },
       {
         "match": "40",
         "type": "exact",
-        "color": "#6AAADE"
+        "color": "#3A75C4"
       },
       {
-        "match": "41",
+        "match": "65",
         "type": "exact",
-        "color": "#85C9B7"
-      },
-      {
-        "match": "42",
-        "type": "exact",
-        "color": "#636AAF"
-      },
-      {
-        "match": "42T",
-        "type": "exact",
-        "color": "#636AAF"
-      },
-      {
-        "match": "44",
-        "type": "exact",
-        "color": "#E63323"
-      },
-      {
-        "match": "45",
-        "type": "exact",
-        "color": "#F39200"
-      },
-      {
-        "match": "46",
-        "type": "exact",
-        "color": "#C2063B"
-      },
-      {
-        "match": "47",
-        "type": "exact",
-        "color": "#CD4849"
-      },
-      {
-        "match": "48",
-        "type": "exact",
-        "color": "#DB7A7C"
-      },
-      {
-        "match": "49",
-        "type": "exact",
-        "color": "#DA4F37"
-      },
-      {
-        "match": "50",
-        "type": "exact",
-        "color": "#E4348B"
-      },
-      {
-        "match": "51",
-        "type": "exact",
-        "color": "#AFCA0B"
-      },
-      {
-        "match": "52",
-        "type": "exact",
-        "color": "#0073BD"
-      },
-      {
-        "match": "53",
-        "type": "exact",
-        "color": "#005286"
-      },
-      {
-        "match": "54",
-        "type": "exact",
-        "color": "#007BC4"
+        "color": "#06A7DC"
       },
       {
         "match": "55",
         "type": "exact",
-        "color": "#F59C00"
+        "color": "#5BBF21"
       },
       {
-        "match": "56",
+        "match": "68",
         "type": "exact",
-        "color": "#F59C00"
-      },
-      {
-        "match": "59",
-        "type": "exact",
-        "color": "#9CC2E5"
-      },
-      {
-        "match": "60",
-        "type": "exact",
-        "color": "#FFDD00"
-      },
-      {
-        "match": "61",
-        "type": "exact",
-        "color": "#76B82A"
-      },
-      {
-        "match": "62",
-        "type": "exact",
-        "color": "#31B7BC"
+        "color": "#9A5A05"
       },
       {
         "match": "63",
         "type": "exact",
-        "color": "#F9DB33"
-      },
-      {
-        "match": "64",
-        "type": "exact",
-        "color": "#EF7D00"
+        "color": "#9AAAD7"
       },
       {
         "match": "67",
         "type": "exact",
-        "color": "#5BC5F2"
+        "color": "#F8E415"
       },
       {
         "match": "70",
         "type": "exact",
-        "color": "#40AB35"
+        "color": "#009BAB"
       },
       {
         "match": "72",
         "type": "exact",
-        "color": "#E30613"
-      },
-      {
-        "match": "73",
-        "type": "exact",
-        "color": "#E4348B"
-      },
-      {
-        "match": "74",
-        "type": "exact",
-        "color": "#5C2483"
-      },
-      {
-        "match": "80",
-        "type": "exact",
-        "color": "#76B82A"
+        "color": "#BAD806"
       },
       {
         "match": "81",
         "type": "exact",
-        "color": "#005286"
+        "color": "#D81E05"
       },
       {
-        "match": "82S",
+        "match": "82",
         "type": "exact",
-        "color": "#AFCA0B"
+        "color": "#F77F00"
       },
       {
         "match": "83",
         "type": "exact",
-        "color": "#BD1D1D"
+        "color": "#F8E415"
       },
       {
         "match": "84",
         "type": "exact",
-        "color": "#EA591B"
+        "color": "#FA95C5"
       },
       {
-        "match": "86",
+        "match": "87",
         "type": "exact",
-        "color": "#FFDD00"
-      },
-      {
-        "match": "88",
-        "type": "exact",
-        "color": "#AFCA0B"
-      },
-      {
-        "match": "89",
-        "type": "exact",
-        "color": "#009640"
+        "color": "#9AAAD7"
       },
       {
         "match": "91",
         "type": "exact",
-        "color": "#93D5F6"
+        "color": "#FA95C5"
       },
       {
-        "match": "95S",
+        "match": "92",
         "type": "exact",
-        "color": "#878787"
-      },
-      {
-        "match": "96",
-        "type": "exact",
-        "color": "#878787"
-      },
-      {
-        "match": "97",
-        "type": "exact",
-        "color": "#DCCD00"
-      },
-      {
-        "match": "97JET",
-        "type": "exact",
-        "color": "#DCCD00"
+        "color": "#F77F00"
       },
       {
         "match": "98",
         "type": "exact",
-        "color": "#F49E00"
+        "color": "#F8E415"
       },
       {
-        "match": "107",
+        "match": "101",
         "type": "exact",
-        "color": "#0080B2"
+        "color": "#0A8DD6"
       },
       {
-        "match": "121",
+        "match": "102",
         "type": "exact",
-        "color": "#0BBBEF"
+        "color": "#FA95C5"
       },
       {
-        "match": "122",
+        "match": "103",
         "type": "exact",
-        "color": "#85C9B7"
+        "color": "#444746"
       },
       {
-        "match": "142",
+        "match": "111",
         "type": "exact",
-        "color": "#C60E41"
+        "color": "#F8E415"
       },
       {
-        "match": "144",
+        "match": "120",
         "type": "exact",
-        "color": "#9CB40D"
+        "color": "#F8E415"
       },
       {
-        "match": "509",
+        "match": "129",
         "type": "exact",
-        "color": "#C7D530"
+        "color": "#3A75C4"
       },
       {
-        "match": "518",
+        "match": "191",
         "type": "exact",
-        "color": "#F9B122"
+        "color": "#FA3114"
       },
       {
-        "match": "530",
+        "match": "8M",
         "type": "exact",
-        "color": "#009FE3"
+        "color": "#9AAAD7"
       },
       {
-        "match": "533",
+        "match": "18M",
         "type": "exact",
-        "color": "#009640"
+        "color": "#3A75C4"
       },
       {
-        "match": "535",
+        "match": "28M",
         "type": "exact",
-        "color": "#C9338B"
+        "color": "#003893"
       },
       {
-        "match": "540",
+        "match": "BN1",
         "type": "exact",
-        "color": "#FFDD00"
+        "color": "#E53225"
       },
       {
-        "match": "582",
+        "match": "BN3",
         "type": "exact",
-        "color": "#EA5160"
+        "color": "#00B760"
       },
       {
-        "match": "1100",
+        "match": "T",
         "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "B1",
-        "type": "exact",
-        "color": "#E5006B"
-      },
-      {
-        "match": "B2",
-        "type": "exact",
-        "color": "#E5006B"
-      },
-      {
-        "match": "B3",
-        "type": "exact",
-        "color": "#F42B98"
-      },
-      {
-        "match": "B4",
-        "type": "exact",
-        "color": "#8A5EA4"
-      },
-      {
-        "match": "B5",
-        "type": "exact",
-        "color": "#BF8C73"
-      },
-      {
-        "match": "BM1A",
-        "type": "exact",
-        "color": "#009FE3"
-      },
-      {
-        "match": "BM1B",
-        "type": "exact",
-        "color": "#009FE3"
-      },
-      {
-        "match": "BM2",
-        "type": "exact",
-        "color": "#E30613"
-      },
-      {
-        "match": "N1",
-        "type": "exact",
-        "color": "#213965"
-      },
-      {
-        "match": "N2",
-        "type": "exact",
-        "color": "#005D86"
-      },
-      {
-        "match": "S1",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S2",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S3",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S4",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S5",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S6",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S7",
-        "type": "exact",
-        "color": "#951B81"
-      },
-      {
-        "match": "S8",
-        "type": "exact",
-        "color": "#951B81"
+        "color": "#DB0000"
       }
     ]
   },
@@ -913,7 +381,7 @@
   },
   "realtime": {
     "trafficAlertsEnabled": false,
-    "vehiclePositionsEnabled": true,
+    "vehiclePositionsEnabled": false,
     "userStopAlertsEnabled": false
   },
   "itinerarySettings": {
@@ -921,15 +389,9 @@
     "sectionTitle": "Lignes à usage spécifique",
     "options": [
       {
-        "key": "enable_school_lines",
-        "title": "Lignes scolaires (S)",
-        "subtitle": "S1 à S8 — dessertes scolaires",
-        "defaultEnabled": true
-      },
-      {
-        "key": "enable_night_lines",
-        "title": "Lignes de nuit (N)",
-        "subtitle": "N1 et N2",
+        "key": "enable_navette_lines",
+        "title": "Navettes (BN)",
+        "subtitle": "BN1 et BN3 — navettes Vauban ↔ Milhaud",
         "defaultEnabled": true
       }
     ]
@@ -939,15 +401,15 @@
     "sections": [
       {
         "title": "Données de transport",
-        "content": "Les données de transport utilisées dans l’application proviennent du jeu de données GTFS (General Transit Feed Specification) publié par la Régie des Transports Métropolitains (RTM) sur la plateforme transport.data.gouv.fr, sous Licence ODbL.\n\nLes positions géographiques et les noms des arrêts, le contenu des lignes, les horaires ainsi que les tracés géographiques des lignes de métro, tramway, bus, BHNS et navettes maritimes sont tous issus de ce fichier GTFS. Ces données sont mises à jour manuellement par les développeurs et subissent un prétraitement avant d’être embarquées dans l’application. Aucune donnée n’est modifiée : seule leur organisation est transformée afin d’être traitée plus rapidement par l’application, qui fonctionne ensuite entièrement hors connexion pour la recherche d’itinéraires et les horaires.\n\nLes positions des véhicules en temps réel (mode Live) proviennent du service public de données temps réel de la RTM, le même que celui qui alimente sa carte interactive officielle (carte-interactive.rtm.fr).\n\nLes pictogrammes des lignes proviennent de Wikimedia Commons (domaine public) et reproduisent les pictogrammes du plan officiel du réseau RTM.\n",
+        "content": "Les données de transport utilisées dans l’application proviennent du jeu de données GTFS (General Transit Feed Specification) du Réseau Mistral publié par la Métropole Toulon Provence Méditerranée sur la plateforme transport.data.gouv.fr, sous Licence Ouverte v2.0.\n\nLes positions géographiques et les noms des arrêts, le contenu des lignes, les horaires ainsi que les tracés géographiques des lignes de bus, bateaux-bus et du téléphérique du Mont Faron sont tous issus de ce fichier GTFS. Ces données sont mises à jour manuellement par les développeurs et subissent un prétraitement avant d’être embarquées dans l’application. Aucune donnée n’est modifiée : seule leur organisation est transformée afin d’être traitée plus rapidement par l’application, qui fonctionne ensuite entièrement hors connexion pour la recherche d’itinéraires et les horaires.\n\nLes positions des véhicules en temps réel (mode Live) proviennent du flux GTFS-RT officiel du Réseau Mistral, publié en open data sur transport.data.gouv.fr (Licence Ouverte v2.0).\n\nLes badges des lignes sont générés à partir des couleurs officielles du réseau contenues dans ce même fichier GTFS.\n",
         "links": [
           {
             "label": "transport.data.gouv.fr",
             "url": "https://transport.data.gouv.fr"
           },
           {
-            "label": "rtm.fr",
-            "url": "https://www.rtm.fr"
+            "label": "reseaumistral.com",
+            "url": "https://www.reseaumistral.com"
           }
         ]
       },
@@ -976,7 +438,7 @@
       },
       {
         "title": "Licence",
-        "content": "Le code source de l’Application est distribué sous licence GPL‑3.0. Telo n’est pas affilié à la RTM ni à la Métropole Aix-Marseille-Provence.\n",
+        "content": "Le code source de l’Application est distribué sous licence GPL‑3.0. Telo n’est pas affilié au Réseau Mistral, à RD TPM ni à la Métropole Toulon Provence Méditerranée.\n",
         "links": [
           {
             "label": "Licence GPL-3.0",
@@ -988,7 +450,7 @@
     "legalSections": [
       {
         "title": "Éditeur",
-        "content": "L’Application Telo est éditée par Dotshell. Dotshell n’est pas affiliée à la RTM ni à la Métropole Aix-Marseille-Provence. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.\n"
+        "content": "L’Application Telo est éditée par Dotshell. Dotshell n’est pas affiliée au Réseau Mistral, à RD TPM ni à la Métropole Toulon Provence Méditerranée. Pour toute question, se référer aux moyens de contact indiqués dans l’Application.\n"
       },
       {
         "title": "Objet",
@@ -996,7 +458,7 @@
       },
       {
         "title": "Description de l'application",
-        "content": "L’Application aide l’utilisateur à se déplacer sur le réseau RTM (Marseille et agglomération) via des outils de recherche et de planification. Les sources tierces sont listées dans la page « Crédits ».\n"
+        "content": "L’Application aide l’utilisateur à se déplacer sur le réseau Mistral (Toulon et agglomération) via des outils de recherche et de planification. Les sources tierces sont listées dans la page « Crédits ».\n"
       },
       {
         "title": "Permissions",
@@ -1004,11 +466,11 @@
       },
       {
         "title": "Traitement des données et confidentialité",
-        "content": "Telo est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes échanges réseau de l'Application se limitent à l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI) et, lorsque le mode Live est activé, à l'interrogation du service de données temps réel de la RTM pour obtenir les positions des véhicules. Ces requêtes ne contiennent que des identifiants de lignes de transport et aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
+        "content": "Telo est conçue selon le principe de la protection des données dès la conception.\n\n5.1. Stockage local exclusif\nVos arrêts favoris, vos préférences et l'historique de vos trajets sont stockés exclusivement en local sur votre appareil. Dotshell ne dispose d'aucun accès à ces informations. Vous pouvez supprimer cet historique à tout moment depuis l'écran « Confidentialité ».\n\n5.2. Fonctionnement hors connexion\nLa recherche d'itinéraires et la consultation des horaires s'effectuent entièrement sur votre appareil, à partir de données embarquées dans l'application. Aucune recherche, aucun itinéraire et aucune position ne sont transmis à un serveur.\n\n5.3. Accès réseau\nLes échanges réseau de l'Application se limitent à l'affichage des fonds de carte (tuiles fournies par OpenFreeMap et ESRI) et, lorsque le mode Live est activé, au téléchargement du flux GTFS-RT public du Réseau Mistral pour obtenir les positions des véhicules. Ces requêtes ne contiennent aucun identifiant personnel.\n\n5.4. Absence de collecte et de revente\nDotshell ne collecte pas vos données et ne vend aucune donnée à des annonceurs ou à des courtiers en données.\n"
       },
       {
         "title": "Responsabilité",
-        "content": "Les informations (horaires, tracés) sont fournies à titre indicatif à partir des données publiées par la RTM. Dotshell décline toute responsabilité en cas d’inexactitude des données provenant de tiers ou d’indisponibilité du réseau de transport.\n"
+        "content": "Les informations (horaires, tracés) sont fournies à titre indicatif à partir des données publiées par la Métropole Toulon Provence Méditerranée. Dotshell décline toute responsabilité en cas d’inexactitude des données provenant de tiers ou d’indisponibilité du réseau de transport.\n"
       },
       {
         "title": "Propriété intellectuelle",
@@ -1054,85 +516,45 @@
   },
   "rules": {
     "strongLines": [
-      "M1",
-      "M2",
-      "T1",
-      "T2",
-      "T3",
-      "B1",
-      "B2",
-      "B3",
-      "B4",
-      "B5",
-      "NAV1",
-      "NAV2",
-      "NAV3",
-      "FERRY"
+      "U",
+      "T",
+      "8M",
+      "18M",
+      "28M"
     ],
     "strongLineRegexes": [],
     "lineNameRegexes": [
-      "^M[12]$",
-      "^T[1-3]$",
-      "^B[1-5]$",
-      "^BM\\d{1,2}[A-Z]?$",
-      "^N[12]$",
-      "^S\\d{1,2}$",
-      "^NAV[1-3]$",
-      "^FERRY$",
-      "^\\d{1,4}[A-Z]{0,3}$"
+      "^U$",
+      "^T$",
+      "^BN[13]$",
+      "^\\d{1,2}M$",
+      "^\\d{1,3}[A-Z]?$"
     ],
     "transportTypes": [
       {
-        "name": "Métro",
-        "regex": "^M[12]$"
+        "name": "Téléphérique",
+        "regex": "^T$"
       },
       {
-        "name": "Tramway",
-        "regex": "^T[1-3]$"
+        "name": "Bateau-bus",
+        "regex": "^(8M|18M|28M)$"
       },
       {
-        "name": "BHNS",
-        "regex": "^B[1-5]$"
-      },
-      {
-        "name": "Navette maritime",
-        "regex": "^(NAV[1-3]|FERRY)$"
-      },
-      {
-        "name": "Bus de remplacement",
-        "regex": "^BM\\d{1,2}[A-Z]?$",
-        "icon": "mode_bus"
-      },
-      {
-        "name": "Bus de nuit",
-        "regex": "^N[12]$",
-        "icon": "mode_bus"
-      },
-      {
-        "name": "Scolaire",
-        "regex": "^S\\d{1,2}$",
+        "name": "Navette",
+        "regex": "^BN[13]$",
         "icon": "mode_bus"
       }
     ],
     "aliases": [],
     "excludedLines": [],
-    "vehicleMarkers": [
-      {
-        "prefix": "M",
-        "marker": "TRAM"
-      },
-      {
-        "prefix": "T",
-        "marker": "TRAM"
-      }
-    ],
+    "vehicleMarkers": [],
     "defaultVehicleMarker": "BUS"
   },
   "telemetry": {
     "enabled": false,
     "endpointUrl": "https://api.dotshell.eu/telo/v1/telemetry/daily",
     "schemaVersion": 1,
-    "networkCode": "marseille-rtm",
+    "networkCode": "toulon-mistral",
     "closeDebounceSeconds": 5,
     "tripSamplingSeconds": 30,
     "tripSnapRadiusMeters": 100,

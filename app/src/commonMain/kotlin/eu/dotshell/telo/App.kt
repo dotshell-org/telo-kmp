@@ -306,7 +306,7 @@ private fun RootScaffold(
     val locationProvider = remember { LocationProvider(context) }
     val cameraState = rememberCameraState(
         firstPosition = CameraPosition(
-            target = org.maplibre.spatialk.geojson.Position(latitude = 43.2965, longitude = 5.3698),
+            target = org.maplibre.spatialk.geojson.Position(latitude = 43.1242, longitude = 5.9280),
             zoom = 12.0,
             bearing = 0.0
         )
@@ -635,10 +635,10 @@ private fun RootScaffold(
                     )
                     val lats = points.map { it[1] }
                     val lons = points.map { it[0] }
-                    val latMin = lats.minOrNull() ?: 43.2965
-                    val latMax = lats.maxOrNull() ?: 43.2965
-                    val lonMin = lons.minOrNull() ?: 5.3698
-                    val lonMax = lons.maxOrNull() ?: 5.3698
+                    val latMin = lats.minOrNull() ?: 43.1242
+                    val latMax = lats.maxOrNull() ?: 43.1242
+                    val lonMin = lons.minOrNull() ?: 5.9280
+                    val lonMax = lons.maxOrNull() ?: 5.9280
                     val latDiff = latMax - latMin
                     val lonDiff = lonMax - lonMin
                     val span = maxOf(latDiff, lonDiff)
@@ -672,10 +672,10 @@ private fun RootScaffold(
             }
             if (lats.isNotEmpty()) {
                 manualFocusCenter = Position(latitude = lats.average(), longitude = lons.average())
-                val latMin = lats.minOrNull() ?: 43.2965
-                val latMax = lats.maxOrNull() ?: 43.2965
-                val lonMin = lons.minOrNull() ?: 5.3698
-                val lonMax = lons.maxOrNull() ?: 5.3698
+                val latMin = lats.minOrNull() ?: 43.1242
+                val latMax = lats.maxOrNull() ?: 43.1242
+                val lonMin = lons.minOrNull() ?: 5.9280
+                val lonMax = lons.maxOrNull() ?: 5.9280
                 val latDiff = latMax - latMin
                 val lonDiff = lonMax - lonMin
                 val span = maxOf(latDiff, lonDiff)
@@ -1191,8 +1191,8 @@ private fun PlanContent(
                 MapCanvas(
                     modifier = Modifier.fillMaxSize(),
                     styleUrl = effectiveMapStyle.styleUrl,
-                    initialLatitude = 43.2965,
-                    initialLongitude = 5.3698,
+                    initialLatitude = 43.1242,
+                    initialLongitude = 5.9280,
                     initialZoom = 12.0,
                     centerOn = focusCenter,
                     focusZoom = focusZoom,

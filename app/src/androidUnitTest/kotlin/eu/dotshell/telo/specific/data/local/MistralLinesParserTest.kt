@@ -28,7 +28,7 @@ class MistralLinesParserTest {
 
     @Test
     fun parsesTheFullMistralNetwork() {
-        val lines = RtmLinesParser.parse(linesBin())
+        val lines = MistralLinesParser.parse(linesBin())
         assertEquals("Mistral GTFS has 51 routes", 51, lines.size)
 
         val byName = lines.associateBy { it.name }
@@ -60,7 +60,7 @@ class MistralLinesParserTest {
 
     @Test
     fun everyShapePointIsInsideTheToulonBoundingBox() {
-        val lines = RtmLinesParser.parse(linesBin())
+        val lines = MistralLinesParser.parse(linesBin())
         var points = 0
         for (line in lines) {
             assertTrue("${line.name} has no shape", line.paths.isNotEmpty())

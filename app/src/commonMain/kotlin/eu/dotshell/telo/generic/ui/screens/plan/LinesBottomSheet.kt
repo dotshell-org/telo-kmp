@@ -208,14 +208,10 @@ fun LinesBottomSheet(
                         Column {
                             Spacer(modifier = Modifier.height(8.dp))
                             val categoryText = when (item.category) {
-                                "Métro" -> strings["category_metro"]
-                                "Tramway" -> strings["category_tramway"]
-                                "BHNS" -> strings["category_bhns"]
-                                "Navette maritime" -> strings["category_navette_maritime"]
+                                "Téléphérique" -> strings["category_telepherique"]
+                                "Bateau-bus" -> strings["category_bateau_bus"]
                                 "Bus" -> strings["category_bus"]
-                                "Bus de nuit" -> strings["category_nuit"]
-                                "Scolaire" -> strings["category_scolaire"]
-                                "Bus de remplacement" -> strings["category_remplacement"]
+                                "Navette" -> strings["category_navette"]
                                 else -> item.category
                             }
                             Text(
@@ -313,7 +309,7 @@ fun LinesBottomSheet(
 }
 
 /**
- * Chip to show a line with the official RTM icon
+ * Chip to show a line with its official badge
  */
 @Composable
 private fun LineChip(
@@ -329,7 +325,7 @@ private fun LineChip(
         drawableProvider.hasDrawable(drawableName)
     }
 
-    // The chip must be at least as tall as the 64dp square RTM pictogram —
+    // The chip must be at least as tall as the 64dp square line badge —
     // the old 50dp height (sized for the flat TCL flags) made rows overlap.
     Box(
         modifier = modifier
@@ -345,7 +341,7 @@ private fun LineChip(
             contentAlignment = Alignment.Center
         ) {
             if (hasIcon) {
-                // Use official RTM icon
+                // Use the official line badge
                 Icon(
                     painter = drawableProvider.getPainter(drawableName),
                     contentDescription = strings["line_label"].replace("%s", lineName),
@@ -436,32 +432,19 @@ private fun categorizeLines(
     lines: List<String>,
     hasLineIcon: (String) -> Boolean
 ): Map<String, List<String>> {
-    // Keep lines with icons, and keep the BM metro-replacement lines even
-    // without a dedicated icon file (they fall back to the colored badge).
-    val linesWithIcon = lines.filter { line ->
-        val upperLine = line.uppercase()
-        hasLineIcon(line) || upperLine.startsWith("BM")
-    }
+    val linesWithIcon = lines.filter { line -> hasLineIcon(line) }
 
-    val metros = mutableListOf<String>()
-    val trams = mutableListOf<String>()
-    val bhns = mutableListOf<String>()
-    val navettesMaritimes = mutableListOf<String>()
-    val nuit = mutableListOf<String>()
-    val scolaires = mutableListOf<String>()
-    val remplacement = mutableListOf<String>()
+    val telepheriques = mutableListOf<String>()
+    val bateauxBus = mutableListOf<String>()
+    val navettes = mutableListOf<String>()
     val bus = mutableListOf<String>()
 
     linesWithIcon.forEach { line ->
         val upperLine = line.uppercase()
         when {
-            upperLine.matches(Regex("^M[12]$")) -> metros.add(line)
-            upperLine.matches(Regex("^T[1-3]$")) -> trams.add(line)
-            upperLine.matches(Regex("^B[1-5]$")) -> bhns.add(line)
-            upperLine.startsWith("NAV") || upperLine == "FERRY" -> navettesMaritimes.add(line)
-            upperLine.matches(Regex("^N[12]$")) -> nuit.add(line)
-            upperLine.matches(Regex("^S\\d{1,2}$")) -> scolaires.add(line)
-            upperLine.startsWith("BM") -> remplacement.add(line)
+            upperLine == "T" -> telepheriques.add(line)
+            upperLine.matches(Regex("^(8M|18M|28M)$")) -> bateauxBus.add(line)
+            upperLine.matches(Regex("^BN[13]$")) -> navettes.add(line)
             else -> bus.add(line)
         }
     }
@@ -499,14 +482,10 @@ private fun categorizeLines(
 
     val result = mutableMapOf<String, List<String>>()
 
-    if (metros.isNotEmpty()) result["Métro"] = naturalSort(metros)
-    if (trams.isNotEmpty()) result["Tramway"] = naturalSort(trams)
-    if (bhns.isNotEmpty()) result["BHNS"] = naturalSort(bhns)
-    if (navettesMaritimes.isNotEmpty()) result["Navette maritime"] = naturalSort(navettesMaritimes)
+    if (telepheriques.isNotEmpty()) result["Téléphérique"] = naturalSort(telepheriques)
+    if (bateauxBus.isNotEmpty()) result["Bateau-bus"] = naturalSort(bateauxBus)
     if (bus.isNotEmpty()) result["Bus"] = naturalSort(bus)
-    if (nuit.isNotEmpty()) result["Bus de nuit"] = naturalSort(nuit)
-    if (remplacement.isNotEmpty()) result["Bus de remplacement"] = naturalSort(remplacement)
-    if (scolaires.isNotEmpty()) result["Scolaire"] = naturalSort(scolaires)
+    if (navettes.isNotEmpty()) result["Navette"] = naturalSort(navettes)
 
     return result
 }

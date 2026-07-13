@@ -102,8 +102,8 @@ fun CreditsScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 ClickableLink(
-                    label = "commons.wikimedia.org",
-                    url = "https://commons.wikimedia.org/wiki/Category:Public_transport_symbols_of_Marseille",
+                    label = "reseaumistral.com",
+                    url = "https://www.reseaumistral.com",
                     uriHandler = uriHandler,
                     strings = strings
                 )

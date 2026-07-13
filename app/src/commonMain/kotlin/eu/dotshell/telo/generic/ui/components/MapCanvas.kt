@@ -87,8 +87,8 @@ private const val BUS_RENDER_MIN_ZOOM = 16.0
 fun MapCanvas(
     modifier: Modifier = Modifier,
     styleUrl: String,
-    initialLatitude: Double = 43.2965,
-    initialLongitude: Double = 5.3698,
+    initialLatitude: Double = 43.1242,
+    initialLongitude: Double = 5.9280,
     initialZoom: Double = 10.0,
     initialBearing: Double? = null,
     cameraState: CameraState = rememberCameraState(
@@ -436,7 +436,7 @@ fun MapCanvas(
                     fallback = fallback,
                 )
 
-                // Loop over slots to stack multiple icons vertically at multi-line stations (like Castellane).
+                // Loop over slots to stack multiple icons vertically at multi-line stations (like Liberté).
                 // Priority gates the zoom (metro/funicular from 12.5f, tram from 14f, bus from 17f).
                 // String-based priority comparison to avoid numerical conversion mismatches.
                 val tiers = listOf(

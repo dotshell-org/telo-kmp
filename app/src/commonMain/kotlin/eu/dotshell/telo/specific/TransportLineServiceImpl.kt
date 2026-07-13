@@ -8,8 +8,8 @@ import eu.dotshell.telo.generic.data.network.transport.TransportLinesQuery
 import eu.dotshell.telo.generic.service.TransportServiceProvider
 
 /**
- * Marseille RTM implementation of [TransportLineService].
- * Delegates to [TransportApi] (RtmLocalClient) which serves everything from bundled data.
+ * Toulon Réseau Mistral implementation of [TransportLineService].
+ * Delegates to [TransportApi] (MistralLocalClient) which serves everything from bundled data.
  */
 class TransportLineServiceImpl : TransportLineService {
 
@@ -38,15 +38,15 @@ class TransportLineServiceImpl : TransportLineService {
     }
 
     override suspend fun getNavigoneLines(): FeatureCollection {
-        // RTM: navettes maritimes + ferry boat (GTFS route_type 4)
+        // Mistral: the 8M/18M/28M bateaux-bus (GTFS route_type 4)
         return transportApi.getLines(TransportLinesQuery.LineByName("navigone"))
     }
 
     override suspend fun getTrambusLines(): FeatureCollection {
-        // RTM equivalent of a "trambus" tier: the B1-B5 BHNS lines
+        // Mistral equivalent of a "trambus" tier: the U structuring line
         val allBus = transportApi.getLines(TransportLinesQuery.BusPage(startIndex = 0, count = 10000))
         return allBus.copy(features = allBus.features.filter {
-            it.properties.lineName.matches(Regex("^B\\d$", RegexOption.IGNORE_CASE))
+            it.properties.lineName.matches(Regex("^U$", RegexOption.IGNORE_CASE))
         })
     }
 

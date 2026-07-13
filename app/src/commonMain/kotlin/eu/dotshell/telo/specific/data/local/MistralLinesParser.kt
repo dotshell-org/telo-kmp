@@ -6,7 +6,7 @@ import io.raptor.data.BinaryReader
  * A single line trace (one per GTFS direction), points as [lon, lat] pairs
  * ready for GeoJSON MultiLineString coordinates.
  */
-data class RtmLinePath(
+data class MistralLinePath(
     val directionId: Int,
     val points: List<List<Double>>
 )
@@ -15,13 +15,13 @@ data class RtmLinePath(
  * A transit line as stored in lines.bin: display name, GTFS colors and
  * one geometry path per direction.
  */
-data class RtmLine(
+data class MistralLine(
     val idInternal: Int,
     val name: String,
     val colorHex: String,      // GTFS route_color without '#', may be empty
     val textColorHex: String,  // GTFS route_text_color without '#', may be empty
-    val gtfsRouteType: Int,    // raw GTFS route_type: 0 tram, 1 metro, 3 bus, 4 ferry
-    val paths: List<RtmLinePath>
+    val gtfsRouteType: Int,    // raw GTFS route_type: 0 tram, 1 metro, 3 bus, 4 ferry, 6 aerial lift
+    val paths: List<MistralLinePath>
 )
 
 /**
@@ -37,9 +37,9 @@ data class RtmLine(
  *           | pointCount × i32 delta-encoded lat×scale (first absolute)
  * ```
  */
-object RtmLinesParser {
+object MistralLinesParser {
 
-    fun parse(bytes: ByteArray): List<RtmLine> {
+    fun parse(bytes: ByteArray): List<MistralLine> {
         val reader = BinaryReader(bytes)
         reader.readMagic("RLN2")
         reader.readUInt16() // schema version
@@ -59,7 +59,7 @@ object RtmLinesParser {
                 val pointCount = reader.readUInt32()
                 val xs = readDeltaInts(reader, pointCount)
                 val ys = readDeltaInts(reader, pointCount)
-                RtmLinePath(
+                MistralLinePath(
                     directionId = directionId,
                     points = List(pointCount) { i ->
                         listOf(xs[i] / coordScale, ys[i] / coordScale)
@@ -67,7 +67,7 @@ object RtmLinesParser {
                 )
             }
 
-            RtmLine(idInternal, name, color, textColor, transportType, paths)
+            MistralLine(idInternal, name, color, textColor, transportType, paths)
         }
     }
 

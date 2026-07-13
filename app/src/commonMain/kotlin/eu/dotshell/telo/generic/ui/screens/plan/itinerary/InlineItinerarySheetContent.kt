@@ -101,20 +101,16 @@ fun InlineItinerarySheetContent(
 
     // Load user preferences for route filtering
     val itineraryPrefsRepo = remember { ItineraryPreferencesRepository(context) }
-    val schoolLinesEnabled = remember { itineraryPrefsRepo.isSchoolLinesEnabled() }
-    val nightLinesEnabled = remember { itineraryPrefsRepo.isNightLinesEnabled() }
+    val navetteLinesEnabled = remember { itineraryPrefsRepo.isNavetteLinesEnabled() }
 
     // Build set of blocked route names based on user preferences.
     // raptorKt's RouteFilter matches route names EXACTLY (no wildcards), so
     // every individual line name must be listed.
-    val blockedRouteNames = remember(schoolLinesEnabled, nightLinesEnabled) {
+    val blockedRouteNames = remember(navetteLinesEnabled) {
         buildSet {
-            if (!schoolLinesEnabled) {
-                addAll((1..8).map { "S$it" })
-            }
-            if (!nightLinesEnabled) {
-                add("N1")
-                add("N2")
+            if (!navetteLinesEnabled) {
+                add("BN1")
+                add("BN3")
             }
         }
     }

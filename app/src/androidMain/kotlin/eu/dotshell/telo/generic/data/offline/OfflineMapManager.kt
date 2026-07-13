@@ -21,7 +21,7 @@ class OfflineMapManager(private val context: Context) {
 
     companion object {
         private const val TAG = "OfflineMapManager"
-        private const val REGION_NAME_PREFIX = "telo_rtm_"
+        private const val REGION_NAME_PREFIX = "telo_mistral_"
 
         // Network bounding box from config.json: [minLat, minLon, maxLat, maxLon]
         private val NETWORK_BOUNDS: LatLngBounds
@@ -50,7 +50,7 @@ class OfflineMapManager(private val context: Context) {
     private var currentRegion: OfflineRegion? = null
 
     /**
-     * Starts downloading map tiles for the Lyon region with a given style.
+     * Starts downloading map tiles for the Toulon region with a given style.
      * The style URL must be a remote URL (not asset://).
      */
     fun startDownload(styleUrl: String, regionName: String) {

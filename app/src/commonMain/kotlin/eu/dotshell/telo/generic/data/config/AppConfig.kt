@@ -20,7 +20,7 @@ data class AppConfig(
 
 /**
  * Feature flags for real-time capabilities. Networks without a real-time backend
- * (e.g. RTM) disable them: services become no-ops and the related UI is hidden.
+ * (e.g. Mistral) disable them: services become no-ops and the related UI is hidden.
  */
 @Serializable
 data class RealtimeConfigData(
@@ -46,7 +46,7 @@ data class TransportConfigData(
     val trafficAlertsBaseUrl: String,
     val vehiclePositionsStreamUrl: String,
     // Commercial line name -> operator internal line id (e.g. "B1" -> "139",
-    // giving "RTM:LNE:139") used by the real-time vehicle positions service.
+    // matching the route_id of the GTFS-RT feed) used by the real-time vehicle positions service.
     val realtimeLineIds: Map<String, String> = emptyMap(),
     // Measured per-line commercial speeds (tools/build_vehicle_speed_baseline.py):
     // lets the live mode dead-reckon vehicles from the very first feed tick.

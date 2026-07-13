@@ -2,7 +2,7 @@ package eu.dotshell.telo
 
 import eu.dotshell.telo.generic.data.config.AppConfig
 import eu.dotshell.telo.generic.utils.graphics.LineIconResolver
-import eu.dotshell.telo.specific.data.local.RtmLinesParser
+import eu.dotshell.telo.specific.data.local.MistralLinesParser
 import io.raptor.PeriodData
 import io.raptor.RaptorLibrary
 import java.io.File
@@ -104,7 +104,7 @@ class MistralSmokeTest {
         val drawableDir = drawableDirs.map(::File).firstOrNull(File::isDirectory)
             ?: error("drawable dir not found")
 
-        val lines = RtmLinesParser.parse(asset("raptor/lines.bin").readBytes())
+        val lines = MistralLinesParser.parse(asset("raptor/lines.bin").readBytes())
         val missing = lines
             .map { it.name }
             .filter { it !in knownFallbacks }
@@ -117,7 +117,7 @@ class MistralSmokeTest {
     // ─── Configuration ───────────────────────────────────────────────────────
 
     @Test
-    fun configJsonMatchesTheRtmSchema() {
+    fun configJsonMatchesTheMistralSchema() {
         val json = Json {
             ignoreUnknownKeys = true
             isLenient = true
@@ -125,32 +125,31 @@ class MistralSmokeTest {
         }
         val config = json.decodeFromString<AppConfig>(asset("config.json").readText())
 
-        assertEquals("RTM", config.transport.networkName)
+        assertEquals("Réseau Mistral", config.transport.networkName)
         assertEquals(4, config.transport.regionBounds.size)
-        assertEquals(125, config.lineColors.rules.size)
-        assertTrue("M1 is a strong line", "M1" in config.rules.strongLines)
+        assertEquals(51, config.lineColors.rules.size)
+        assertTrue("U is a strong line", "U" in config.rules.strongLines)
+        assertTrue("T (cable car) is a strong line", "T" in config.rules.strongLines)
         assertFalse(config.realtime.trafficAlertsEnabled)
-        // Live vehicle positions come from the webservice of RTM's own interactive map
-        assertTrue(config.realtime.vehiclePositionsEnabled)
+        // Live vehicle positions stay disabled until the GTFS-RT service lands
+        assertFalse(config.realtime.vehiclePositionsEnabled)
         assertTrue(
-            "the stream URL must point at the RTM interactive map webservice",
-            config.transport.vehiclePositionsStreamUrl.startsWith("https://carte-interactive.rtm.fr/")
+            "the stream URL must point at the official Mistral GTFS-RT feed",
+            config.transport.vehiclePositionsStreamUrl.startsWith("https://feed-rdtpm-toulon.ratpdev.com/")
         )
-        assertEquals(125, config.transport.realtimeLineIds.size)
-        assertEquals("116", config.transport.realtimeLineIds["M1"])
-        assertEquals("139", config.transport.realtimeLineIds["B1"])
-        // Measured speed baseline for first-tick dead reckoning
-        assertTrue(config.transport.vehicleSpeedBaseline.size > 50)
-        val t1Baseline = config.transport.vehicleSpeedBaseline["T1"]!!
-        assertTrue("T1 commercial speed sane", t1Baseline.speedMps in 0.5..15.0)
-        assertTrue("T1 has measured direction signs", t1Baseline.signs.isNotEmpty())
+        assertEquals(51, config.transport.realtimeLineIds.size)
+        assertEquals("0001", config.transport.realtimeLineIds["1"])
+        assertEquals("011B", config.transport.realtimeLineIds["11B"])
+        assertEquals("U", config.transport.realtimeLineIds["U"])
+        // No measured speed baseline: the interpolator degrades cleanly on an empty map
+        assertTrue(config.transport.vehicleSpeedBaseline.isEmpty())
         // Every strong line must be pollable in global live mode
         config.rules.strongLines.forEach { line ->
             assertTrue("strong line $line needs a realtime id", line in config.transport.realtimeLineIds)
         }
         assertFalse(config.realtime.userStopAlertsEnabled)
         assertEquals(false, config.telemetry?.enabled)
-        assertEquals("marseille-rtm", config.telemetry?.networkCode)
+        assertEquals("toulon-mistral", config.telemetry?.networkCode)
 
         // Every regex in the rules must compile (AppConfigValidator would crash at startup)
         (config.rules.strongLineRegexes + config.rules.lineNameRegexes +

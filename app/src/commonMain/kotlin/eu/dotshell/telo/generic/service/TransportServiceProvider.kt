@@ -19,7 +19,7 @@ import eu.dotshell.telo.generic.data.config.LineSpeedBaselineData
 import eu.dotshell.telo.generic.data.config.RealtimeConfigData
 import eu.dotshell.telo.generic.ui.screens.about.GenericAboutScreen
 import eu.dotshell.telo.generic.ui.theme.GenericTransportTheme
-import eu.dotshell.telo.specific.data.network.RtmLocalClient
+import eu.dotshell.telo.specific.data.network.MistralLocalClient
 import eu.dotshell.telo.specific.data.network.RtmVehiclesService
 import eu.dotshell.telo.generic.data.config.AppMapStyleConfig
 import eu.dotshell.telo.platform.FileSystem
@@ -46,7 +46,7 @@ object TransportServiceProvider {
     private var vehicleSpeedBaseline: Map<String, LineSpeedBaselineData> = emptyMap()
 
     /**
-     * Initializes the provider with the Marseille RTM configuration
+     * Initializes the provider with the Réseau Mistral configuration
      */
     fun initialize(context: PlatformContext) {
         // Load configuration from config.json
@@ -61,8 +61,8 @@ object TransportServiceProvider {
         // Transport line service
         transportLineService = TransportLineServiceImpl()
 
-        // Create the API backed by bundled RTM data (no network)
-        transportApi = RtmLocalClient(context)
+        // Create the API backed by bundled Mistral data (no network)
+        transportApi = MistralLocalClient(context)
 
         // Rules for matching/normalizing line names
         transportLineRules = AppTransportLineRules(appConfig.rules)
@@ -80,7 +80,7 @@ object TransportServiceProvider {
             NoopTrafficAlertsService()
         }
 
-        // Vehicle positions service (webservice of RTM's own interactive map)
+        // Vehicle positions service (official Mistral GTFS-RT feed)
         vehiclePositionsService = if (realtimeConfig.vehiclePositionsEnabled) {
             RtmVehiclesService(appConfig.transport, appConfig.rules)
         } else {

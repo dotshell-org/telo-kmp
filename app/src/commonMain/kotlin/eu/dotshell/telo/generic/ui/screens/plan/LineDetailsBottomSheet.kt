@@ -996,7 +996,7 @@ private fun StopItemWithLine(
 
 /**
  * Badge displaying a transfer line (metro or funicular)
- * Uses RTM pictograms like on the map
+ * Uses the line badges like on the map
  */
 @Composable
 private fun ConnectionBadge(
@@ -1022,7 +1022,7 @@ private fun ConnectionBadge(
     }
 
     if (hasIcon) {
-        // Display RTM pictogram via Compose Resources (cross-platform)
+        // Display the line badge via Compose Resources (cross-platform)
         Image(
             painter = drawableProvider.getPainter(drawableName),
             contentDescription = strings["line_label"].replace("%s", lineName),

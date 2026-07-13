@@ -116,11 +116,8 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
     }
 
     override fun isLiveTrackableLine(lineName: String): Boolean {
-        val upperName = lineName.uppercase()
-        if (isStrongLine(lineName)) {
-            // Tram lines are trackable despite being strong
-            return upperName.startsWith("T") || canonicalRouteName(lineName).uppercase().startsWith("T")
-        }
+        // Every Mistral line may report vehicle positions in the GTFS-RT feed;
+        // lines absent from the feed simply show no markers.
         return true
     }
 
@@ -219,7 +216,7 @@ class AppTransportLineRules(private val data: RulesData) : TransportLineRules {
     companion object {
         private val SORT_PREFIX_NUMBER_SUFFIX = Regex("^([A-Z]+)(\\d+)([A-Z]*)$")
 
-        /** transportType names that count as water/ferry lines (Lyon "Navigone", RTM "Navette maritime"). */
-        private val WATER_TRANSPORT_TYPES = setOf("Navigone", "Navette maritime")
+        /** transportType names that count as water/ferry lines (Lyon "Navigone", Toulon "Bateau-bus"). */
+        private val WATER_TRANSPORT_TYPES = setOf("Navigone", "Navette maritime", "Bateau-bus")
     }
 }

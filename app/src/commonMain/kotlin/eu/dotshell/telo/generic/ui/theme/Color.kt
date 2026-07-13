@@ -291,7 +291,7 @@ val Rose950 = Color(0xFF4C0519)
 // Theme Colors
 val PrimaryColor = Color.Black
 val SecondaryColor = Color.White
-val AccentColor = Color(0xFF02AEDA) // Bleu Telo (mélange bleu M1 × Pantone)
+val AccentColor = Color(0xFF2E6BD6) // Bleu Telo (bleu Mistral éclairci)
 
 // Neutral (non-bluish) dark gray used for bottom sheets in dark mode, so they read as a
 // distinct surface above the pure-black navbar and map rather than blending into them.
