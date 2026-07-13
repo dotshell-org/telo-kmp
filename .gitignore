@@ -37,3 +37,4 @@ iosApp/Info.plist
 .claude
 # Kotlin toolchain working dir
 .kotlin/
+app/release/
