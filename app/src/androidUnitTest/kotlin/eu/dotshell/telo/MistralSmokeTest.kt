@@ -10,7 +10,6 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -94,7 +93,6 @@ class MistralSmokeTest {
     // ─── Icons ───────────────────────────────────────────────────────────────
 
     @Test
-    @Ignore("Mistral line badges are generated in a later phase")
     fun everyLineHasItsPictogramOrKnownFallback() {
         val knownFallbacks = emptySet<String>()
         val drawableDirs = listOf(
