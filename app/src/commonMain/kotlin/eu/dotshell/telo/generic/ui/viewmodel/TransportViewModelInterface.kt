@@ -5,6 +5,7 @@ import eu.dotshell.telo.generic.data.models.gtfs.LineStopInfo
 import eu.dotshell.telo.generic.data.models.realtime.alerts.official.AlertSeverity
 import eu.dotshell.telo.generic.data.models.realtime.alerts.official.TrafficAlert
 import eu.dotshell.telo.generic.data.models.realtime.vehiclepositions.SimpleVehiclePosition
+import eu.dotshell.telo.generic.data.models.search.AddressSearchResult
 import eu.dotshell.telo.generic.data.models.search.LineSearchResult
 import eu.dotshell.telo.generic.data.models.search.StationSearchResult
 import eu.dotshell.telo.generic.data.models.stops.Favorite
@@ -13,6 +14,7 @@ import eu.dotshell.telo.generic.data.offline.OfflineDownloadState
 import eu.dotshell.telo.generic.data.repository.itinerary.itinerary.JourneyResult
 import eu.dotshell.telo.generic.data.repository.itinerary.itinerary.RaptorStop
 import eu.dotshell.telo.generic.ui.viewmodel.StopDeparturePreview
+import io.raptor.Location
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -37,6 +39,7 @@ interface TransportViewModelInterface {
     val offlineDownloadState: StateFlow<OfflineDownloadState>
 
     suspend fun searchStops(query: String): List<StationSearchResult>
+    suspend fun searchAddresses(query: String): List<AddressSearchResult>
     fun searchLines(query: String): List<LineSearchResult>
 
     fun loadAllLines()
@@ -85,6 +88,22 @@ interface TransportViewModelInterface {
         originStopIds: List<Int>,
         destinationStopIds: List<Int>,
         arrivalTimeSeconds: Int
+    ): List<JourneyResult>
+
+    suspend fun getOptimizedPathsForLocations(
+        origin: Location,
+        destination: Location,
+        departureTimeSeconds: Int,
+        originLabel: String? = null,
+        destinationLabel: String? = null
+    ): List<JourneyResult>
+
+    suspend fun getOptimizedPathsArriveByForLocations(
+        origin: Location,
+        destination: Location,
+        arrivalTimeSeconds: Int,
+        originLabel: String? = null,
+        destinationLabel: String? = null
     ): List<JourneyResult>
 
     fun startOfflineDownload()

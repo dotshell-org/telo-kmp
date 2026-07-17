@@ -1,0 +1,49 @@
+package eu.dotshell.telo
+
+import eu.dotshell.telo.generic.data.repository.offline.search.SearchHistoryItem
+import eu.dotshell.telo.generic.data.repository.offline.search.SearchType
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+/**
+ * Pins the search-history serialization compatibility around the ADDRESS entries
+ * (coordinates persisted so addresses re-select without re-geocoding).
+ */
+class SearchHistoryItemTest {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun legacyEntriesWithoutCoordinateFieldsStillDecode() {
+        val legacy = """
+            [{"query":"Liberté","type":"STOP","lines":["1","9"],"timestamp":1720000000000},
+             {"query":"3","type":"LINE","timestamp":1720000000001}]
+        """.trimIndent()
+        val items = json.decodeFromString<List<SearchHistoryItem>>(legacy)
+
+        assertEquals(2, items.size)
+        assertEquals(SearchType.STOP, items[0].type)
+        assertNull(items[0].lat)
+        assertNull(items[0].detail)
+    }
+
+    @Test
+    fun addressEntryRoundTripsWithCoordinates() {
+        val address = SearchHistoryItem(
+            query = "Carrefour Grand Var",
+            type = SearchType.ADDRESS,
+            lat = 43.1362,
+            lon = 5.9928,
+            detail = "Avenue de l'Université, 83160 La Valette-du-Var"
+        )
+        val decoded = json.decodeFromString<SearchHistoryItem>(json.encodeToString(SearchHistoryItem.serializer(), address))
+
+        assertEquals(address.query, decoded.query)
+        assertEquals(SearchType.ADDRESS, decoded.type)
+        assertEquals(43.1362, decoded.lat!!, 1e-9)
+        assertEquals(5.9928, decoded.lon!!, 1e-9)
+        assertEquals(address.detail, decoded.detail)
+    }
+}
