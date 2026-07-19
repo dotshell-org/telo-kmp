@@ -207,4 +207,6 @@
     <string name="category_bateau_bus">Bateau-bus</string>
     <string name="category_bus">Bus</string>
     <string name="category_navette">Navette</string>
+    <string name="itinerary_long_walk_fallback">Aucun trajet direct à cette heure — au plus proche, puis %s à pied.</string>
+    <string name="decimal_separator">,</string>
 </resources>

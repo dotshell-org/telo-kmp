@@ -207,4 +207,6 @@
     <string name="category_bateau_bus">Sea shuttle</string>
     <string name="category_bus">Bus</string>
     <string name="category_navette">Shuttle</string>
+    <string name="itinerary_long_walk_fallback">No direct route right now — closest option, then %s on foot.</string>
+    <string name="decimal_separator">.</string>
 </resources>
