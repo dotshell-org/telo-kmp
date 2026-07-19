@@ -159,6 +159,7 @@ import eu.dotshell.telo.generic.ui.viewmodel.findStopByCoordinates
 import eu.dotshell.telo.generic.utils.location.GeoPoint
 import eu.dotshell.telo.generic.utils.location.LocationPermissionSignal
 import eu.dotshell.telo.generic.utils.location.LocationProvider
+import eu.dotshell.telo.generic.utils.location.HeadingProvider
 import eu.dotshell.telo.generic.service.NavigationModeController
 import eu.dotshell.telo.generic.service.NavigationModeUiState
 import eu.dotshell.telo.generic.ui.screens.plan.NavigationModeOverlay
@@ -303,8 +304,12 @@ private fun RootScaffold(
     val selectedLineName = selectedLine?.lineName
     
     var userLocation by remember { mutableStateOf<Position?>(null) }
+    // Device heading (degrees clockwise from north) for the direction cone on the location dot;
+    // null until the compass reports (or on devices without a magnetometer).
+    var heading by remember { mutableStateOf<Float?>(null) }
     var hasCenteredInitially by remember { mutableStateOf(false) }
     val locationProvider = remember { LocationProvider(context) }
+    val headingProvider = remember { HeadingProvider(context) }
     val cameraState = rememberCameraState(
         firstPosition = CameraPosition(
             target = org.maplibre.spatialk.geojson.Position(latitude = 43.1242, longitude = 5.9280),
@@ -327,6 +332,17 @@ private fun RootScaffold(
         }
         onDispose {
             locationProvider.stopUpdates()
+        }
+    }
+    // Compass updates for the direction cone. The provider already smooths and rate-limits, so we
+    // set the state directly. Started alongside location (the cone only shows with the dot) and
+    // stopped on dispose to release the sensor.
+    DisposableEffect(headingProvider, locationPermissionGranted) {
+        headingProvider.startUpdates { deg ->
+            heading = deg
+        }
+        onDispose {
+            headingProvider.stopUpdates()
         }
     }
 
@@ -780,6 +796,7 @@ private fun RootScaffold(
                         viewModel = viewModel,
                         stops = filteredStopsCollection?.features,
                         userLocation = userLocation,
+                        heading = heading,
                         userFavorites = userFavorites,
                         showTopBar = !itineraryActive && !navigationState.isActive,
                         vehiclesGeoJson = vehiclesGeoJson,
@@ -1142,6 +1159,7 @@ private fun PlanContent(
     viewModel: TransportViewModel,
     stops: List<StopFeature>?,
     userLocation: Position?,
+    heading: Float?,
     userFavorites: List<Favorite>,
     showTopBar: Boolean,
     vehiclesGeoJson: String?,
@@ -1262,6 +1280,7 @@ private fun PlanContent(
                     lines = mapLines?.let { FeatureCollection(features = it) },
                     stops = filteredStopsCollection,
                     userLocation = userLocation,
+                    heading = heading,
                     vehiclesGeoJson = vehiclesGeoJson,
                     vehicleIconName = vehicleIconName,
                     selectedLineName = selectedLineName,
