@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Telo"
 include(":app")
+include(":baselineprofile")
