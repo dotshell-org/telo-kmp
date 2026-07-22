@@ -75,10 +75,6 @@ private const val BUS_RENDER_MIN_ZOOM = 16.0
 // descriptor fetch; the URL stays the offline-download key in config.json's mapStyles.
 private const val BUNDLED_POSITRON_STYLE_URL = "https://tiles.openfreemap.org/styles/positron"
 
-private const val REVEAL_PARSE_GRACE_MS = 500L
-private const val REVEAL_MS_PER_LINE = 12
-private const val REVEAL_LINES_PER_WAVE = 4
-
 /**
  * Cross-platform map canvas built on maplibre-compose (declarative).
  *
