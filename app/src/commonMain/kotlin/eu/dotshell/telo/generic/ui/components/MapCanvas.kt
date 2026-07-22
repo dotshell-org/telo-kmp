@@ -268,11 +268,11 @@ fun MapCanvas(
         (-(max - 1)..(max - 1)).toList()
     }
     // Pre-load all key/strong-line icons to avoid asynchronous pop-in/loading delay when zooming in.
+    // These are the Reseau Mistral strong lines (config.json `rules.strongLines`) passed through the
+    // LineIconResolver naming rule: lowercased, with a "_" prefix when the name starts with a digit.
     val preloadedIconNames = remember {
         listOf(
-            "m1", "m2", "t1", "t2", "t3",
-            "b1", "b2", "b3", "b4", "b5",
-            "nav1", "nav2", "nav3", "ferry", "mode_bus"
+            "u", "t", "_8m", "_18m", "_28m", "mode_bus"
         ).filter { drawableProvider.hasDrawable(it) }
     }
     val allIconNamesToLoad = remember(iconNames, preloadedIconNames) {
